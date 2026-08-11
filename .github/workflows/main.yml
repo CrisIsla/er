@@ -20,7 +20,7 @@ jobs:
           cache: npm
 
       - name: Install project
-        run: npm install
+        run: npm ci
 
       - name: Run eslint & prettier
         run: npm run lint
