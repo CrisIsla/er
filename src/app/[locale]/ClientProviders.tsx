@@ -2,6 +2,7 @@
 import { CacheProvider } from "@chakra-ui/next-js";
 import { ChakraProvider } from "@chakra-ui/react";
 import { ReactFlowProvider } from "reactflow";
+import { DiagramSettingsProvider } from "../hooks/useDiagramSettings";
 
 export default function ClientProviders({
   children,
@@ -11,7 +12,9 @@ export default function ClientProviders({
   return (
     <CacheProvider>
       <ChakraProvider>
-        <ReactFlowProvider>{children}</ReactFlowProvider>
+        <ReactFlowProvider>
+          <DiagramSettingsProvider>{children}</DiagramSettingsProvider>
+        </ReactFlowProvider>
       </ChakraProvider>
     </CacheProvider>
   );

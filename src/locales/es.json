@@ -77,7 +77,17 @@
         "edgeRouting": "Enrutamiento de aristas",
         "orthogonal": "Ortogonal",
         "orthogonalDisabled": "La opción ortogonal solo está disponible para la notación de flechas",
-        "straight": "Rectas"
+        "straight": "Rectas",
+        "attributes": "Atributos",
+        "showAttributes": "Mostrar atributos",
+        "attributesAlways": "Siempre visibles",
+        "attributesHover": "Solo al pasar el cursor",
+        "attributesModeDisabled": "Active \"Mostrar atributos\" para elegir cómo se muestran",
+        "alignment": "Alineación",
+        "spacingGuides": "Guías de espacio",
+        "magneticSnap": "Alineación magnética",
+        "snapRadius": "Radio de alineación",
+        "snapRadiusDisabled": "Active la alineación magnética para ajustar el radio"
       }
     },
 

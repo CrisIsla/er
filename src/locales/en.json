@@ -80,7 +80,17 @@
         "edgeRouting": "Edge routing",
         "orthogonal": "Orthogonal",
         "orthogonalDisabled": "Orthogonal routing is only available for Arrow notation",
-        "straight": "Straight"
+        "straight": "Straight",
+        "attributes": "Attributes",
+        "showAttributes": "Show attributes",
+        "attributesAlways": "Always visible",
+        "attributesHover": "Only on hover",
+        "attributesModeDisabled": "Enable \"Show attributes\" to choose how they are revealed",
+        "alignment": "Alignment",
+        "spacingGuides": "Spacing guides",
+        "magneticSnap": "Magnetic alignment",
+        "snapRadius": "Alignment radius",
+        "snapRadiusDisabled": "Enable magnetic alignment to adjust the radius"
       }
     },
 
