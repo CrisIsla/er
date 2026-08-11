@@ -20,6 +20,7 @@ import { ConfigPanel } from "./ConfigPanel";
 import { ControlPanel } from "./ControlPanel";
 import EdgeCustomSVGs from "./EdgeCustomSVGs";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
+import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
 import { useLayoutedElements } from "../../hooks/useLayoutedElements";
 import ErNotation from "./notations/DefaultNotation";
@@ -92,6 +93,7 @@ const ErDiagram = ({
   const { saveToLocalStorage, loadFromLocalStorage, setRfInstance } =
     useDiagramToLocalStorage();
   useLayoutedElements(autoLayoutEnabled);
+  useAttributeVisibility();
 
   useEffect(() => {
     if (lastChange?.type === "json" || lastChange?.type === "localStorage") {

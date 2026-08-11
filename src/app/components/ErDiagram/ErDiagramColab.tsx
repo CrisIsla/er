@@ -20,6 +20,7 @@ import { ConfigPanel } from "./ConfigPanel";
 import { ControlPanel } from "./ControlPanel";
 import EdgeCustomSVGs from "./EdgeCustomSVGs";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
+import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
 import { useLayoutedElements } from "../../hooks/useLayoutedElements";
 import ErNotation from "./notations/DefaultNotation";
@@ -110,6 +111,7 @@ const ErDiagram = ({
   const { saveToLocalStorage, setRfInstance } = useDiagramToLocalStorage();
   const { getNodes, getEdges } = useReactFlow();
   useLayoutedElements(autoLayoutEnabled);
+  useAttributeVisibility();
   const params = useParams();
   const modelId = params.modelId as string;
 
