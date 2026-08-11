@@ -18,6 +18,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+    "node": ">=18 <21"
+  },
   "prettier": {
     "plugins": [
       "prettier-plugin-tailwindcss"
