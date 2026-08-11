@@ -1,4 +1,3 @@
 build
 coverage
-src/parser/peggy/*.js
-src/peggy-parser/*.js
+src/ERDoc/parser/peggy/*.js
