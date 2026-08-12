@@ -11,10 +11,6 @@ const ATTRIBUTE_NODE_TYPES = [
 const isAttributeNode = (node: { type?: string }) =>
   ATTRIBUTE_NODE_TYPES.includes(node.type ?? "");
 
-// alignment guides are transient and owned by useAlignmentGuide, so we
-// never touch their visibility
-const isGuideEdge = (edge: { id: string }) => edge.id.startsWith("ALIGN");
-
 // true once every node has been measured. We only hide after this, so a node
 // can't be stranded without dimensions -- useLayoutedElements refuses to run
 // until all nodes report a width and a height.
@@ -41,7 +37,6 @@ const isOutOfSync = (state: ReactFlowState, shouldHide: boolean) => {
   if (attributeIds.size === 0) return false;
 
   for (const edge of state.edges) {
-    if (isGuideEdge(edge)) continue;
     if (!attributeIds.has(edge.source) && !attributeIds.has(edge.target))
       continue;
     if (Boolean(edge.hidden) !== shouldHide) return true;
@@ -88,8 +83,7 @@ export const useAttributeVisibility = () => {
 
     setEdges((edges) =>
       edges.map((edge) =>
-        !isGuideEdge(edge) &&
-        (attributeIds.has(edge.source) || attributeIds.has(edge.target))
+        attributeIds.has(edge.source) || attributeIds.has(edge.target)
           ? { ...edge, hidden: shouldHide }
           : edge,
       ),

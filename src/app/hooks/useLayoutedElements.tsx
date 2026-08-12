@@ -21,8 +21,7 @@ const defaultOptions = {
 };
 
 const nodeCountSelector = (state: ReactFlowState) => state.nodeInternals.size;
-const edgeCountSelector = (state: ReactFlowState) =>
-  state.edges.filter((e) => !e.id.startsWith("ALIGN")).length;
+const edgeCountSelector = (state: ReactFlowState) => state.edges.length;
 const nodesInitializedSelector = (state: ReactFlowState) =>
   Array.from(state.nodeInternals.values()).every(
     (node) => node.width && node.height,

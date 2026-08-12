@@ -19,6 +19,7 @@ import { erToReactflowElements } from "../../util/erToReactflowElements";
 import { ConfigPanel } from "./ConfigPanel";
 import { ControlPanel } from "./ControlPanel";
 import EdgeCustomSVGs from "./EdgeCustomSVGs";
+import AlignmentGuides from "./AlignmentGuides";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
 import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
@@ -107,7 +108,8 @@ const ErDiagram = ({
   const { fitView } = useReactFlow();
   const { autoLayoutEnabled } = useContext(Context);
 
-  const { onNodeDrag, onNodeDragStart, onNodeDragStop } = useAlignmentGuide();
+  const { onNodeDrag, onNodeDragStart, onNodeDragStop, guides } =
+    useAlignmentGuide();
   const { saveToLocalStorage, setRfInstance } = useDiagramToLocalStorage();
   const { getNodes, getEdges } = useReactFlow();
   useLayoutedElements(autoLayoutEnabled);
@@ -369,6 +371,7 @@ const ErDiagram = ({
         />
       </Panel>
       <EdgeCustomSVGs />
+      <AlignmentGuides guides={guides} />
       <ControlPanel onLayoutClick={saveToLocalStorage} />
     </ReactFlow>
   );
