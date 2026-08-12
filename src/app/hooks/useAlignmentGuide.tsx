@@ -137,15 +137,15 @@ const toGuideLines = (
 };
 
 /**
- * Computes alignment and equal-spacing guides while a node is dragged.
+ * Computes alignment and equal-spacing guides while a node is dragged, and --
+ * when magnetic alignment is on -- pulls the node onto them.
  *
- * Guides are returned as plain geometry for an overlay to draw. They used to be
- * synthesised as React Flow edges with an "ALIGN" id prefix, which meant every
- * consumer of the edge list had to know to skip them -- the layout trigger and
- * the attribute-visibility sync both still carry that workaround.
+ * Guides are returned as plain geometry for an overlay to draw, rather than
+ * being synthesised as React Flow edges the way they used to be, which forced
+ * every consumer of the edge list to know to skip them.
  */
 export const useAlignmentGuide = () => {
-  const { getNodes } = useReactFlow();
+  const { getNodes, setNodes } = useReactFlow();
   const { settings } = useDiagramSettings();
   const [guides, setGuides] = useState<GuideLine[]>([]);
   const draggingRef = useRef<string | null>(null);
@@ -155,7 +155,7 @@ export const useAlignmentGuide = () => {
   }, []);
 
   const onNodeDrag: NodeDragHandler = useCallback(
-    (_evt, node: Node) => {
+    (_evt, node: Node, draggedNodes: Node[]) => {
       const allNodes = getNodes();
       // the store lags the pointer by a frame during a drag, so trust the
       // position React Flow just handed us
@@ -189,6 +189,36 @@ export const useAlignmentGuide = () => {
         includeSpacing: settings.spacingGuidesEnabled,
       });
 
+      // Magnetic alignment: pull the node onto the candidates it is close to.
+      // Skipped for multi-node drags -- snapping only the node under the
+      // cursor would tear a selection apart.
+      const isMultiDrag = (draggedNodes?.length ?? 1) > 1;
+      if (settings.snapEnabled && active.length > 0 && !isMultiDrag) {
+        // `draggedRect` is absolute; `node.position` is relative to the parent
+        // for child nodes, so carry the difference across
+        const offsetX = draggedRect.x - node.position.x;
+        const offsetY = draggedRect.y - node.position.y;
+
+        let { x, y } = node.position;
+        for (const candidate of active) {
+          if (candidate.axis === "x")
+            x = candidate.value - draggedRect.width / 2 - offsetX;
+          else y = candidate.value - draggedRect.height / 2 - offsetY;
+        }
+
+        if (x !== node.position.x || y !== node.position.y) {
+          // React Flow re-derives the position from the pointer on the next
+          // move, so this reads as a magnet rather than a lock: drag far enough
+          // and the node breaks free on its own. Nodes with extent "parent"
+          // (aggregation members) still get clamped to the box by React Flow.
+          setNodes((nodes) =>
+            nodes.map((n) =>
+              n.id === node.id ? { ...n, position: { x, y } } : n,
+            ),
+          );
+        }
+      }
+
       const byId = new Map(others.map((r) => [r.id, r]));
       const lines = active.flatMap((candidate) =>
         toGuideLines(candidate, draggedRect, byId),
@@ -211,6 +241,7 @@ export const useAlignmentGuide = () => {
     },
     [
       getNodes,
+      setNodes,
       settings.snapEnabled,
       settings.snapRadius,
       settings.spacingGuidesEnabled,
