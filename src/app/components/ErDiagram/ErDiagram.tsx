@@ -95,7 +95,7 @@ const ErDiagram = ({
   const { saveToLocalStorage, loadFromLocalStorage, setRfInstance } =
     useDiagramToLocalStorage();
   useLayoutedElements(autoLayoutEnabled);
-  useAttributeVisibility();
+  const { onNodeMouseEnter, onNodeMouseLeave } = useAttributeVisibility();
 
   useEffect(() => {
     if (lastChange?.type === "json" || lastChange?.type === "localStorage") {
@@ -224,6 +224,8 @@ const ErDiagram = ({
       onNodeDrag={onNodeDrag}
       onNodeDragStart={onNodeDragStartHandler}
       onNodeDragStop={onNodeDragStopHandler}
+      onNodeMouseEnter={onNodeMouseEnter}
+      onNodeMouseLeave={onNodeMouseLeave}
       proOptions={{ hideAttribution: true }}
     >
       <Background

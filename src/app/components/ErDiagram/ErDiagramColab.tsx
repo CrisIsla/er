@@ -113,7 +113,7 @@ const ErDiagram = ({
   const { saveToLocalStorage, setRfInstance } = useDiagramToLocalStorage();
   const { getNodes, getEdges } = useReactFlow();
   useLayoutedElements(autoLayoutEnabled);
-  useAttributeVisibility();
+  const { onNodeMouseEnter, onNodeMouseLeave } = useAttributeVisibility();
   const params = useParams();
   const modelId = params.modelId as string;
 
@@ -339,6 +339,8 @@ const ErDiagram = ({
       onNodeDrag={onNodeDrag}
       onNodeDragStart={onNodeDragStartHandler}
       onNodeDragStop={onNodeDragStopHandler}
+      onNodeMouseEnter={onNodeMouseEnter}
+      onNodeMouseLeave={onNodeMouseLeave}
       proOptions={{ hideAttribution: true }}
     >
       <Background
