@@ -6,6 +6,7 @@ import { erDocWithoutLocation, fetchExample } from "../util/common";
 import { DiagramChange, ErDocChangeEvent } from "../types/CodeEditor";
 import { ER } from "../../ERDoc/types/parser/ER";
 import { useSearchParams } from "next/navigation";
+import { useMonaco } from "@monaco-editor/react";
 import { useJSON } from "../hooks/useJSON";
 
 const Page = () => {
@@ -52,9 +53,14 @@ const Page = () => {
   };
 
   const { importJSON } = useJSON(onErDocChange);
+  const monaco = useMonaco();
   useEffect(() => {
     const exampleName = searchParams.get("example");
-    if (!exampleName) return;
+    // wait for the editor: importJSON writes the example's ERdoc into the Monaco
+    // model, and setModelValue silently does nothing when there is no model yet.
+    // The fetch resolves long before Monaco finishes loading, so without this the
+    // example's document is dropped and only its positions survive.
+    if (!exampleName || !monaco) return;
 
     fetchExample(exampleName)
       .then((example) => {
@@ -63,7 +69,7 @@ const Page = () => {
         }
       })
       .catch((err) => console.error("Error loading example", err));
-  }, [searchParams]);
+  }, [searchParams, monaco]);
 
   return (
     <>

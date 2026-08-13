@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -93,23 +93,55 @@ const ErDiagram = ({
     useDiagramToLocalStorage();
   const { onNodeMouseEnter, onNodeMouseLeave } = useAttributeVisibility();
 
+  /**
+   * Positions that arrived with an example or an imported file.
+   *
+   * They are held until they have actually landed on the nodes. Applying them
+   * once is not enough: the ERdoc rebuild below runs whenever the parsed
+   * document changes, which for an example load happens *after* the positions
+   * arrive, and it creates its nodes at erToReactflowElements' seed positions --
+   * the two bare columns. Keeping them pending until the diagram agrees with
+   * them makes the stored layout win regardless of which lands first.
+   */
+  const [pendingPositions, setPendingPositions] = useState<
+    { id: string; position: { x: number; y: number } }[] | null
+  >(null);
+  const hasPendingPositions = useRef(false);
+  hasPendingPositions.current = pendingPositions !== null;
+
   useEffect(() => {
-    if (lastChange?.type === "json" || lastChange?.type === "localStorage") {
-      const nodePositions = lastChange.positions.nodes;
-      setNodes((nodes) => {
-        return nodes.map((node) => {
-          const savedNode = nodePositions.find((n) => n.id === node.id);
-          if (savedNode) {
-            return {
-              ...node,
-              position: savedNode.position,
-            };
-          } else return node;
-        });
-      });
+    if (lastChange?.type === "json" || lastChange?.type === "localStorage")
+      setPendingPositions(lastChange.positions.nodes);
+  }, [lastChange]);
+
+  useEffect(() => {
+    if (pendingPositions === null || nodes.length === 0) return;
+    const saved = new Map(
+      pendingPositions.map((node) => [node.id, node.position]),
+    );
+
+    const settled = nodes.every((node) => {
+      const position = saved.get(node.id);
+      return (
+        position === undefined ||
+        (node.position.x === position.x && node.position.y === position.y)
+      );
+    });
+
+    if (settled) {
+      setPendingPositions(null);
+      setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
       setTimeout(saveToLocalStorage, 100);
+      return;
     }
-  }, [lastChange, saveToLocalStorage, setNodes, fitView]);
+
+    setNodes((current) =>
+      current.map((node) => {
+        const position = saved.get(node.id);
+        return position === undefined ? node : { ...node, position };
+      }),
+    );
+  }, [pendingPositions, nodes, setNodes, saveToLocalStorage, fitView]);
 
   if (!erDocHasError && erDoc !== prevErDoc) {
     setPrevErDoc(erDoc);
@@ -189,8 +221,10 @@ const ErDiagram = ({
       const viewport = document.querySelector(".react-flow__viewport")!;
       const defs = document.querySelector("#defs")!;
       viewport.append(defs);
-      // on mount, load from local storage
-      loadFromLocalStorage();
+      // on mount, load from local storage -- unless an example is already on its
+      // way in, whose positions would otherwise be overwritten by the last
+      // session's diagram
+      if (!hasPendingPositions.current) loadFromLocalStorage();
     },
     [setRfInstance, loadFromLocalStorage],
   );

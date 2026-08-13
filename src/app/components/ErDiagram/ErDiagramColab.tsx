@@ -173,24 +173,53 @@ const ErDiagram = ({
     });
   };
 
+  /**
+   * Positions that arrived with an example or an imported file, held until they
+   * have actually landed on the nodes -- the ERdoc rebuild below can run after
+   * they arrive and would otherwise leave the diagram on erToReactflowElements'
+   * seed positions. Same reasoning as ErDiagram.tsx.
+   */
+  const [pendingPositions, setPendingPositions] = useState<
+    { id: string; position: { x: number; y: number } }[] | null
+  >(null);
+
   useEffect(() => {
-    if (lastChange?.type === "json" || lastChange?.type === "localStorage") {
-      const nodePositions = lastChange.positions.nodes;
-      setNodes((nodes) => {
-        const updatedNodes = nodes.map((node) => {
-          const savedNode = nodePositions.find((n) => n.id === node.id);
-          if (savedNode) {
-            return {
-              ...node,
-              position: savedNode.position,
-            };
-          } else return node;
-        });
-        syncYMapWithNodes(updatedNodes as ErNode[]);
-        return updatedNodes;
-      });
+    if (lastChange?.type === "json" || lastChange?.type === "localStorage")
+      setPendingPositions(lastChange.positions.nodes);
+  }, [lastChange]);
+
+  useEffect(() => {
+    if (pendingPositions === null || nodes.length === 0) return;
+    const saved = new Map(
+      pendingPositions.map((node) => [node.id, node.position]),
+    );
+
+    const settled = nodes.every((node) => {
+      const position = saved.get(node.id);
+      return (
+        position === undefined ||
+        (node.position.x === position.x && node.position.y === position.y)
+      );
+    });
+
+    if (settled) {
+      setPendingPositions(null);
+      setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
+      return;
     }
-  }, [lastChange, setNodes, fitView]);
+
+    setNodes((current) => {
+      const updatedNodes = current.map((node) => {
+        const position = saved.get(node.id);
+        return position === undefined ? node : { ...node, position };
+      });
+      syncYMapWithNodes(updatedNodes as ErNode[]);
+      return updatedNodes;
+    });
+    // syncYMapWithNodes is redefined every render; adding it here would make
+    // this effect fire on every render instead of when the positions change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPositions, nodes, setNodes, fitView]);
 
   if (!erDocHasError && erDoc !== prevErDoc) {
     setPrevErDoc(erDoc);

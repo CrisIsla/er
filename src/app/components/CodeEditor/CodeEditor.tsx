@@ -2,6 +2,7 @@ import { Box, Spinner, Button } from "@chakra-ui/react";
 import Editor, { OnMount, useMonaco } from "@monaco-editor/react";
 import { editor, languages } from "monaco-types";
 import { useTranslations } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { getERDoc } from "../../../ERDoc";
 import {
@@ -113,6 +114,7 @@ const CodeEditor = ({
   const semanticErrT = useTranslations("home.codeEditor.semanticErrorMessages");
   const [errorMessages, setErrorMessages] = useState<ErrorMessage[]>([]);
   const { importJSON } = useJSON(onErDocChange);
+  const searchParams = useSearchParams();
   const [currentTheme, setCurrentTheme] = useState(DEFAULT_THEME);
 
   const toggleTheme = () => {
@@ -177,7 +179,13 @@ const CodeEditor = ({
   const handleEditorMount: OnMount = (editor, monacoInstance) => {
     editorRef.current = editor;
     const prevContent = localStorage.getItem(LOCAL_STORAGE_EDITOR_CONTENT_KEY);
-    if (prevContent === null) {
+    // an example named in the URL is what the user asked to see, so it wins over
+    // both the cached document and the default one; page.tsx loads it as soon as
+    // this editor exists
+    const wantsExample = searchParams.get("example") !== null;
+    if (wantsExample) {
+      // nothing to do: leave the model empty for the example to fill
+    } else if (prevContent === null) {
       // load an example from api
       fetchExample(DEFAULT_EXAMPLE)
         .then((example) => {
