@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import { useMemo, memo } from "react";
 import { BiSolidBook } from "react-icons/bi";
 import { MdDownload } from "react-icons/md";
-import AutoLayoutSwitch from "./AutoLayoutSwitch";
+import AutoLayoutButton from "./AutoLayoutButton";
 import SaveLoadFileButton from "./SaveLoadFileButton";
 import NewDiagramButton from "./NewDiagramButton";
 import LocaleSwitcher from "./LocaleSwitcher";
@@ -70,7 +70,7 @@ export const Header = ({ onErDocChange }: HeaderProps) => {
 
       <div className="flex h-full w-auto text-slate-200">
         <HeaderElement className="border-l-[1px]">
-          <AutoLayoutSwitch title={t("autoLayout")} />
+          <AutoLayoutButton title={t("autoLayout")} />
         </HeaderElement>
 
         <HeaderElement className="border-l-[1px]">

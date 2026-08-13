@@ -1,7 +1,9 @@
 import ELK, { ElkExtendedEdge, ElkNode } from "elkjs/lib/elk.bundled.js";
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Edge, Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
 import { AggregationNode, ErNode } from "../types/ErDiagram";
+import { getDiscreteLayoutedElements } from "../util/layout/toReactflow";
+import { LayoutAlgorithm, useDiagramSettings } from "./useDiagramSettings";
 
 type LayoutNode = Partial<
   ElkNode &
@@ -27,52 +29,84 @@ const nodesInitializedSelector = (state: ReactFlowState) =>
     (node) => node.width && node.height,
   );
 
-const useLayoutedElements = (shouldLayout: boolean | null) => {
+type LayoutRunner = (nodes: Node[], edges: Edge[]) => Promise<Node[]>;
+
+/**
+ * Resolved when the layout runs rather than at module load: getLayoutedElements
+ * is declared further down this file, so a lookup table up here would read it
+ * before its initialiser.
+ */
+const runnerFor = (algorithm: LayoutAlgorithm): LayoutRunner =>
+  algorithm === "multi-layout"
+    ? getLayoutedElements
+    : getDiscreteLayoutedElements;
+
+type ApplyLayoutOptions = {
+  /** runs once the store has flushed, with the nodes and edges just written */
+  onApplied?: (nodes: Node[], edges: Edge[]) => void;
+};
+
+/**
+ * Runs the selected layout and writes the result back.
+ *
+ * Both the auto-layout effect and the layout button go through here, so the
+ * write-back exists once instead of twice. Three things it is careful about:
+ *
+ *  - a node missing from the result keeps the position it had, rather than
+ *    getting `undefined` and rendering at translate(NaN, NaN);
+ *  - a layout that throws still reveals the diagram, because new nodes arrive at
+ *    `opacity: 0` and would otherwise stay invisible for good;
+ *  - `onApplied` fires after the flush, since saving reads the store back out.
+ */
+const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
   const { getNodes, setNodes, getEdges, setEdges, fitView } = useReactFlow();
-  const nodeCount = useStore(nodeCountSelector);
-  const edgeCount = useStore(edgeCountSelector);
-  const nodesInitialized = useStore(nodesInitializedSelector);
+  const { settings } = useDiagramSettings();
+  const algorithm = settings.layoutAlgorithm;
 
-  useEffect(() => {
-    if (!nodeCount || !nodesInitialized || !shouldLayout) {
-      return;
+  // held in a ref so an inline callback can't change applyLayout's identity:
+  // an unstable applyLayout in the effect below would re-run the layout forever
+  const onAppliedRef = useRef(onApplied);
+  onAppliedRef.current = onApplied;
+  const runningRef = useRef(false);
+
+  const applyLayout = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+
+    let layoutedNodes: Node[] = [];
+    try {
+      layoutedNodes = await runnerFor(algorithm)(getNodes(), getEdges());
+    } catch (error) {
+      console.error("Diagram layout failed", error);
+    } finally {
+      runningRef.current = false;
     }
-    const nodes = getNodes();
-    const edges = getEdges();
-    getLayoutedElements(nodes, edges).then((layoutedNodes) => {
-      setNodes((nodes) =>
-        nodes.map((node) => {
-          const layoutedNode = layoutedNodes.find((n) => n.id === node.id);
-          return {
-            ...node,
-            position: layoutedNode?.position!,
-            style: { ...node.style, opacity: 1 },
-          };
-        }),
-      );
 
-      setEdges((edges) =>
-        edges.map((edge) => ({
-          ...edge,
-          hidden: false,
-          style: {
-            ...edge.style,
-          },
-        })),
-      );
-      setTimeout(() => window.requestAnimationFrame(() => fitView()), 0);
-    });
-  }, [
-    nodeCount,
-    edgeCount,
-    nodesInitialized,
-    getNodes,
-    getEdges,
-    setNodes,
-    setEdges,
-    fitView,
-    shouldLayout,
-  ]);
+    const byId = new Map(layoutedNodes.map((node) => [node.id, node]));
+    const nextNodes = getNodes().map((node) => ({
+      ...node,
+      position: byId.get(node.id)?.position ?? node.position,
+      style: { ...node.style, opacity: 1 },
+    }));
+    const nextEdges = getEdges().map((edge) => ({
+      ...edge,
+      hidden: false,
+      style: { ...edge.style },
+    }));
+
+    setNodes(nextNodes);
+    setEdges(nextEdges);
+    setTimeout(
+      () =>
+        window.requestAnimationFrame(() => {
+          fitView();
+          onAppliedRef.current?.(nextNodes, nextEdges);
+        }),
+      0,
+    );
+  }, [algorithm, getNodes, getEdges, setNodes, setEdges, fitView]);
+
+  return { applyLayout };
 };
 
 const getLayoutedElements = async (
@@ -219,7 +253,7 @@ const getLayoutedElements = async (
   return layoutedNodes;
 };
 
-export { getLayoutedElements, useLayoutedElements };
+export { getLayoutedElements, useApplyLayout };
 
 const debug = (graph: any): any => {
   const recur = (graph: any) => {

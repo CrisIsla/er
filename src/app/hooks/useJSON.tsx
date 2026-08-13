@@ -1,7 +1,5 @@
 import { useMonaco } from "@monaco-editor/react";
-import { useContext } from "react";
 import { useReactFlow } from "reactflow";
-import { Context } from "../context";
 import { ErDocChangeEvent } from "../types/CodeEditor";
 import * as Y from "yjs";
 
@@ -41,7 +39,6 @@ const exportObject = (object: any, filename: string) => {
 export const useJSON = (onErDocChange: (evt: ErDocChangeEvent) => void) => {
   const { getNodes, getEdges } = useReactFlow();
   const monaco = useMonaco();
-  const { setAutoLayoutEnabled } = useContext(Context);
 
   const exportToJSON = () => {
     const filename = "er-diagram.json";
@@ -72,7 +69,6 @@ export const useJSON = (onErDocChange: (evt: ErDocChangeEvent) => void) => {
     monacoInstance?: ReturnType<typeof useMonaco>,
   ) => {
     const editorText = json.erDoc;
-    setAutoLayoutEnabled(false);
     setModelValue(monacoInstance ?? monaco, editorText);
     onErDocChange({
       type: "json",
@@ -85,7 +81,6 @@ export const useJSON = (onErDocChange: (evt: ErDocChangeEvent) => void) => {
 
   const importJSONColaborative = (json: ErJSON, ydoc: Y.Doc) => {
     const editorText = json.erDoc;
-    setAutoLayoutEnabled(false);
 
     const yText = ydoc.getText("monaco");
 

@@ -11,6 +11,13 @@ import {
 
 export type AttributeMode = "always" | "hover";
 
+/**
+ * Which algorithm arranges the diagram. "discrete-search" is the placement by
+ * discrete search, which treats alignment as a hard constraint; "multi-layout"
+ * is the original force-directed pipeline, kept so the two can be compared.
+ */
+export type LayoutAlgorithm = "discrete-search" | "multi-layout";
+
 export type DiagramSettings = {
   // whether attribute nodes are drawn at all
   showAttributes: boolean;
@@ -22,6 +29,8 @@ export type DiagramSettings = {
   snapEnabled: boolean;
   // max distance, in px, at which an element snaps
   snapRadius: number;
+  // which algorithm the auto layout and the layout button run
+  layoutAlgorithm: LayoutAlgorithm;
 };
 
 export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
@@ -30,6 +39,7 @@ export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
   spacingGuidesEnabled: true,
   snapEnabled: false,
   snapRadius: 12,
+  layoutAlgorithm: "discrete-search",
 };
 
 export const SNAP_RADIUS_MIN = 2;

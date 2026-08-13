@@ -29,6 +29,11 @@
       },
 
       "autoLayout": "Auto Layout",
+      "autoLayoutHint": "Arrange the diagram now",
+      "layoutAlgorithm": "Layout algorithm",
+      "layoutDiscrete": "Aligned placement",
+      "layoutForce": "Force-directed",
+
       "exportDiagram": "Export Diagram",
       "asJSON": "Export as JSON",
       "asPDF": "Export as PDF",

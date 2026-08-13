@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -12,7 +12,6 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { ER } from "../../../ERDoc/types/parser/ER";
-import { Context } from "../../context";
 import { AggregationNode, ErNode } from "../../types/ErDiagram";
 import { NotationTypes, notations } from "../../util/common";
 import { erToReactflowElements } from "../../util/erToReactflowElements";
@@ -23,7 +22,6 @@ import AlignmentGuides from "./AlignmentGuides";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
 import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
-import { useLayoutedElements } from "../../hooks/useLayoutedElements";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -88,13 +86,11 @@ const ErDiagram = ({
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const { fitView } = useReactFlow();
-  const { autoLayoutEnabled } = useContext(Context);
 
   const { onNodeDrag, onNodeDragStart, onNodeDragStop, guides } =
     useAlignmentGuide();
   const { saveToLocalStorage, loadFromLocalStorage, setRfInstance } =
     useDiagramToLocalStorage();
-  useLayoutedElements(autoLayoutEnabled);
   const { onNodeMouseEnter, onNodeMouseLeave } = useAttributeVisibility();
 
   useEffect(() => {
@@ -124,7 +120,6 @@ const ErDiagram = ({
     const renaming =
       nodes.length === fromErNodes.length &&
       edges.length === fromErEdges.length;
-    const hideItems = !renaming && autoLayoutEnabled;
     // @ts-ignore
     setNodes((nodes) => {
       const alreadyExists: string[] = [];
@@ -159,7 +154,7 @@ const ErDiagram = ({
               .filter((nn) => !alreadyExists.includes(nn.id))
               .map((newNode) => ({
                 ...newNode,
-                style: { ...newNode.style, opacity: hideItems ? 0 : 1 },
+                style: { ...newNode.style, opacity: 1 },
               })),
           )
       );
@@ -176,7 +171,7 @@ const ErDiagram = ({
         .concat(
           fromErEdges
             .filter((ne) => !alreadyExists.includes(ne.id))
-            .map((e) => ({ ...e, hidden: hideItems ? true : false })),
+            .map((e) => ({ ...e, hidden: false })),
         )
         .filter((e) => e !== undefined) as Edge[];
     });
@@ -184,10 +179,8 @@ const ErDiagram = ({
   }
 
   useEffect(() => {
-    if (!autoLayoutEnabled) {
-      setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
-    }
-  }, [nodes.length, autoLayoutEnabled, fitView]);
+    setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
+  }, [nodes.length, fitView]);
 
   // add defs to viewport so they appear when exporting to image
   const handleInit: OnInit = useCallback(

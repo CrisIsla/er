@@ -27,6 +27,11 @@
       },
 
       "autoLayout": "Auto Layout",
+      "autoLayoutHint": "Ordenar el diagrama ahora",
+      "layoutAlgorithm": "Algoritmo de ordenamiento",
+      "layoutDiscrete": "Colocación alineada",
+      "layoutForce": "Dirigido por fuerzas",
+
       "exportDiagram": "Exportar Diagrama",
       "asJSON": "Exportar como JSON",
       "asPDF": "Exportar como PDF",

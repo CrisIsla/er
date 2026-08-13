@@ -1,22 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Edge,
-  Node,
   NodeMouseHandler,
   ReactFlowState,
   useReactFlow,
   useStore,
 } from "reactflow";
+import { buildOwnerMap, isAttributeNode } from "../util/erGraph";
 import { useDiagramSettings } from "./useDiagramSettings";
-
-const ATTRIBUTE_NODE_TYPES = [
-  "entity-attribute",
-  "relationship-attribute",
-  "composite-attribute",
-];
-
-const isAttributeNode = (node: { type?: string }) =>
-  ATTRIBUTE_NODE_TYPES.includes(node.type ?? "");
 
 // true once every node has been measured. We only hide after this, so a node
 // can't be stranded without dimensions -- useLayoutedElements refuses to run
@@ -55,47 +46,6 @@ const visibilityFingerprint = (state: ReactFlowState) => {
     if (edge.hidden) hiddenEdges++;
   }
   return `${attributes}:${hiddenNodes}:${attributeEdges}:${hiddenEdges}`;
-};
-
-/**
- * Maps every attribute to the entity or relationship that owns it.
- *
- * Derived from the edges rather than `parentNode`, because aggregations
- * re-parent everything they contain to the aggregation node
- * (erToReactflowElements.ts:373) -- so an attribute inside an aggregation has
- * lost the link to its own entity. Walking attribute-only paths outwards from
- * each structural node also resolves composite attributes, which hang off
- * another attribute rather than off the entity directly.
- */
-const buildOwnerMap = (nodes: Node[], edges: Edge[]) => {
-  const attributeIds = new Set(
-    nodes.filter(isAttributeNode).map((node) => node.id),
-  );
-
-  const adjacency = new Map<string, string[]>();
-  const link = (from: string, to: string) =>
-    adjacency.set(from, [...(adjacency.get(from) ?? []), to]);
-  for (const edge of edges) {
-    link(edge.source, edge.target);
-    link(edge.target, edge.source);
-  }
-
-  const owner = new Map<string, string>();
-  for (const node of nodes) {
-    if (isAttributeNode(node)) continue;
-    const queue = [...(adjacency.get(node.id) ?? [])];
-    const seen = new Set<string>();
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      if (seen.has(current) || !attributeIds.has(current)) continue;
-      seen.add(current);
-      if (!owner.has(current)) owner.set(current, node.id);
-      for (const neighbour of adjacency.get(current) ?? [])
-        if (attributeIds.has(neighbour) && !seen.has(neighbour))
-          queue.push(neighbour);
-    }
-  }
-  return { owner, attributeIds };
 };
 
 /**

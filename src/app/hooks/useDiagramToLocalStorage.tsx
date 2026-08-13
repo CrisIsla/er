@@ -3,6 +3,21 @@ import { ReactFlowInstance, useReactFlow } from "reactflow";
 
 const LOCAL_STORAGE_FLOW_KEY = "er-flow";
 
+/**
+ * Saves the diagram from anywhere inside the React Flow provider.
+ *
+ * useDiagramToLocalStorage keeps the instance in its own state, so only the
+ * component that called setRfInstance can save through it. `toObject` comes off
+ * the shared store instead, which is what lets the header's layout button
+ * persist the positions it just produced.
+ */
+export const useSaveFlow = () => {
+  const { toObject } = useReactFlow();
+  return useCallback(() => {
+    localStorage.setItem(LOCAL_STORAGE_FLOW_KEY, JSON.stringify(toObject()));
+  }, [toObject]);
+};
+
 export const useDiagramToLocalStorage = () => {
   const { setNodes, setEdges, setViewport } = useReactFlow();
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
