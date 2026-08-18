@@ -106,6 +106,25 @@ const ErDiagram = ({
   const [pendingPositions, setPendingPositions] = useState<
     { id: string; position: { x: number; y: number } }[] | null
   >(null);
+
+  /**
+   * The same positions, as a lookup usable during render.
+   *
+   * The rebuild below runs in the render phase, while pendingPositions is
+   * applied from an effect -- and effects run after the browser has painted. So
+   * without this the newly built nodes get painted once at the generator's seed
+   * positions before being corrected, which reads as a flash of the wrong
+   * layout. Reading the incoming positions here lets the nodes be created where
+   * they belong, and the effect stays as the fallback for the case where the
+   * rebuild happens before the positions arrive.
+   */
+  const incomingPositions = useMemo(() => {
+    if (lastChange?.type !== "json" && lastChange?.type !== "localStorage")
+      return null;
+    return new Map(
+      lastChange.positions.nodes.map((node) => [node.id, node.position]),
+    );
+  }, [lastChange]);
   const hasPendingPositions = useRef(false);
   hasPendingPositions.current = pendingPositions !== null;
 
@@ -169,7 +188,8 @@ const ErDiagram = ({
             }
             if (newNode) {
               alreadyExists.push(newNode.id);
-              newNode.position = oldNode.position;
+              newNode.position =
+                incomingPositions?.get(newNode.id) ?? oldNode.position;
               // for aggregations, don't modify its size
               if (newNode.type === "aggregation") {
                 newNode.data.height = (oldNode as AggregationNode).data.height;
@@ -186,6 +206,8 @@ const ErDiagram = ({
               .filter((nn) => !alreadyExists.includes(nn.id))
               .map((newNode) => ({
                 ...newNode,
+                position:
+                  incomingPositions?.get(newNode.id) ?? newNode.position,
                 style: { ...newNode.style, opacity: 1 },
               })),
           )

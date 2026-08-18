@@ -183,6 +183,20 @@ const ErDiagram = ({
     { id: string; position: { x: number; y: number } }[] | null
   >(null);
 
+  /**
+   * The same positions, readable during render, so the rebuild below can create
+   * its nodes where they belong instead of painting them once at the seed
+   * positions and correcting them from an effect. Same reasoning as
+   * ErDiagram.tsx.
+   */
+  const incomingPositions = useMemo(() => {
+    if (lastChange?.type !== "json" && lastChange?.type !== "localStorage")
+      return null;
+    return new Map(
+      lastChange.positions.nodes.map((node) => [node.id, node.position]),
+    );
+  }, [lastChange]);
+
   useEffect(() => {
     if (lastChange?.type === "json" || lastChange?.type === "localStorage")
       setPendingPositions(lastChange.positions.nodes);
@@ -244,7 +258,8 @@ const ErDiagram = ({
           }
           if (newNode) {
             alreadyExists.push(newNode.id);
-            newNode.position = oldNode.position;
+            newNode.position =
+              incomingPositions?.get(newNode.id) ?? oldNode.position;
             // for aggregations, don't modify its size
             if (newNode.type === "aggregation") {
               newNode.data.height = (oldNode as AggregationNode).data.height;
@@ -261,6 +276,7 @@ const ErDiagram = ({
             .filter((nn) => !alreadyExists.includes(nn.id))
             .map((newNode) => ({
               ...newNode,
+              position: incomingPositions?.get(newNode.id) ?? newNode.position,
               style: { ...newNode.style, opacity: 1 },
             })),
         );
