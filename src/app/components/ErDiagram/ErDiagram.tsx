@@ -22,6 +22,8 @@ import AlignmentGuides from "./AlignmentGuides";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
 import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
+import { useDiagramSettings } from "../../hooks/useDiagramSettings";
+import { isAttributeNode } from "../../util/erGraph";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -92,6 +94,27 @@ const ErDiagram = ({
   const { saveToLocalStorage, loadFromLocalStorage, setRfInstance } =
     useDiagramToLocalStorage();
   const { onNodeMouseEnter, onNodeMouseLeave } = useAttributeVisibility();
+  const { settings } = useDiagramSettings();
+
+  /**
+   * Whether an attribute should be born hidden.
+   *
+   * The rebuild below constructs brand-new nodes from the AST, which drops the
+   * `hidden` flag useAttributeVisibility puts on them; that hook can only put it
+   * back once React Flow has measured every node, a frame later. Deciding it here
+   * means the attributes are never drawn in the first place.
+   */
+  const attributesStartHidden =
+    !settings.showAttributes || settings.attributeMode === "hover";
+
+  /**
+   * Hides the nodes and edges -- not the grid -- until the view has been fitted.
+   *
+   * fitView needs measured nodes, so it cannot run until after a paint. Without
+   * this the freshly loaded diagram is drawn once at the previous example's pan
+   * and zoom, and then snaps into place.
+   */
+  const [hideUntilFit, setHideUntilFit] = useState(false);
 
   /**
    * Positions that arrived with an example or an imported file.
@@ -149,7 +172,14 @@ const ErDiagram = ({
 
     if (settled) {
       setPendingPositions(null);
-      setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
+      setTimeout(
+        () =>
+          window.requestAnimationFrame(() => {
+            fitView();
+            setHideUntilFit(false);
+          }),
+        10,
+      );
       setTimeout(saveToLocalStorage, 100);
       return;
     }
@@ -167,6 +197,12 @@ const ErDiagram = ({
     const [fromErNodes, fromErEdges] = erToReactflowElements(
       erDoc,
       erEdgeNotation,
+    );
+    // an example or an imported file brings its own layout, so the view will be
+    // refitted; keep it covered until then
+    if (incomingPositions !== null) setHideUntilFit(true);
+    const attributeIds = new Set(
+      fromErNodes.filter(isAttributeNode).map((node) => node.id),
     );
     const renaming =
       nodes.length === fromErNodes.length &&
@@ -190,6 +226,8 @@ const ErDiagram = ({
               alreadyExists.push(newNode.id);
               newNode.position =
                 incomingPositions?.get(newNode.id) ?? oldNode.position;
+              if (attributeIds.has(newNode.id))
+                newNode.hidden = attributesStartHidden;
               // for aggregations, don't modify its size
               if (newNode.type === "aggregation") {
                 newNode.data.height = (oldNode as AggregationNode).data.height;
@@ -208,11 +246,18 @@ const ErDiagram = ({
                 ...newNode,
                 position:
                   incomingPositions?.get(newNode.id) ?? newNode.position,
+                hidden: attributeIds.has(newNode.id)
+                  ? attributesStartHidden
+                  : newNode.hidden,
                 style: { ...newNode.style, opacity: 1 },
               })),
           )
       );
     });
+
+    const edgeStartsHidden = (edge: Edge) =>
+      attributesStartHidden &&
+      (attributeIds.has(edge.source) || attributeIds.has(edge.target));
 
     setEdges((oldEdges) => {
       const alreadyExists: string[] = [];
@@ -222,12 +267,9 @@ const ErDiagram = ({
           if (updatedEdge) alreadyExists.push(updatedEdge.id);
           return updatedEdge;
         })
-        .concat(
-          fromErEdges
-            .filter((ne) => !alreadyExists.includes(ne.id))
-            .map((e) => ({ ...e, hidden: false })),
-        )
-        .filter((e) => e !== undefined) as Edge[];
+        .concat(fromErEdges.filter((ne) => !alreadyExists.includes(ne.id)))
+        .filter((e) => e !== undefined)
+        .map((e) => ({ ...e!, hidden: edgeStartsHidden(e!) })) as Edge[];
     });
     setTimeout(saveToLocalStorage, 100);
   }
@@ -235,6 +277,15 @@ const ErDiagram = ({
   useEffect(() => {
     setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
   }, [nodes.length, fitView]);
+
+  // The cover above is only ever meant to last a couple of frames. If the
+  // positions never settle -- ids that do not line up, a diagram that fails to
+  // build -- this makes sure the user is not left staring at an empty pane.
+  useEffect(() => {
+    if (!hideUntilFit) return;
+    const timer = setTimeout(() => setHideUntilFit(false), 1000);
+    return () => clearTimeout(timer);
+  }, [hideUntilFit]);
 
   // add defs to viewport so they appear when exporting to image
   const handleInit: OnInit = useCallback(
@@ -263,6 +314,7 @@ const ErDiagram = ({
 
   return (
     <ReactFlow
+      className={hideUntilFit ? "diagram-awaiting-fit" : undefined}
       onInit={handleInit}
       nodes={nodes}
       onNodesChange={onNodesChange}

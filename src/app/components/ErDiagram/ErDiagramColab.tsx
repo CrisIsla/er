@@ -22,6 +22,8 @@ import AlignmentGuides from "./AlignmentGuides";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
 import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
+import { useDiagramSettings } from "../../hooks/useDiagramSettings";
+import { isAttributeNode } from "../../util/erGraph";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -110,6 +112,13 @@ const ErDiagram = ({
   const { saveToLocalStorage, setRfInstance } = useDiagramToLocalStorage();
   const { getNodes, getEdges } = useReactFlow();
   const { onNodeMouseEnter, onNodeMouseLeave } = useAttributeVisibility();
+  const { settings } = useDiagramSettings();
+
+  // the rebuild below drops the `hidden` flag useAttributeVisibility sets, and
+  // that hook can only restore it a frame later, once every node is measured --
+  // so decide it here and never draw the attributes at all
+  const attributesStartHidden =
+    !settings.showAttributes || settings.attributeMode === "hover";
   const params = useParams();
   const modelId = params.modelId as string;
 
@@ -241,6 +250,9 @@ const ErDiagram = ({
       erDoc,
       erEdgeNotation,
     );
+    const attributeIds = new Set(
+      fromErNodes.filter(isAttributeNode).map((node) => node.id),
+    );
     const renaming =
       nodes.length === fromErNodes.length &&
       edges.length === fromErEdges.length;
@@ -260,6 +272,8 @@ const ErDiagram = ({
             alreadyExists.push(newNode.id);
             newNode.position =
               incomingPositions?.get(newNode.id) ?? oldNode.position;
+            if (attributeIds.has(newNode.id))
+              newNode.hidden = attributesStartHidden;
             // for aggregations, don't modify its size
             if (newNode.type === "aggregation") {
               newNode.data.height = (oldNode as AggregationNode).data.height;
@@ -277,6 +291,9 @@ const ErDiagram = ({
             .map((newNode) => ({
               ...newNode,
               position: incomingPositions?.get(newNode.id) ?? newNode.position,
+              hidden: attributeIds.has(newNode.id)
+                ? attributesStartHidden
+                : newNode.hidden,
               style: { ...newNode.style, opacity: 1 },
             })),
         );
@@ -295,7 +312,12 @@ const ErDiagram = ({
         .concat(
           fromErEdges
             .filter((ne) => !alreadyExists.includes(ne.id))
-            .map((e) => ({ ...e, hidden: false })),
+            .map((e) => ({
+              ...e,
+              hidden:
+                attributesStartHidden &&
+                (attributeIds.has(e.source) || attributeIds.has(e.target)),
+            })),
         )
         .filter((e) => e !== undefined) as Edge[];
       syncYMapWithEdges(updatedEdges);

@@ -24,22 +24,30 @@
 }
 
 .yRemoteSelection {
-    background-color: rgb(250, 129, 0, .3)
+  background-color: rgb(250, 129, 0, 0.3);
 }
 .yRemoteSelectionHead {
-    position: absolute;
-    border-left: orange solid 2px;
-    border-top: orange solid 2px;
-    border-bottom: orange solid 2px;
-    height: 100%;
-    box-sizing: border-box;
+  position: absolute;
+  border-left: orange solid 2px;
+  border-top: orange solid 2px;
+  border-bottom: orange solid 2px;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .yRemoteSelectionHead::after {
-    position: absolute;
-    content: ' ';
-    border: 3px solid orange;
-    border-radius: 4px;
-    left: -4px;
-    top: -5px;
+  position: absolute;
+  content: " ";
+  border: 3px solid orange;
+  border-radius: 4px;
+  left: -4px;
+  top: -5px;
+}
+/* Covers the diagram itself -- nodes and edges, not the grid behind them --
+   while a freshly loaded layout waits for fitView. fitView needs measured
+   nodes, so it cannot run before the first paint; without this the diagram is
+   drawn once at the previous example's pan and zoom and then snaps into place.
+   Set from ErDiagram via the `diagram-awaiting-fit` class. */
+.diagram-awaiting-fit .react-flow__viewport {
+  opacity: 0;
 }
