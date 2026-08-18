@@ -3,10 +3,35 @@ import { jwtVerify } from "jose";
 import createMiddleware from "next-intl/middleware";
 import { cookies } from "next/headers";
 
+const LOCALES = ["en", "es"];
+const DEFAULT_LOCALE = "en";
+
 const intlMiddleware = createMiddleware({
-  locales: ["en", "es"],
-  defaultLocale: "en",
+  locales: LOCALES,
+  defaultLocale: DEFAULT_LOCALE,
 });
+
+/**
+ * Strips the default locale from the path ourselves.
+ *
+ * The default locale is not meant to be prefixed, and next-intl does redirect
+ * /en to / -- but only for a bare path. Add a query string and the Location it
+ * builds still carries the prefix, so /en?example=bank redirects to itself and
+ * the browser gives up with ERR_TOO_MANY_REDIRECTS. That is the URL you get by
+ * bookmarking or reloading an example, so it has to work.
+ *
+ * Matching is on whole segments, so a path like /english is left alone.
+ */
+const redirectAwayFromDefaultLocale = (req: NextRequest) => {
+  const { pathname } = req.nextUrl;
+  const prefix = `/${DEFAULT_LOCALE}`;
+  if (pathname !== prefix && !pathname.startsWith(`${prefix}/`)) return null;
+
+  const url = req.nextUrl.clone();
+  // clone() keeps the search params, which is the whole point
+  url.pathname = pathname.slice(prefix.length) || "/";
+  return NextResponse.redirect(url);
+};
 
 const protectedRoutes = [
   "/user",
@@ -29,6 +54,9 @@ async function verificarToken(token: string) {
 }
 
 export async function middleware(req: NextRequest) {
+  const withoutDefaultLocale = redirectAwayFromDefaultLocale(req);
+  if (withoutDefaultLocale) return withoutDefaultLocale;
+
   const intlResponse = intlMiddleware(req);
   const path = req.nextUrl.pathname;
 
