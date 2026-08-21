@@ -21,13 +21,24 @@ const getParams = (
   const horizontalDiff = Math.abs(centerA.x - centerB.x);
   const verticalDiff = Math.abs(centerA.y - centerB.y);
 
+  // Which side the centre-to-centre ray leaves through is not decided by the
+  // bigger difference but by how far the box reaches in each direction: on a
+  // 600x40 entity something 200px to the right and 150px below is still below
+  // it, and taking Position.Right there would anchor the edge 100px past the
+  // node it is heading for. So compare the differences against the half-extents
+  // -- the same reasoning as supportRadius() in util/layout/connectors.ts.
+  //
+  // |dx| / halfWidth > |dy| / halfHeight, cross-multiplied so a node that has
+  // not been measured yet (no width or height) keeps falling into the vertical
+  // branch as it did before, instead of dividing by zero.
+  const halfWidth = (nodeA.width ?? 0) / 2;
+  const halfHeight = (nodeA.height ?? 0) / 2;
+
   let position;
 
-  // when the horizontal difference between the nodes is bigger, we use Position.Left or Position.Right for the handle
-  if (horizontalDiff > verticalDiff) {
+  if (horizontalDiff * halfHeight > verticalDiff * halfWidth) {
     position = centerA.x > centerB.x ? Position.Left : Position.Right;
   } else {
-    // here the vertical difference between the nodes is bigger, so we use Position.Top or Position.Bottom for the handle
     position = centerA.y > centerB.y ? Position.Top : Position.Bottom;
   }
 
