@@ -8,6 +8,7 @@ import {
   internalsSymbol,
   useStore,
 } from "reactflow";
+import { isAttributeNode } from "../../../util/erGraph";
 
 const getParams = (
   nodeA: Node,
@@ -29,6 +30,12 @@ const getParams = (
     // here the vertical difference between the nodes is bigger, so we use Position.Top or Position.Bottom for the handle
     position = centerA.y > centerB.y ? Position.Top : Position.Bottom;
   }
+
+  // Attributes are ellipses, so a handle can only ever sit on one of the four
+  // cardinal points of the outline and the line arrives at it sideways. Anchor
+  // at the centre instead: the ellipse is opaque and painted over the edges, so
+  // it hides the stub and what is left reads as a spoke aimed at the attribute.
+  if (isAttributeNode(nodeA)) return [centerA.x, centerA.y, position];
 
   const [x, y] = getHandleCoordsByPosition(nodeA, position, handlePrefix);
   return [x, y, position];
