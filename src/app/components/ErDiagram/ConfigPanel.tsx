@@ -112,6 +112,32 @@ export const ConfigPanel = ({
 
               <Box>
                 <Heading size="xs" pb={2}>
+                  {t("edgeAnchor")}
+                </Heading>
+
+                <Stack direction="column">
+                  <Radio
+                    colorScheme="gray"
+                    isChecked={settings.edgeAnchor === "side"}
+                    onChange={() => setSetting("edgeAnchor", "side")}
+                  >
+                    {t("edgeAnchorSide")}
+                  </Radio>
+
+                  <Radio
+                    colorScheme="gray"
+                    isChecked={settings.edgeAnchor === "centre"}
+                    onChange={() => setSetting("edgeAnchor", "centre")}
+                  >
+                    <Tooltip label={t("edgeAnchorCentreHint")}>
+                      {t("edgeAnchorCentre")}
+                    </Tooltip>
+                  </Radio>
+                </Stack>
+              </Box>
+
+              <Box>
+                <Heading size="xs" pb={2}>
                   {t("attributes")}
                 </Heading>
 

@@ -5,6 +5,12 @@ import { getHandlePrefix } from "../../../../util/common";
 const ONE_TO_ONE_SHORTEN_PATH_BY = 7.5;
 const ZERO_TO_ONE_SHORTEN_PATH_BY = 3.035;
 
+// total participation is drawn as a wide black stroke with a thinner one in the
+// background colour laid over it, so the two rails left showing are the edges of
+// the wide one
+const DOUBLE_LINE_WIDTH = 5;
+const DOUBLE_LINE_GAP = 3;
+
 function ArrowNotationEdge({
   id,
   source,
@@ -18,17 +24,18 @@ function ArrowNotationEdge({
   cardinality: string;
   isTotalParticipation: boolean;
 }>) {
-  const [edgePath, _labelX, _labelY, roleLabelX, roleLabelY] = useEdgePath(
-    source,
-    target,
-    data?.isOrthogonal!,
-    data?.isTotalParticipation && data.cardinality === "1"
-      ? ONE_TO_ONE_SHORTEN_PATH_BY
-      : data?.cardinality === "1"
-      ? ZERO_TO_ONE_SHORTEN_PATH_BY
-      : 0,
-    getHandlePrefix(id),
-  );
+  const [edgePath, _labelX, _labelY, roleLabelX, roleLabelY, strokePath] =
+    useEdgePath(
+      source,
+      target,
+      data?.isOrthogonal!,
+      data?.isTotalParticipation && data.cardinality === "1"
+        ? ONE_TO_ONE_SHORTEN_PATH_BY
+        : data?.cardinality === "1"
+        ? ZERO_TO_ONE_SHORTEN_PATH_BY
+        : 0,
+      getHandlePrefix(id),
+    );
 
   if (edgePath === null) return null;
 
@@ -41,12 +48,12 @@ function ArrowNotationEdge({
             id={id}
             key={1}
             className="react-flow__edge-path"
-            d={edgePath}
+            d={strokePath(DOUBLE_LINE_WIDTH)}
             // markerStart={markerStart}
             style={{
               fill: "none",
               stroke: "black",
-              strokeWidth: 5,
+              strokeWidth: DOUBLE_LINE_WIDTH,
             }}
           />
 
@@ -57,11 +64,11 @@ function ArrowNotationEdge({
             markerStart={
               data.cardinality === "1" ? "url(#1to1-arrow)" : undefined
             }
-            d={edgePath}
+            d={strokePath(DOUBLE_LINE_GAP)}
             style={{
               fill: "none",
               stroke: "#F8FAFC",
-              strokeWidth: 3,
+              strokeWidth: DOUBLE_LINE_GAP,
             }}
           />
         </>

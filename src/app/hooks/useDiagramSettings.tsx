@@ -18,6 +18,14 @@ export type AttributeMode = "always" | "hover";
  */
 export type LayoutAlgorithm = "discrete-search" | "multi-layout";
 
+/**
+ * Where an edge stops at an entity, relationship or ISA shape. "side" uses the
+ * handle on whichever side faces the other end; "centre" runs the line to the
+ * shape's centre and lets the shape's own fill clip it, so it meets the outline
+ * at the angle it travels. Attributes are always drawn to their centre.
+ */
+export type EdgeAnchor = "side" | "centre";
+
 export type DiagramSettings = {
   // whether attribute nodes are drawn at all
   showAttributes: boolean;
@@ -31,6 +39,8 @@ export type DiagramSettings = {
   snapRadius: number;
   // which algorithm the auto layout and the layout button run
   layoutAlgorithm: LayoutAlgorithm;
+  // where edges stop at entities, relationships and ISA triangles
+  edgeAnchor: EdgeAnchor;
 };
 
 export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
@@ -40,6 +50,7 @@ export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
   snapEnabled: false,
   snapRadius: 12,
   layoutAlgorithm: "discrete-search",
+  edgeAnchor: "side",
 };
 
 export const SNAP_RADIUS_MIN = 2;
