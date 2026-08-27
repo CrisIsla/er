@@ -12,12 +12,13 @@ import {
   toAbsoluteRects,
 } from "../../../../src/app/util/alignmentCandidates";
 import { layoutDiscreteSearch } from "../../../../src/app/util/layout";
+import { minimumAggregationSize } from "../../../../src/app/util/layout/aggregationBox";
 import {
-  visualSize,
   rectsOverlap,
+  visualRectOf,
 } from "../../../../src/app/util/layout/geometry";
 import { DEFAULT_LAYOUT_PARAMS } from "../../../../src/app/util/layout/params";
-import { EXAMPLES, fromErDoc } from "./fixtures";
+import { EXAMPLES, fromErDoc, withSizes } from "./fixtures";
 
 const STRUCTURAL = ["entity", "relationship", "isA", "aggregation"];
 
@@ -31,25 +32,23 @@ const laidOutRects = (
     position: positions.get(node.id)!,
   }));
   const byId = new Map(withPositions.map((node) => [node.id, node]));
-  return toAbsoluteRects(withPositions, { structuralOnly: false }).map(
-    (rect) => {
-      const node = byId.get(rect.id)!;
-      const visual = visualSize(node.type ?? "", rect.width, rect.height);
-      // grow around the centre, so the diamond's overflow is symmetric
-      return {
-        id: rect.id,
-        x: rect.x - (visual.width - rect.width) / 2,
-        y: rect.y - (visual.height - rect.height) / 2,
-        width: visual.width,
-        height: visual.height,
-      };
-    },
+  return toAbsoluteRects(withPositions, { structuralOnly: false }).map((rect) =>
+    visualRectOf(
+      rect.id,
+      byId.get(rect.id)!.type ?? "",
+      { x: rect.x, y: rect.y },
+      rect.width,
+      rect.height,
+    ),
   );
 };
 
 describe.each(EXAMPLES)("$name", ({ name, erDoc }) => {
   const { nodes, edges } = fromErDoc(erDoc);
-  const positions = layoutDiscreteSearch(nodes, edges);
+  const { positions, sizes } = layoutDiscreteSearch(nodes, edges);
+  // an aggregation must be measured at the box the layout cut for it, not the
+  // one it was seeded with
+  const sized = withSizes(nodes, sizes) as unknown as PositionedNode[];
 
   it("returns a position for every input node", () => {
     expect(positions.size).toBe(nodes.length);
@@ -65,7 +64,7 @@ describe.each(EXAMPLES)("$name", ({ name, erDoc }) => {
   });
 
   it("puts the diagram in the positive quadrant", () => {
-    const rects = laidOutRects(nodes as unknown as PositionedNode[], positions);
+    const rects = laidOutRects(sized, positions);
     for (const rect of rects) {
       expect(rect.x).toBeGreaterThanOrEqual(0);
       expect(rect.y).toBeGreaterThanOrEqual(0);
@@ -75,15 +74,15 @@ describe.each(EXAMPLES)("$name", ({ name, erDoc }) => {
   it("is deterministic", () => {
     const rerun = fromErDoc(erDoc);
     const again = layoutDiscreteSearch(rerun.nodes, rerun.edges);
-    expect([...again.entries()]).toEqual([...positions.entries()]);
+    expect([...again.positions.entries()]).toEqual([...positions.entries()]);
+    expect([...again.sizes.entries()]).toEqual([...sizes.entries()]);
   });
 
   it("leaves no two structural elements overlapping", () => {
     const byId = new Map(nodes.map((node) => [node.id, node]));
-    const rects = laidOutRects(
-      nodes as unknown as PositionedNode[],
-      positions,
-    ).filter((rect) => STRUCTURAL.includes(byId.get(rect.id)?.type ?? ""));
+    const rects = laidOutRects(sized, positions).filter((rect) =>
+      STRUCTURAL.includes(byId.get(rect.id)?.type ?? ""),
+    );
 
     const collisions: string[] = [];
     for (let i = 0; i < rects.length; i++)
@@ -101,9 +100,7 @@ describe.each(EXAMPLES)("$name", ({ name, erDoc }) => {
   it("keeps attributes clear of the element they belong to", () => {
     const byId = new Map(nodes.map((node) => [node.id, node]));
     const rects = new Map(
-      laidOutRects(nodes as unknown as PositionedNode[], positions).map(
-        (rect) => [rect.id, rect],
-      ),
+      laidOutRects(sized, positions).map((rect) => [rect.id, rect]),
     );
 
     const overlapping: string[] = [];
@@ -125,17 +122,35 @@ describe.each(EXAMPLES)("$name", ({ name, erDoc }) => {
       if (parent?.type !== "aggregation") continue;
       // React Flow clamps `extent: "parent"` children on drag, so a position
       // outside the box looks fine until the user touches it
+      const box = sizes.get(parent.id)!;
       const position = positions.get(node.id)!;
       expect(position.x).toBeGreaterThanOrEqual(0);
       expect(position.y).toBeGreaterThanOrEqual(0);
+      expect(position.x + (node.width ?? 0)).toBeLessThanOrEqual(box.width);
+      expect(position.y + (node.height ?? 0)).toBeLessThanOrEqual(box.height);
     }
+    expect(name).toBeTruthy();
+  });
+
+  /**
+   * The invariant the whole feature rests on: a layout leaves every box at
+   * exactly the size a manual resize is held to. If these two ever disagree,
+   * the first shrink drag after a layout run jumps.
+   */
+  it("leaves every aggregation box at exactly its own minimum", () => {
+    const placed = sized.map((node) => ({
+      ...node,
+      position: positions.get(node.id) ?? node.position,
+    }));
+    for (const [containerId, size] of sizes)
+      expect(minimumAggregationSize(placed, containerId)).toEqual(size);
     expect(name).toBeTruthy();
   });
 });
 
 describe("edge cases", () => {
   it("returns an empty map for an empty diagram", () => {
-    expect(layoutDiscreteSearch([], []).size).toBe(0);
+    expect(layoutDiscreteSearch([], []).positions.size).toBe(0);
   });
 
   it("does not mutate the nodes it is given", () => {
@@ -152,6 +167,8 @@ describe("edge cases", () => {
       gridStep: 100,
     });
     const fine = layoutDiscreteSearch(nodes, edges, DEFAULT_LAYOUT_PARAMS);
-    expect([...coarse.entries()]).not.toEqual([...fine.entries()]);
+    expect([...coarse.positions.entries()]).not.toEqual([
+      ...fine.positions.entries(),
+    ]);
   });
 });

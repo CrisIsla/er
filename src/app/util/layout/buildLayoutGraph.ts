@@ -15,6 +15,7 @@ import {
   findAggregatedNodeIds,
   isAttributeNode,
 } from "../erGraph";
+import { DEFAULT_AGGREGATION_SIZE } from "../nodeSize";
 import { visualSize } from "./geometry";
 import { LayoutParams } from "./params";
 import {
@@ -51,7 +52,12 @@ const CONNECTOR_TYPES = ["relationship", "isA"];
  * (ControlPanel.tsx:16), so this is reachable. Sizes come from the notation
  * components: DefaultEntity `min-w-[90px] p-2`, DefaultRelationship
  * `h-[95px] w-[95px]`, DefaultIsA `h-16 w-24`, DefaultAttribute `min-w-[60px]
- * p-2`, and the 500x500 the aggregation container is created with.
+ * p-2`.
+ *
+ * The aggregation entry is the box a container is created at, and it is only
+ * ever reached for a container the layout could not size -- one with nothing
+ * inside it. Every container that holds something is measured from its contents
+ * before this runs (layout/index.ts, step 0).
  */
 const DEFAULT_SIZES: Record<string, { width: number; height: number }> = {
   entity: { width: 90, height: 44 },
@@ -60,7 +66,7 @@ const DEFAULT_SIZES: Record<string, { width: number; height: number }> = {
   "entity-attribute": { width: 60, height: 44 },
   "relationship-attribute": { width: 60, height: 44 },
   "composite-attribute": { width: 60, height: 44 },
-  aggregation: { width: 500, height: 500 },
+  aggregation: DEFAULT_AGGREGATION_SIZE,
 };
 
 const FALLBACK_SIZE = { width: 90, height: 44 };

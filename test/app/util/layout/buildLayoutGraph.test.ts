@@ -270,7 +270,7 @@ describe("hidden attributes", () => {
 
   it("still returns a position for every hidden attribute", () => {
     const { nodes, edges } = fromErDoc(source);
-    const positions = layoutDiscreteSearch(hideAttributes(nodes), edges);
+    const { positions } = layoutDiscreteSearch(hideAttributes(nodes), edges);
     expect(positions.size).toBe(nodes.length);
     for (const [, position] of positions) {
       expect(Number.isFinite(position.x)).toBe(true);
@@ -281,7 +281,7 @@ describe("hidden attributes", () => {
   it("draws the skeleton tighter once attributes are hidden", () => {
     const { nodes, edges } = fromErDoc(source);
     const spread = (list: typeof nodes) => {
-      const positions = layoutDiscreteSearch(list, edges);
+      const { positions } = layoutDiscreteSearch(list, edges);
       const structural = list.filter((node) =>
         ["entity", "relationship"].includes(node.type ?? ""),
       );

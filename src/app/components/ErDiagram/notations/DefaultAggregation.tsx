@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { NodeResizer, useNodeId, useStore } from "reactflow";
+import { NodeResizer, useNodeId } from "reactflow";
+import { useAggregationResize } from "../../../hooks/useAggregationResize";
 import NodeHandles from "./NodeHandles";
 
 const DefaultAggregation = ({
@@ -7,20 +8,32 @@ const DefaultAggregation = ({
 }: {
   data: { label: string };
 }) => {
-  // HACK: we set the width and height of the node with props because the auto layout also
-  // gives us the dimensions of the subgraph, which corresponds to the dimensions of the agg. container
-  // tailwind doesn't seem to update the width and height of the node when we change the props, so we use
-  // inline styles.
+  // The box is sized inline rather than with a Tailwind class because it is a
+  // number that changes at runtime -- the layout derives it from the contents
+  // and the handles below let the user override it. The outer node element is
+  // sized by React Flow from the same value (see util/nodeSize.ts); this is the
+  // dashed rectangle drawn inside it.
   const nodeId = useNodeId();
-  const node = useStore((store) =>
-    nodeId ? store.nodeInternals.get(nodeId) : null,
-  );
+  const {
+    width,
+    height,
+    minWidth,
+    minHeight,
+    onResizeStart,
+    onResize,
+    onResizeEnd,
+  } = useAggregationResize(nodeId);
 
   return (
     <div className="relative">
       <NodeResizer
-        minWidth={300}
-        minHeight={300}
+        // derived from the contents, so the box can never be dragged smaller
+        // than what it holds
+        minWidth={minWidth}
+        minHeight={minHeight}
+        onResizeStart={onResizeStart}
+        onResize={onResize}
+        onResizeEnd={onResizeEnd}
         handleStyle={{
           width: "12px",
           height: "12px",
@@ -30,10 +43,7 @@ const DefaultAggregation = ({
       />
 
       <div
-        style={{
-          width: node?.width ?? 500,
-          height: node?.height ?? 500,
-        }}
+        style={{ width, height }}
         className={`z-10 flex border-2 border-dashed border-sky-700 bg-sky-200/[.26] p-2`}
       >
         <div>{label}</div>

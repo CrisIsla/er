@@ -14,6 +14,7 @@
 import { getERDoc } from "../../../../src/ERDoc";
 import { erToReactflowElements } from "../../../../src/app/util/erToReactflowElements";
 import { LayoutInputNode } from "../../../../src/app/util/layout/buildLayoutGraph";
+import { DEFAULT_AGGREGATION_SIZE } from "../../../../src/app/util/nodeSize";
 import aggregation from "../../../../src/app/static/examples/aggregation.json";
 import bank from "../../../../src/app/static/examples/bank.json";
 import company from "../../../../src/app/static/examples/company.json";
@@ -30,14 +31,19 @@ const MIN_SIZES: Record<string, Size> = {
   "entity-attribute": { width: 60, height: 44 },
   "relationship-attribute": { width: 60, height: 44 },
   "composite-attribute": { width: 60, height: 44 },
-  aggregation: { width: 500, height: 500 },
+  aggregation: DEFAULT_AGGREGATION_SIZE,
 };
 
 /**
  * Widths grow with the label, the way a `min-w-[...] p-2` box does. The diamond
  * and the triangle are fixed-size, and the aggregation carries its own style.
  */
-const sizeOf = (node: { type?: string; data?: { label?: string } }): Size => {
+const sizeOf = (node: {
+  type?: string;
+  // erId as well as label: LayoutInputNode's data carries only erId, and a type
+  // with no property in common with this one would not be assignable at all
+  data?: { label?: string; erId?: string };
+}): Size => {
   const min = MIN_SIZES[node.type ?? ""] ?? { width: 90, height: 44 };
   if (node.type === "relationship" || node.type === "isA") return min;
   if (node.type === "aggregation") return min;
@@ -50,6 +56,21 @@ const sizeOf = (node: { type?: string; data?: { label?: string } }): Size => {
 
 export const withMeasuredSizes = <T extends LayoutInputNode>(nodes: T[]): T[] =>
   nodes.map((node) => ({ ...node, ...sizeOf(node) }));
+
+/**
+ * Applies the sizes a layout derived, the way the app's write-back does.
+ *
+ * Without this a test measures an aggregation at the box it was seeded with
+ * rather than the one the layout cut for it.
+ */
+export const withSizes = <T extends LayoutInputNode>(
+  nodes: T[],
+  sizes: Map<string, { width: number; height: number }>,
+): T[] =>
+  nodes.map((node) => {
+    const size = sizes.get(node.id);
+    return size === undefined ? node : { ...node, ...size };
+  });
 
 /** ERdoc source -> the nodes and edges the diagram would render, with sizes. */
 export const fromErDoc = (source: string) => {

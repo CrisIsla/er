@@ -3,6 +3,12 @@ import { useCallback, useEffect, useRef } from "react";
 import { Edge, Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
 import { AggregationNode, ErNode } from "../types/ErDiagram";
 import { getDiscreteLayoutedElements } from "../util/layout/toReactflow";
+import {
+  NodeSize,
+  isFiniteSize,
+  readNodeSize,
+  withNodeSize,
+} from "../util/nodeSize";
 import { LayoutAlgorithm, useDiagramSettings } from "./useDiagramSettings";
 
 type LayoutNode = Partial<
@@ -83,11 +89,25 @@ const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
     }
 
     const byId = new Map(layoutedNodes.map((node) => [node.id, node]));
-    const nextNodes = getNodes().map((node) => ({
-      ...node,
-      position: byId.get(node.id)?.position ?? node.position,
-      style: { ...node.style, opacity: 1 },
-    }));
+    const nextNodes = getNodes().map((node) => {
+      const layouted = byId.get(node.id);
+      const positioned = {
+        ...node,
+        position: layouted?.position ?? node.position,
+        style: { ...node.style, opacity: 1 },
+      };
+      // Only an aggregation container is sized by a layout: every other node
+      // measures itself from its own label, and writing a size onto one would
+      // freeze it at whatever the browser last rendered.
+      //
+      // A layout run therefore replaces a box the user resized by hand. That is
+      // deliberate -- the layout button is the reset.
+      const size =
+        node.type === "aggregation" && layouted !== undefined
+          ? readNodeSize(layouted)
+          : null;
+      return size === null ? positioned : withNodeSize(positioned, size);
+    });
     const nextEdges = getEdges().map((edge) => ({
       ...edge,
       hidden: false,
@@ -439,16 +459,21 @@ const unwrapAggregationSubgraph = (
     // @ts-ignore
     erId: subgraph.data.erId as string,
     label: (subgraph as AggregationNode).data?.label,
-    width: subgraph.width,
-    height: subgraph.height,
   };
   const x = subgraph.x! + offsetX;
   const y = subgraph.y! + offsetY;
 
-  layoutedNodes.push({
-    ...subgraph,
-    position: { x, y },
-  } as ErNode);
+  const placed = { ...subgraph, position: { x, y } } as ErNode;
+  // ELK sized the subgraph it laid the children into; carry that box through
+  // the authored channel so the shared write-back above picks it up
+  layoutedNodes.push(
+    isFiniteSize(subgraph.width, subgraph.height)
+      ? withNodeSize(placed, {
+          width: subgraph.width,
+          height: subgraph.height,
+        } as NodeSize)
+      : placed,
+  );
   layoutedNodes.push(
     // @ts-ignore
     ...subgraph.children?.map(

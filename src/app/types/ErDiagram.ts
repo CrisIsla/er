@@ -49,8 +49,6 @@ export type RelationshipAttributeNode = Node<
 export type AggregationNode = Node<
   {
     label: string;
-    width?: number;
-    height?: number;
     erId?: string;
   },
   "aggregation"

@@ -22,6 +22,7 @@ import {
   createRelationshipId,
   createRelationshipNodeId,
 } from "./common";
+import { DEFAULT_AGGREGATION_SIZE } from "./nodeSize";
 
 const inheritanceToReactflowElements = (
   childEntityNodeId: string,
@@ -384,7 +385,12 @@ export const updateGraphElementsWithAggregation = ({
       label: aggregationName,
     },
     position,
-    style: { width: 500, height: 500 },
+    // both size channels, always together: `style` sizes the wrapper element,
+    // the top-level pair is what the container renders from and what
+    // `extent: "parent"` clamps its members into (see util/nodeSize.ts)
+    width: DEFAULT_AGGREGATION_SIZE.width,
+    height: DEFAULT_AGGREGATION_SIZE.height,
+    style: { ...DEFAULT_AGGREGATION_SIZE },
   });
 };
 

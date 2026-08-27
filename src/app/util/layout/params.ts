@@ -43,6 +43,16 @@ export type LayoutParams = {
   /** gap between an element's edge and the attributes fanned around it */
   attributeGap: number;
   /**
+   * Space kept between an aggregation container's edge and the contents
+   * arranged inside it -- and, therefore, the floor a manual resize is held to.
+   * One value for both, so a layout run leaves the box at exactly its own
+   * minimum and the two writers of a container's size cannot disagree.
+   *
+   * Sized to clear the label row the container draws inside itself
+   * (DefaultAggregation.tsx: `p-2` plus one line of text).
+   */
+  aggregationPadding: number;
+  /**
    * How much of an element's attribute halo is reserved as hard clearance while
    * placing the skeleton. Attributes are steered into the sectors their owner's
    * edges leave free, so reserving the full ring in every direction would spread
@@ -82,6 +92,7 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
   maxSteps: 8,
   minSeparation: 45,
   attributeGap: 30,
+  aggregationPadding: 40,
   haloFactor: 0.55,
   parallelGap: 70,
   margin: 50,

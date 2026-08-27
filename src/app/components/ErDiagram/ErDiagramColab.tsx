@@ -12,7 +12,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { ER } from "../../../ERDoc/types/parser/ER";
-import { AggregationNode, ErNode } from "../../types/ErDiagram";
+import { ErNode } from "../../types/ErDiagram";
 import { NotationTypes, notations } from "../../util/common";
 import { erToReactflowElements } from "../../util/erToReactflowElements";
 import { ConfigPanel } from "./ConfigPanel";
@@ -24,6 +24,11 @@ import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
 import { useDiagramSettings } from "../../hooks/useDiagramSettings";
 import { isAttributeNode } from "../../util/erGraph";
+import { incomingLayout, mergeRebuiltNodes } from "../../util/rebuildNodes";
+import { useResizeCommit } from "../../hooks/useResizeCommit";
+import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
+import { ErJSON, toErJSONEdges, toErJSONNodes } from "../../hooks/useJSON";
+import { isFiniteSize, readNodeSize, withNodeSize } from "../../util/nodeSize";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -183,66 +188,85 @@ const ErDiagram = ({
   };
 
   /**
-   * Positions that arrived with an example or an imported file, held until they
-   * have actually landed on the nodes -- the ERdoc rebuild below can run after
-   * they arrive and would otherwise leave the diagram on erToReactflowElements'
+   * The layout that arrived with an example or an imported file, held until it
+   * has actually landed on the nodes -- the ERdoc rebuild below can run after
+   * it arrives and would otherwise leave the diagram on erToReactflowElements'
    * seed positions. Same reasoning as ErDiagram.tsx.
+   *
+   * It carries sizes as well as positions, and that matters more here than it
+   * does solo: importJSONColaborative never touches yNodesMap, so the
+   * syncYMapWithNodes below is the only route a size loaded from the server has
+   * into the shared document.
    */
-  const [pendingPositions, setPendingPositions] = useState<
-    { id: string; position: { x: number; y: number } }[] | null
-  >(null);
+  const [pendingLayout, setPendingLayout] = useState<ErJSON["nodes"] | null>(
+    null,
+  );
 
   /**
-   * The same positions, readable during render, so the rebuild below can create
+   * The same layout, readable during render, so the rebuild below can create
    * its nodes where they belong instead of painting them once at the seed
    * positions and correcting them from an effect. Same reasoning as
    * ErDiagram.tsx.
    */
-  const incomingPositions = useMemo(() => {
-    if (lastChange?.type !== "json" && lastChange?.type !== "localStorage")
-      return null;
-    return new Map(
-      lastChange.positions.nodes.map((node) => [node.id, node.position]),
-    );
-  }, [lastChange]);
+  const incoming = useMemo(
+    () =>
+      lastChange?.type === "json" || lastChange?.type === "localStorage"
+        ? incomingLayout(lastChange.positions.nodes)
+        : null,
+    [lastChange],
+  );
 
   useEffect(() => {
     if (lastChange?.type === "json" || lastChange?.type === "localStorage")
-      setPendingPositions(lastChange.positions.nodes);
+      setPendingLayout(lastChange.positions.nodes);
   }, [lastChange]);
 
   useEffect(() => {
-    if (pendingPositions === null || nodes.length === 0) return;
-    const saved = new Map(
-      pendingPositions.map((node) => [node.id, node.position]),
-    );
+    if (pendingLayout === null || nodes.length === 0) return;
+    const saved = new Map(pendingLayout.map((node) => [node.id, node]));
 
     const settled = nodes.every((node) => {
-      const position = saved.get(node.id);
+      const record = saved.get(node.id);
+      if (record === undefined) return true;
+      if (
+        node.position.x !== record.position.x ||
+        node.position.y !== record.position.y
+      )
+        return false;
+      if (!isFiniteSize(record.width, record.height)) return true;
+      const size = readNodeSize(node);
       return (
-        position === undefined ||
-        (node.position.x === position.x && node.position.y === position.y)
+        size !== null &&
+        size.width === record.width &&
+        size.height === record.height
       );
     });
 
     if (settled) {
-      setPendingPositions(null);
+      setPendingLayout(null);
       setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
       return;
     }
 
     setNodes((current) => {
       const updatedNodes = current.map((node) => {
-        const position = saved.get(node.id);
-        return position === undefined ? node : { ...node, position };
+        const record = saved.get(node.id);
+        if (record === undefined) return node;
+        const moved = { ...node, position: record.position };
+        return isFiniteSize(record.width, record.height)
+          ? withNodeSize(moved, {
+              width: record.width!,
+              height: record.height!,
+            })
+          : moved;
       });
       syncYMapWithNodes(updatedNodes as ErNode[]);
       return updatedNodes;
     });
     // syncYMapWithNodes is redefined every render; adding it here would make
-    // this effect fire on every render instead of when the positions change
+    // this effect fire on every render instead of when the layout changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingPositions, nodes, setNodes, fitView]);
+  }, [pendingLayout, nodes, setNodes, fitView]);
 
   if (!erDocHasError && erDoc !== prevErDoc) {
     setPrevErDoc(erDoc);
@@ -258,45 +282,14 @@ const ErDiagram = ({
       edges.length === fromErEdges.length;
     // @ts-ignore
     setNodes((nodes) => {
-      const alreadyExists: string[] = [];
-      const updatedNodes = nodes
-        // if the node already exists, keep its position
-        .map((oldNode) => {
-          let newNode = fromErNodes.find(
-            (newNode) => newNode.data.erId === oldNode.data.erId,
-          );
-          if (!newNode && renaming) {
-            newNode = fromErNodes.find((newNode) => newNode.id === oldNode.id);
-          }
-          if (newNode) {
-            alreadyExists.push(newNode.id);
-            newNode.position =
-              incomingPositions?.get(newNode.id) ?? oldNode.position;
-            if (attributeIds.has(newNode.id))
-              newNode.hidden = attributesStartHidden;
-            // for aggregations, don't modify its size
-            if (newNode.type === "aggregation") {
-              newNode.data.height = (oldNode as AggregationNode).data.height;
-              newNode.data.width = (oldNode as AggregationNode).data.width;
-            }
-            return newNode;
-          }
-          return undefined;
-        })
-        .filter((n): n is ErNode => n !== undefined)
-        // hide the new nodes and add them
-        .concat(
-          fromErNodes
-            .filter((nn) => !alreadyExists.includes(nn.id))
-            .map((newNode) => ({
-              ...newNode,
-              position: incomingPositions?.get(newNode.id) ?? newNode.position,
-              hidden: attributeIds.has(newNode.id)
-                ? attributesStartHidden
-                : newNode.hidden,
-              style: { ...newNode.style, opacity: 1 },
-            })),
-        );
+      const updatedNodes = mergeRebuiltNodes({
+        oldNodes: nodes as ErNode[],
+        newNodes: fromErNodes,
+        incoming,
+        attributeIds,
+        attributesStartHidden,
+        renaming,
+      });
       syncYMapWithNodes(updatedNodes);
       return updatedNodes;
     });
@@ -357,6 +350,33 @@ const ErDiagram = ({
     onNodeDragStop(e, node, nodes);
   };
 
+  /**
+   * Publishing after a resize goes through the whole-node sync rather than a
+   * targeted write on the container: the drag moved the members too, and the
+   * yjs observer replaces the local node array wholesale, so publishing only
+   * the container would pull the members back to their last synced positions.
+   *
+   * Deferred by a frame because this fires before the store has flushed.
+   */
+  const publishAfterFlush = () =>
+    setTimeout(
+      () =>
+        window.requestAnimationFrame(() =>
+          syncYMapWithNodes(getNodes() as ErNode[]),
+        ),
+      0,
+    );
+
+  const onNodesChangeWithResize = useResizeCommit(
+    onNodesChange,
+    publishAfterFlush,
+  );
+
+  useAggregationAutoGrow({
+    enabled: pendingLayout === null,
+    onGrown: (grownNodes) => syncYMapWithNodes(grownNodes as ErNode[]),
+  });
+
   const debouncedSaveDiagram = useMemo(
     () =>
       debounce(async (nodesJSON: any, edgesJSON: any) => {
@@ -374,24 +394,14 @@ const ErDiagram = ({
 
   useEffect(() => {
     if (nodes.length === 0 && edges.length === 0) return;
-    const nodesJSON = getNodes().map((node) => ({
-      id: node.id,
-      position: node.position,
-    }));
-
-    const edgesJSON = getEdges().map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-    }));
-    debouncedSaveDiagram(nodesJSON, edgesJSON);
+    debouncedSaveDiagram(toErJSONNodes(getNodes()), toErJSONEdges(getEdges()));
   }, [nodes, edges, debouncedSaveDiagram]);
 
   return (
     <ReactFlow
       onInit={handleInit}
       nodes={nodes}
-      onNodesChange={onNodesChange}
+      onNodesChange={onNodesChangeWithResize}
       nodeTypes={erNodeTypes}
       edges={edges}
       onEdgesChange={onEdgesChange}

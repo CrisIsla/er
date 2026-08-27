@@ -18,7 +18,7 @@ import {
   Segment,
   diagramMetrics,
 } from "../../../../src/app/util/layout/metrics";
-import { EXAMPLES, fromErDoc } from "./fixtures";
+import { EXAMPLES, fromErDoc, withSizes } from "./fixtures";
 
 const STRUCTURAL = ["entity", "relationship", "isA", "aggregation"];
 
@@ -66,8 +66,9 @@ describe("layout quality", () => {
   for (const example of EXAMPLES) {
     describe(example.name, () => {
       const { nodes, edges } = fromErDoc(example.erDoc);
-      const typedNodes = nodes as unknown as PositionedNode[];
-      const positions = layoutDiscreteSearch(nodes, edges);
+      const { positions, sizes } = layoutDiscreteSearch(nodes, edges);
+      // aggregations are scored at the box the layout cut for them
+      const typedNodes = withSizes(nodes, sizes) as unknown as PositionedNode[];
       const ours = measureLayout(typedNodes, edges, positions);
 
       const humanPositions = new Map(

@@ -16,6 +16,7 @@ import { useJSON } from "../../hooks/useJSON";
 import { Dropdown } from "./Dropdown";
 import { useTranslations } from "next-intl";
 import { ErDocChangeEvent } from "../../types/CodeEditor";
+import { isFiniteSize } from "../../util/nodeSize";
 
 const validate = (json: any): boolean => {
   if (!json.erDoc) return false;
@@ -29,7 +30,12 @@ const validate = (json: any): boolean => {
         node.id &&
         node.position &&
         node.position.x !== undefined &&
-        node.position.y !== undefined
+        node.position.y !== undefined &&
+        // a stored size is optional -- files written before it existed have
+        // none -- but a malformed one is rejected here rather than landing in
+        // the node's style as a CSS-valid but meaningless value
+        ((node.width === undefined && node.height === undefined) ||
+          isFiniteSize(node.width, node.height))
       );
     })
   )

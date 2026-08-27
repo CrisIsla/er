@@ -6,6 +6,7 @@ import DefaultEntity from "../../../src/app/components/ErDiagram/notations/Defau
 import DefaultIsA from "../../../src/app/components/ErDiagram/notations/DefaultIsA";
 import DefaultRelationship from "../../../src/app/components/ErDiagram/notations/DefaultRelationship";
 import DefaultAggregation from "../../../src/app/components/ErDiagram/notations/DefaultAggregation";
+import { DEFAULT_AGGREGATION_SIZE } from "../../../src/app/util/nodeSize";
 
 const render = (component: JSX.Element) =>
   r(<ReactFlowProvider>{component}</ReactFlowProvider>);
@@ -98,14 +99,30 @@ describe("DefaultAggregation", () => {
     expect(getByText(label)).toBeInTheDocument();
   });
 
-  it("sets the width and height of the container", () => {
-    const width = 500;
-    const height = 500;
+  /**
+   * Rendered bare, outside a <ReactFlow>, so there is no node to read a size
+   * from -- this pins the fallback, not what a real container draws at.
+   */
+  it("falls back to the default box when there is no node to measure", () => {
     const { getByText } = render(
       <DefaultAggregation data={{ label: "Aggregation" }} />,
     );
     const nodeContainer = getByText("Aggregation").parentElement!;
-    expect(nodeContainer).toHaveStyle(`width: ${width}px`);
-    expect(nodeContainer).toHaveStyle(`height: ${height}px`);
+    expect(nodeContainer).toHaveStyle(
+      `width: ${DEFAULT_AGGREGATION_SIZE.width}px`,
+    );
+    expect(nodeContainer).toHaveStyle(
+      `height: ${DEFAULT_AGGREGATION_SIZE.height}px`,
+    );
+  });
+
+  it("still mounts its resize controls with no node id", () => {
+    const { container } = render(
+      <DefaultAggregation data={{ label: "Aggregation" }} />,
+    );
+    // 4 corner handles + 4 edge lines
+    expect(
+      container.querySelectorAll(".react-flow__resize-control"),
+    ).toHaveLength(8);
   });
 });

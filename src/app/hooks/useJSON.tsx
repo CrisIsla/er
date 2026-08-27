@@ -1,6 +1,7 @@
 import { useMonaco } from "@monaco-editor/react";
-import { useReactFlow } from "reactflow";
+import { Edge, Node, useReactFlow } from "reactflow";
 import { ErDocChangeEvent } from "../types/CodeEditor";
+import { readNodeSize } from "../util/nodeSize";
 import * as Y from "yjs";
 
 export type ErJSON = {
@@ -12,6 +13,14 @@ export type ErJSON = {
       x: number;
       y: number;
     };
+    /**
+     * The box this node was stored at, for the nodes that carry an authored
+     * size -- today, aggregation containers. Absent means "no stored size", the
+     * shape of every file written before this field existed and of all five
+     * bundled examples; the reader then falls back to the generator's default.
+     */
+    width?: number;
+    height?: number;
   }[];
 
   edges: {
@@ -20,6 +29,26 @@ export type ErJSON = {
     target: string;
   }[];
 };
+
+/**
+ * The saved form of a node: where it is, and how big if somebody chose that.
+ *
+ * Reads the size through `readNodeSize` rather than off `node.width/height`, so
+ * React Flow's measurement of every label-sized entity stays out of the file --
+ * writing it in would freeze those boxes on the next import.
+ */
+export const toErJSONNodes = (nodes: Node[]): ErJSON["nodes"] =>
+  nodes.map((node) => {
+    const size = readNodeSize(node);
+    return { id: node.id, position: node.position, ...(size ?? {}) };
+  });
+
+export const toErJSONEdges = (edges: Edge[]): ErJSON["edges"] =>
+  edges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+  }));
 
 const exportObject = (object: any, filename: string) => {
   const contentType = "application/json;charset=utf-8;";
@@ -42,17 +71,8 @@ export const useJSON = (onErDocChange: (evt: ErDocChangeEvent) => void) => {
 
   const exportToJSON = () => {
     const filename = "er-diagram.json";
-    // save only ids and positions
-    const nodes = getNodes().map((node) => ({
-      id: node.id,
-      position: node.position,
-    }));
-
-    const edges = getEdges().map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-    }));
+    const nodes = toErJSONNodes(getNodes());
+    const edges = toErJSONEdges(getEdges());
     const editorValue = monaco?.editor.getModels()[0].getValue();
 
     const json: ErJSON = {

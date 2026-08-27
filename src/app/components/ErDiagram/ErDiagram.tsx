@@ -12,7 +12,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { ER } from "../../../ERDoc/types/parser/ER";
-import { AggregationNode, ErNode } from "../../types/ErDiagram";
+import { ErNode } from "../../types/ErDiagram";
 import { NotationTypes, notations } from "../../util/common";
 import { erToReactflowElements } from "../../util/erToReactflowElements";
 import { ConfigPanel } from "./ConfigPanel";
@@ -24,6 +24,11 @@ import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
 import { useDiagramSettings } from "../../hooks/useDiagramSettings";
 import { isAttributeNode } from "../../util/erGraph";
+import { incomingLayout, mergeRebuiltNodes } from "../../util/rebuildNodes";
+import { isFiniteSize, readNodeSize, withNodeSize } from "../../util/nodeSize";
+import { ErJSON } from "../../hooks/useJSON";
+import { useResizeCommit } from "../../hooks/useResizeCommit";
+import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -117,61 +122,69 @@ const ErDiagram = ({
   const [hideUntilFit, setHideUntilFit] = useState(false);
 
   /**
-   * Positions that arrived with an example or an imported file.
+   * The layout that arrived with an example or an imported file.
    *
-   * They are held until they have actually landed on the nodes. Applying them
-   * once is not enough: the ERdoc rebuild below runs whenever the parsed
-   * document changes, which for an example load happens *after* the positions
-   * arrive, and it creates its nodes at erToReactflowElements' seed positions --
-   * the two bare columns. Keeping them pending until the diagram agrees with
-   * them makes the stored layout win regardless of which lands first.
+   * It is held until it has actually landed on the nodes. Applying it once is
+   * not enough: the ERdoc rebuild below runs whenever the parsed document
+   * changes, which for an example load happens *after* the layout arrives, and
+   * it creates its nodes at erToReactflowElements' seed positions -- the two
+   * bare columns. Keeping it pending until the diagram agrees with it makes the
+   * stored layout win regardless of which lands first.
    */
-  const [pendingPositions, setPendingPositions] = useState<
-    { id: string; position: { x: number; y: number } }[] | null
-  >(null);
+  const [pendingLayout, setPendingLayout] = useState<ErJSON["nodes"] | null>(
+    null,
+  );
 
   /**
-   * The same positions, as a lookup usable during render.
+   * The same layout, as lookups usable during render.
    *
-   * The rebuild below runs in the render phase, while pendingPositions is
-   * applied from an effect -- and effects run after the browser has painted. So
-   * without this the newly built nodes get painted once at the generator's seed
-   * positions before being corrected, which reads as a flash of the wrong
-   * layout. Reading the incoming positions here lets the nodes be created where
-   * they belong, and the effect stays as the fallback for the case where the
-   * rebuild happens before the positions arrive.
+   * The rebuild below runs in the render phase, while pendingLayout is applied
+   * from an effect -- and effects run after the browser has painted. So without
+   * this the newly built nodes get painted once at the generator's seed
+   * positions and default sizes before being corrected, which reads as a flash
+   * of the wrong layout. Reading the incoming layout here lets the nodes be
+   * created where they belong, and the effect stays as the fallback for the
+   * case where the rebuild happens before the layout arrives.
    */
-  const incomingPositions = useMemo(() => {
-    if (lastChange?.type !== "json" && lastChange?.type !== "localStorage")
-      return null;
-    return new Map(
-      lastChange.positions.nodes.map((node) => [node.id, node.position]),
-    );
-  }, [lastChange]);
-  const hasPendingPositions = useRef(false);
-  hasPendingPositions.current = pendingPositions !== null;
+  const incoming = useMemo(
+    () =>
+      lastChange?.type === "json" || lastChange?.type === "localStorage"
+        ? incomingLayout(lastChange.positions.nodes)
+        : null,
+    [lastChange],
+  );
+  const hasPendingLayout = useRef(false);
+  hasPendingLayout.current = pendingLayout !== null;
 
   useEffect(() => {
     if (lastChange?.type === "json" || lastChange?.type === "localStorage")
-      setPendingPositions(lastChange.positions.nodes);
+      setPendingLayout(lastChange.positions.nodes);
   }, [lastChange]);
 
   useEffect(() => {
-    if (pendingPositions === null || nodes.length === 0) return;
-    const saved = new Map(
-      pendingPositions.map((node) => [node.id, node.position]),
-    );
+    if (pendingLayout === null || nodes.length === 0) return;
+    const saved = new Map(pendingLayout.map((node) => [node.id, node]));
 
     const settled = nodes.every((node) => {
-      const position = saved.get(node.id);
+      const record = saved.get(node.id);
+      if (record === undefined) return true;
+      if (
+        node.position.x !== record.position.x ||
+        node.position.y !== record.position.y
+      )
+        return false;
+      // a record with no stored size makes no demand on the node's size
+      if (!isFiniteSize(record.width, record.height)) return true;
+      const size = readNodeSize(node);
       return (
-        position === undefined ||
-        (node.position.x === position.x && node.position.y === position.y)
+        size !== null &&
+        size.width === record.width &&
+        size.height === record.height
       );
     });
 
     if (settled) {
-      setPendingPositions(null);
+      setPendingLayout(null);
       setTimeout(
         () =>
           window.requestAnimationFrame(() => {
@@ -186,11 +199,18 @@ const ErDiagram = ({
 
     setNodes((current) =>
       current.map((node) => {
-        const position = saved.get(node.id);
-        return position === undefined ? node : { ...node, position };
+        const record = saved.get(node.id);
+        if (record === undefined) return node;
+        const moved = { ...node, position: record.position };
+        return isFiniteSize(record.width, record.height)
+          ? withNodeSize(moved, {
+              width: record.width!,
+              height: record.height!,
+            })
+          : moved;
       }),
     );
-  }, [pendingPositions, nodes, setNodes, saveToLocalStorage, fitView]);
+  }, [pendingLayout, nodes, setNodes, saveToLocalStorage, fitView]);
 
   if (!erDocHasError && erDoc !== prevErDoc) {
     setPrevErDoc(erDoc);
@@ -200,7 +220,7 @@ const ErDiagram = ({
     );
     // an example or an imported file brings its own layout, so the view will be
     // refitted; keep it covered until then
-    if (incomingPositions !== null) setHideUntilFit(true);
+    if (incoming !== null) setHideUntilFit(true);
     const attributeIds = new Set(
       fromErNodes.filter(isAttributeNode).map((node) => node.id),
     );
@@ -208,52 +228,16 @@ const ErDiagram = ({
       nodes.length === fromErNodes.length &&
       edges.length === fromErEdges.length;
     // @ts-ignore
-    setNodes((nodes) => {
-      const alreadyExists: string[] = [];
-      return (
-        nodes
-          // if the node already exists, keep its position
-          .map((oldNode) => {
-            let newNode = fromErNodes.find(
-              (newNode) => newNode.data.erId === oldNode.data.erId,
-            );
-            if (!newNode && renaming) {
-              newNode = fromErNodes.find(
-                (newNode) => newNode.id === oldNode.id,
-              );
-            }
-            if (newNode) {
-              alreadyExists.push(newNode.id);
-              newNode.position =
-                incomingPositions?.get(newNode.id) ?? oldNode.position;
-              if (attributeIds.has(newNode.id))
-                newNode.hidden = attributesStartHidden;
-              // for aggregations, don't modify its size
-              if (newNode.type === "aggregation") {
-                newNode.data.height = (oldNode as AggregationNode).data.height;
-                newNode.data.width = (oldNode as AggregationNode).data.width;
-              }
-              return newNode;
-            }
-            return undefined;
-          })
-          .filter((n) => n !== undefined)
-          // hide the new nodes and add them
-          .concat(
-            fromErNodes
-              .filter((nn) => !alreadyExists.includes(nn.id))
-              .map((newNode) => ({
-                ...newNode,
-                position:
-                  incomingPositions?.get(newNode.id) ?? newNode.position,
-                hidden: attributeIds.has(newNode.id)
-                  ? attributesStartHidden
-                  : newNode.hidden,
-                style: { ...newNode.style, opacity: 1 },
-              })),
-          )
-      );
-    });
+    setNodes((nodes) =>
+      mergeRebuiltNodes({
+        oldNodes: nodes,
+        newNodes: fromErNodes,
+        incoming,
+        attributeIds,
+        attributesStartHidden,
+        renaming,
+      }),
+    );
 
     const edgeStartsHidden = (edge: Edge) =>
       attributesStartHidden &&
@@ -271,8 +255,30 @@ const ErDiagram = ({
         .filter((e) => e !== undefined)
         .map((e) => ({ ...e!, hidden: edgeStartsHidden(e!) })) as Edge[];
     });
-    setTimeout(saveToLocalStorage, 100);
+    // not while a stored layout is still landing: this would snapshot the
+    // diagram mid-flight, and the settling effect saves it properly anyway
+    if (!hasPendingLayout.current) setTimeout(saveToLocalStorage, 100);
   }
+
+  /**
+   * Saving is deferred by a frame in both places below: these fire from inside
+   * a change handler or an effect, before the store has flushed, and
+   * `saveToLocalStorage` reads the diagram back out of it.
+   */
+  const saveAfterFlush = () =>
+    setTimeout(() => window.requestAnimationFrame(saveToLocalStorage), 0);
+
+  // a resize is the one edit that used to leave no trace anywhere
+  const onNodesChangeWithResize = useResizeCommit(
+    onNodesChange,
+    saveAfterFlush,
+  );
+
+  useAggregationAutoGrow({
+    // while a stored layout is still landing it owns the sizes
+    enabled: pendingLayout === null,
+    onGrown: saveAfterFlush,
+  });
 
   useEffect(() => {
     setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
@@ -297,7 +303,7 @@ const ErDiagram = ({
       // on mount, load from local storage -- unless an example is already on its
       // way in, whose positions would otherwise be overwritten by the last
       // session's diagram
-      if (!hasPendingPositions.current) loadFromLocalStorage();
+      if (!hasPendingLayout.current) loadFromLocalStorage();
     },
     [setRfInstance, loadFromLocalStorage],
   );
@@ -317,7 +323,7 @@ const ErDiagram = ({
       className={hideUntilFit ? "diagram-awaiting-fit" : undefined}
       onInit={handleInit}
       nodes={nodes}
-      onNodesChange={onNodesChange}
+      onNodesChange={onNodesChangeWithResize}
       nodeTypes={erNodeTypes}
       edges={edges}
       onEdgesChange={onEdgesChange}

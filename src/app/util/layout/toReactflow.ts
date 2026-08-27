@@ -8,6 +8,7 @@
 
 import { Edge, Node } from "reactflow";
 import { layoutDiscreteSearch } from ".";
+import { withNodeSize } from "../nodeSize";
 import { LayoutInputNode } from "./buildLayoutGraph";
 import { LayoutParams } from "./params";
 
@@ -31,7 +32,7 @@ export const getDiscreteLayoutedElements = async (
   // frame where new nodes are still invisible, instead of freezing on it
   await Promise.resolve();
 
-  const positions = layoutDiscreteSearch(
+  const { positions, sizes } = layoutDiscreteSearch(
     flowNodes.map(toInput),
     flowEdges.map((edge) => ({
       id: edge.id,
@@ -41,8 +42,14 @@ export const getDiscreteLayoutedElements = async (
     params,
   );
 
-  return flowNodes.map((node) => ({
-    ...node,
-    position: positions.get(node.id) ?? node.position,
-  }));
+  return flowNodes.map((node) => {
+    const positioned = {
+      ...node,
+      position: positions.get(node.id) ?? node.position,
+    };
+    // only aggregation containers are sized by a layout; everything else
+    // measures itself from its own label
+    const size = sizes.get(node.id);
+    return size === undefined ? positioned : withNodeSize(positioned, size);
+  });
 };

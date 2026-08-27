@@ -83,6 +83,28 @@ export const rectAt = (
   height,
 });
 
+/**
+ * What a node covers on screen, from the top-left position React Flow stores.
+ *
+ * The measured box and the visual box share a centre, so the diamond
+ * correction grows symmetrically instead of pushing the shape off its anchor.
+ */
+export const visualRectOf = (
+  id: string,
+  type: string,
+  position: Vec,
+  width: number,
+  height: number,
+): Rect => {
+  const visual = visualSize(type, width, height);
+  return rectAt(
+    id,
+    { x: position.x + width / 2, y: position.y + height / 2 },
+    visual.width,
+    visual.height,
+  );
+};
+
 export const centerOfRect = (rect: Rect): Vec => ({
   x: rect.x + rect.width / 2,
   y: rect.y + rect.height / 2,

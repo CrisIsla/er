@@ -5,18 +5,25 @@
  * absolute centres the algorithm works in into the top-left, parent-relative
  * positions React Flow expects.
  *
- * The returned map is **total over the input ids**: every node gets a position,
- * including hidden attributes, the contents of aggregations and anything the
- * algorithm chose not to move. Both callers of a layout do
- * `layouted.find(...)?.position` and assert it non-null, so a missing entry
- * becomes `translate(NaN, NaN)` and takes the canvas down with it.
+ * `result.positions` is **total over the input ids**: every node gets a
+ * position, including hidden attributes, the contents of aggregations and
+ * anything the algorithm chose not to move. A missing entry would become
+ * `translate(NaN, NaN)` and take the canvas down with it.
+ *
+ * `result.sizes` is keyed by aggregation container id only -- an aggregation's
+ * box is derived from the contents the layout just arranged. A container with
+ * no members gets no entry, and its caller must leave the size it already has
+ * alone.
  */
 
+import { NodeSize } from "../nodeSize";
+import { boxForContents, memberRects } from "./aggregationBox";
 import { placeAttributes } from "./attributes";
 import {
   LayoutInputEdge,
   LayoutInputNode,
   buildLayoutGraph,
+  measure,
 } from "./buildLayoutGraph";
 import { placeConnectors } from "./connectors";
 import { rectAt } from "./geometry";
@@ -28,6 +35,11 @@ import { LayoutGraph, Placement, Vec } from "./types";
 
 export type LayoutPositions = Map<string, Vec>;
 
+/** Derived box per aggregation container. Containers with no members get no entry. */
+export type LayoutSizes = Map<string, NodeSize>;
+
+export type LayoutResult = { positions: LayoutPositions; sizes: LayoutSizes };
+
 /**
  * Tighter parameters for the inside of an aggregation, which has to fit in the
  * container's box rather than spread across the canvas.
@@ -38,6 +50,9 @@ const interiorParams = (params: LayoutParams): LayoutParams => ({
   minSeparation: Math.max(10, Math.round(params.minSeparation * 0.5)),
   attributeGap: Math.max(10, Math.round(params.attributeGap * 0.6)),
   haloFactor: params.haloFactor * 0.5,
+  // the sub-layout's own positive-quadrant margin. It has no effect on the
+  // result any more -- the interior is re-shifted to `aggregationPadding`
+  // afterwards -- but it keeps the sub-diagram off the axes while it is built.
   margin: 12,
 });
 
@@ -66,86 +81,111 @@ const depthOf = (
 };
 
 /**
- * Lays out the contents of every aggregation in its container's own frame.
+ * Arranges the contents of every aggregation and cuts its box to fit them.
  *
  * erToReactflowElements drops every member at {0, 0} when it builds the box
  * (erToReactflowElements.ts:374) -- the pile-up in the corner the proposal
  * records as figure 10(b) -- so leaving the contents alone is not an option.
  * The search is simply run again on the member sub-diagram: members are children
  * of the container, so the coordinates it produces are already in the frame
- * React Flow wants, and they are then centred and clamped inside the box that
- * `extent: "parent"` will hold them to.
+ * React Flow wants. They are then shifted so their near edge sits one padding
+ * inside the box, and the box is derived from where they ended up.
+ *
+ * Deriving rather than fitting-into is what removes the old failure mode: the
+ * contents used to be squeezed into a fixed 500x500 and clamped, which turned
+ * anything larger into overlapping stacks along the edges.
+ *
+ * Returns the input list with each container's derived size substituted in, so
+ * the skeleton pass that follows reserves the room the container really needs.
  */
 const layoutAggregationInteriors = (
   nodes: LayoutInputNode[],
   edges: LayoutInputEdge[],
   params: LayoutParams,
   positions: LayoutPositions,
-) => {
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  const members = new Map<string, LayoutInputNode[]>();
+): { nodes: LayoutInputNode[]; sizes: LayoutSizes } => {
+  // every read of a node goes through this, so a container finished earlier in
+  // the loop is seen at its derived size by the box that contains it
+  const resolved = new Map(nodes.map((node) => [node.id, node]));
+  const sizes: LayoutSizes = new Map();
+
+  const members = new Map<string, string[]>();
   for (const node of nodes) {
-    const container = nearestAggregationAncestor(node, byId);
+    const container = nearestAggregationAncestor(node, resolved);
     if (container === null) continue;
-    members.set(container.id, [...(members.get(container.id) ?? []), node]);
+    members.set(container.id, [...(members.get(container.id) ?? []), node.id]);
   }
 
-  // deepest first, so a nested container is already arranged before the box
-  // around it is asked to place it
+  // deepest first, so a nested container is already arranged and sized before
+  // the box around it is asked to hold it
   const containers = [...members.keys()]
-    .map((id) => byId.get(id)!)
+    .map((id) => resolved.get(id)!)
     .sort(
-      (a, b) => depthOf(b, byId) - depthOf(a, byId) || a.id.localeCompare(b.id),
+      (a, b) =>
+        depthOf(b, resolved) - depthOf(a, resolved) || a.id.localeCompare(b.id),
     );
 
+  const padding = params.aggregationPadding;
+
   for (const container of containers) {
-    const inside = members.get(container.id)!;
+    const inside = members.get(container.id)!.map((id) => resolved.get(id)!);
     const insideIds = new Set(inside.map((node) => node.id));
     const insideEdges = edges.filter(
       (edge) => insideIds.has(edge.source) && insideIds.has(edge.target),
     );
 
-    const local = layoutDiscreteSearch(
+    // the sub-layout knows nothing about the box: it arranges freely and the
+    // box is cut to the result. (Its own members have no aggregation ancestor
+    // inside this call, so the recursion bottoms out immediately.)
+    const { positions: local } = layoutDiscreteSearch(
       inside,
       insideEdges,
       interiorParams(params),
     );
+    const arranged = (node: LayoutInputNode) =>
+      local.get(node.id) ?? node.position;
 
-    const boxWidth = container.width || 500;
-    const boxHeight = container.height || 500;
-    const rects = inside.map((node) => {
-      const position = local.get(node.id) ?? node.position;
-      return {
-        node,
-        x: position.x,
-        y: position.y,
-        width: node.width || 90,
-        height: node.height || 44,
-      };
-    });
-    const minX = Math.min(...rects.map((rect) => rect.x));
-    const minY = Math.min(...rects.map((rect) => rect.y));
-    const maxX = Math.max(...rects.map((rect) => rect.x + rect.width));
-    const maxY = Math.max(...rects.map((rect) => rect.y + rect.height));
+    // move the arrangement so its near edge sits one padding inside the box
+    const box = boundingBox(memberRects(inside, arranged));
+    const placed = new Map<string, Vec>(
+      inside.map((node) => {
+        const position = arranged(node);
+        return [
+          node.id,
+          {
+            x: Math.round(position.x + padding - box.x),
+            y: Math.round(position.y + padding - box.y),
+          },
+        ];
+      }),
+    );
 
-    // centre the contents in the box, then hold them inside it: React Flow
-    // clamps `extent: "parent"` children on drag, so anything left outside would
-    // teleport the first time the user touched it
-    const shiftX = (boxWidth - (maxX - minX)) / 2 - minX;
-    const shiftY = (boxHeight - (maxY - minY)) / 2 - minY;
+    // derived from the final, rounded rectangles rather than algebraically from
+    // `box`, so the size a layout produces is exactly the minimum a manual
+    // resize is later held to
+    const size = boxForContents(
+      memberRects(inside, (node) => placed.get(node.id)!),
+      padding,
+    );
 
-    for (const rect of rects)
-      positions.set(rect.node.id, {
-        x: Math.min(
-          Math.max(rect.x + shiftX, 0),
-          Math.max(boxWidth - rect.width, 0),
-        ),
-        y: Math.min(
-          Math.max(rect.y + shiftY, 0),
-          Math.max(boxHeight - rect.height, 0),
-        ),
+    for (const node of inside) {
+      const position = placed.get(node.id)!;
+      const { width, height } = measure(node);
+      // never binds for a visible member -- the shift above already put them
+      // inside -- but hidden members took no part in sizing the box, and
+      // React Flow clamps `extent: "parent"` children on drag, so anything left
+      // outside would teleport the first time the user touched it
+      positions.set(node.id, {
+        x: Math.min(Math.max(position.x, 0), Math.max(size.width - width, 0)),
+        y: Math.min(Math.max(position.y, 0), Math.max(size.height - height, 0)),
       });
+    }
+
+    sizes.set(container.id, size);
+    resolved.set(container.id, { ...container, ...size });
   }
+
+  return { nodes: nodes.map((node) => resolved.get(node.id)!), sizes };
 };
 
 /** Absolute centre -> the top-left React Flow stores, in the parent's frame. */
@@ -187,11 +227,22 @@ export const layoutDiscreteSearch = (
   nodes: LayoutInputNode[],
   edges: LayoutInputEdge[],
   params: LayoutParams = DEFAULT_LAYOUT_PARAMS,
-): LayoutPositions => {
+): LayoutResult => {
   const positions: LayoutPositions = new Map();
-  if (nodes.length === 0) return positions;
+  if (nodes.length === 0) return { positions, sizes: new Map() };
 
-  const graph = buildLayoutGraph(nodes, edges, params);
+  // step 0: arrange each aggregation's contents and cut its box to fit. This
+  // runs first because the skeleton pass has to reserve the container's real
+  // footprint -- placing a box that derives to 700 as if it were 500 would
+  // overlap its neighbours and under-shift the diagram in step 7.
+  const { nodes: sized, sizes } = layoutAggregationInteriors(
+    nodes,
+    edges,
+    params,
+    positions,
+  );
+
+  const graph = buildLayoutGraph(sized, edges, params);
 
   // steps 1-3: the skeleton, by discrete search
   // step 6: revisit the greedy decisions, without ever breaking an alignment
@@ -214,7 +265,7 @@ export const layoutDiscreteSearch = (
       : { x: centre.x + translation.x, y: centre.y + translation.y };
   };
 
-  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const byId = new Map(sized.map((node) => [node.id, node]));
   const topLeftOf = (id: string): Vec | null => {
     const element = graph.elements.get(id);
     const centre = absoluteCentre(id);
@@ -225,18 +276,19 @@ export const layoutDiscreteSearch = (
     };
   };
 
-  for (const node of nodes) {
+  for (const node of sized) {
     const element = graph.elements.get(node.id);
     const centre = absoluteCentre(node.id);
 
-    // anything inside an aggregation keeps the position it already has: the box
-    // is laid out as one opaque element and its contents travel with it
+    // anything inside an aggregation was placed in step 0, in its container's
+    // own frame; the box is laid out as one opaque element and its contents
+    // travel with it
     if (
       element === undefined ||
       element.role === "frozen" ||
       centre === undefined
     ) {
-      positions.set(node.id, { ...node.position });
+      if (!positions.has(node.id)) positions.set(node.id, { ...node.position });
       continue;
     }
 
@@ -249,9 +301,7 @@ export const layoutDiscreteSearch = (
     );
   }
 
-  layoutAggregationInteriors(nodes, edges, params, positions);
-
-  return positions;
+  return { positions, sizes };
 };
 
 export { DEFAULT_LAYOUT_PARAMS } from "./params";
