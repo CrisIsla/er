@@ -34,18 +34,33 @@ const aimsAtCentre = (node: Node, edgeAnchor: EdgeAnchor) =>
  * Where an aimed end of the edge lands: on `nodeA`'s outline, on the way to the
  * centre of `nodeB`.
  *
- * Never reaches past the halfway point, so two overlapping shapes give a short
- * line rather than one that doubles back on itself.
+ * The two ends must not cross, or the line doubles back on itself when two
+ * shapes overlap. What they may not do is *share the distance evenly*: an
+ * aggregation container is hundreds of pixels across and the diamond it joins
+ * is not, so giving each half would stop the line well inside the box -- across
+ * the dashed border, hanging in the middle of the aggregation. So the room this
+ * end may take is worked out against how far the other end reaches along the
+ * same line.
+ *
+ * While the shapes are clear of each other the full outline distance fits and
+ * the line meets the shape exactly. Only once they overlap do the two ends
+ * share what there is, in proportion, meeting at a single point.
  */
-const aimedEnd = (
+export const aimedEnd = (
   nodeA: Node,
+  nodeB: Node,
   centerA: Vec,
   centerB: Vec,
 ): [number, number, number] => {
   const angle = Math.atan2(centerB.y - centerA.y, centerB.x - centerA.x);
   const gap = Math.hypot(centerB.x - centerA.x, centerB.y - centerA.y);
   const hit = outlineHit(nodeA, angle);
-  const reach = Math.min(hit.distance, gap / 2);
+  const other = outlineHit(nodeB, angle + Math.PI);
+
+  const total = hit.distance + other.distance;
+  const share = total > 0 ? (gap * hit.distance) / total : gap / 2;
+  const reach = Math.min(hit.distance, share);
+
   return [
     centerA.x + reach * Math.cos(angle),
     centerA.y + reach * Math.sin(angle),
@@ -97,8 +112,34 @@ const getParams = (
   // the side is still worked out above, since the orthogonal routing needs to
   // know which way the line leaves even when the end is an aimed one
   if (aimsAtCentre(nodeA, edgeAnchor)) {
-    const [x, y, facing] = aimedEnd(nodeA, centerA, centerB);
+    const [x, y, facing] = aimedEnd(nodeA, nodeB, centerA, centerB);
     return [x, y, position, facing];
+  }
+
+  /**
+   * An aggregation is a container rather than a symbol, so its box is hundreds
+   * of pixels across. A handle sits at a fixed point on its side -- the middle,
+   * for an edge with no role -- and on a box that size the line can end up
+   * attaching a couple of hundred pixels from where it is pointing, which reads
+   * as an edge aimed at nothing. Meet the box where the line actually crosses
+   * it instead.
+   *
+   * Role edges keep their handles: those are deliberately spread along a side
+   * so that several edges between the same pair stay apart.
+   */
+  if (nodeA.type === "aggregation" && handlePrefix === "") {
+    const angle = Math.atan2(centerB.y - centerA.y, centerB.x - centerA.x);
+    const hit = outlineHit(nodeA, angle);
+    // never past the other node's centre, so two overlapping boxes still give a
+    // line that runs the right way
+    const gap = Math.hypot(centerB.x - centerA.x, centerB.y - centerA.y);
+    const reach = Math.min(hit.distance, gap);
+    return [
+      centerA.x + reach * Math.cos(angle),
+      centerA.y + reach * Math.sin(angle),
+      position,
+      hit.normal,
+    ];
   }
 
   const [x, y] = getHandleCoordsByPosition(nodeA, position, handlePrefix);
