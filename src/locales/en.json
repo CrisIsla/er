@@ -99,7 +99,11 @@
         "spacingGuides": "Spacing guides",
         "magneticSnap": "Magnetic alignment",
         "snapRadius": "Alignment radius",
-        "snapRadiusDisabled": "Enable magnetic alignment to adjust the radius"
+        "snapRadiusDisabled": "Enable magnetic alignment to adjust the radius",
+
+        "collision": "Collision",
+        "collisionEnabled": "Shapes cannot overlap",
+        "collisionHint": "A dragged shape stops where it meets another, and can still slide along it"
       }
     },
 

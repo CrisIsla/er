@@ -248,6 +248,24 @@ export const ConfigPanel = ({
                   </Box>
                 </Stack>
               </Box>
+
+              <Box>
+                <Heading size="xs" pb={2}>
+                  {t("collision")}
+                </Heading>
+
+                <Checkbox
+                  colorScheme="gray"
+                  isChecked={settings.collisionEnabled}
+                  onChange={(e) =>
+                    setSetting("collisionEnabled", e.target.checked)
+                  }
+                >
+                  <Tooltip label={t("collisionHint")}>
+                    {t("collisionEnabled")}
+                  </Tooltip>
+                </Checkbox>
+              </Box>
             </Stack>
           </PopoverBody>
         </PopoverContent>

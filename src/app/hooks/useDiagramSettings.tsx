@@ -37,6 +37,8 @@ export type DiagramSettings = {
   snapEnabled: boolean;
   // max distance, in px, at which an element snaps
   snapRadius: number;
+  // stop a dragged element where it meets another instead of letting them overlap
+  collisionEnabled: boolean;
   // which algorithm the auto layout and the layout button run
   layoutAlgorithm: LayoutAlgorithm;
   // where edges stop at entities, relationships and ISA triangles
@@ -49,6 +51,7 @@ export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
   spacingGuidesEnabled: true,
   snapEnabled: false,
   snapRadius: 12,
+  collisionEnabled: false,
   layoutAlgorithm: "discrete-search",
   edgeAnchor: "side",
 };

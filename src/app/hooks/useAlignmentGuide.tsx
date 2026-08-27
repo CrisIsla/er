@@ -10,6 +10,8 @@ import {
   startOf,
   toAbsoluteRects,
 } from "../util/alignmentCandidates";
+import { obstaclesFor, slideOutOfCollisions } from "../util/collision";
+import { visualRectOf } from "../util/layout/geometry";
 import { useDiagramSettings } from "./useDiagramSettings";
 
 /** How close, in px, a node must be for a guide to appear when magnetic
@@ -150,9 +152,17 @@ export const useAlignmentGuide = () => {
   const { settings } = useDiagramSettings();
   const [guides, setGuides] = useState<GuideLine[]>([]);
   const draggingRef = useRef<string | null>(null);
+  /**
+   * Where the shape actually ended up last frame, in the coordinates collision
+   * works in. Collision has to know which way the shape came from to tell which
+   * side of an obstacle it ran into, and React Flow re-derives the position
+   * from the pointer every frame, so the pointer alone cannot say.
+   */
+  const lastFreeRef = useRef<{ x: number; y: number } | null>(null);
 
   const onNodeDragStart: NodeDragHandler = useCallback((_evt, node) => {
     draggingRef.current = node.id;
+    lastFreeRef.current = null;
   }, []);
 
   const onNodeDrag: NodeDragHandler = useCallback(
@@ -192,34 +202,62 @@ export const useAlignmentGuide = () => {
         includeSpacing: settings.spacingGuidesEnabled,
       });
 
-      // Magnetic alignment: pull the node onto the candidates it is close to.
-      // Skipped for multi-node drags -- snapping only the node under the
-      // cursor would tear a selection apart.
+      // Both corrections below are skipped for multi-node drags: moving only
+      // the node under the cursor would tear a selection apart.
       const isMultiDrag = (draggedNodes?.length ?? 1) > 1;
-      if (settings.snapEnabled && active.length > 0 && !isMultiDrag) {
-        // `draggedRect` is absolute; `node.position` is relative to the parent
-        // for child nodes, so carry the difference across
-        const offsetX = draggedRect.x - node.position.x;
-        const offsetY = draggedRect.y - node.position.y;
+      // `draggedRect` is absolute; `node.position` is relative to the parent
+      // for child nodes, so carry the difference across
+      const offsetX = draggedRect.x - node.position.x;
+      const offsetY = draggedRect.y - node.position.y;
 
-        let { x, y } = node.position;
+      let corrected = { x: draggedRect.x, y: draggedRect.y };
+
+      // Magnetic alignment: pull the node onto the candidates it is close to.
+      if (settings.snapEnabled && active.length > 0 && !isMultiDrag) {
         for (const candidate of active) {
           if (candidate.axis === "x")
-            x = candidate.value - draggedRect.width / 2 - offsetX;
-          else y = candidate.value - draggedRect.height / 2 - offsetY;
+            corrected.x = candidate.value - draggedRect.width / 2;
+          else corrected.y = candidate.value - draggedRect.height / 2;
         }
+      }
 
-        if (x !== node.position.x || y !== node.position.y) {
-          // React Flow re-derives the position from the pointer on the next
-          // move, so this reads as a magnet rather than a lock: drag far enough
-          // and the node breaks free on its own. Nodes with extent "parent"
-          // (aggregation members) still get clamped to the box by React Flow.
-          setNodes((nodes) =>
-            nodes.map((n) =>
-              n.id === node.id ? { ...n, position: { x, y } } : n,
-            ),
-          );
-        }
+      // Collision: keep the shape out of the ones it does not belong to. After
+      // the snap, so a magnet can never pull a shape into an overlap.
+      if (settings.collisionEnabled && !isMultiDrag) {
+        // measured by what each shape covers on screen, so a diamond collides
+        // where it is drawn rather than at the box React Flow measured
+        const visual = visualRectOf(
+          node.id,
+          node.type ?? "",
+          corrected,
+          draggedRect.width,
+          draggedRect.height,
+        );
+        const from = lastFreeRef.current ?? { x: visual.x, y: visual.y };
+        const free = slideOutOfCollisions(
+          visual,
+          from,
+          obstaclesFor(live, node.id),
+        );
+        // the visual box shares its centre with the measured one, so a shift of
+        // the first is the same shift of the second
+        corrected = {
+          x: corrected.x + (free.x - visual.x),
+          y: corrected.y + (free.y - visual.y),
+        };
+        lastFreeRef.current = free;
+      }
+
+      const next = { x: corrected.x - offsetX, y: corrected.y - offsetY };
+      if (next.x !== node.position.x || next.y !== node.position.y) {
+        // React Flow re-derives the position from the pointer on the next
+        // move, so a snap reads as a magnet rather than a lock: drag far enough
+        // and the node breaks free on its own. Collision re-applies every
+        // frame, so it reads as a wall instead. Nodes with extent "parent"
+        // (aggregation members) still get clamped to the box by React Flow.
+        setNodes((nodes) =>
+          nodes.map((n) => (n.id === node.id ? { ...n, position: next } : n)),
+        );
       }
 
       const byId = new Map(others.map((r) => [r.id, r]));
@@ -248,6 +286,7 @@ export const useAlignmentGuide = () => {
       settings.snapEnabled,
       settings.snapRadius,
       settings.spacingGuidesEnabled,
+      settings.collisionEnabled,
     ],
   );
 

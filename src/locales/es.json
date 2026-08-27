@@ -96,7 +96,11 @@
         "spacingGuides": "Guías de espacio",
         "magneticSnap": "Alineación magnética",
         "snapRadius": "Radio de alineación",
-        "snapRadiusDisabled": "Active la alineación magnética para ajustar el radio"
+        "snapRadiusDisabled": "Active la alineación magnética para ajustar el radio",
+
+        "collision": "Colisión",
+        "collisionEnabled": "Las figuras no se superponen",
+        "collisionHint": "Una figura arrastrada se detiene al encontrarse con otra, y todavía puede deslizarse a lo largo de ella"
       }
     },
 
