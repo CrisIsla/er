@@ -103,6 +103,24 @@ export const toAbsoluteRects = (
     });
 };
 
+/**
+ * One node's absolute rectangle, resolved against the whole diagram.
+ *
+ * `toAbsoluteRects` can only add a parent's offset when the parent is in the
+ * list it is handed, and it has no way to tell "this node has no parent" from
+ * "this node's parent was filtered out" -- both simply return the position as
+ * given. For a node inside an aggregation that is the difference between an
+ * absolute rectangle and a container-relative one, so always pass the full
+ * list and pick the node out afterwards.
+ */
+export const absoluteRectOf = (
+  nodes: PositionedNode[],
+  id: string,
+): Rect | undefined =>
+  toAbsoluteRects(nodes, { structuralOnly: false }).find(
+    (rect) => rect.id === id,
+  );
+
 /** Centre-line alignment: the dragged rect shares a centre with another rect. */
 export const getAlignCandidates = (
   dragged: Rect,

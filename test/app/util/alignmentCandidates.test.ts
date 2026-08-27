@@ -1,4 +1,5 @@
 import {
+  absoluteRectOf,
   PositionedNode,
   Rect,
   distanceTo,
@@ -28,6 +29,51 @@ const node = (
   width: 100,
   height: 50,
   ...extra,
+});
+
+describe("absoluteRectOf", () => {
+  const diagram = [
+    node("box", 400, 100, { type: "aggregation", width: 350, height: 550 }),
+    node("member", 138, 228, { type: "relationship", parentNode: "box" }),
+    node("outside", 20, 300),
+  ];
+
+  /**
+   * The bug this pins: asking for one node on its own leaves a container's
+   * offset off, so a member being dragged was compared against everyone else in
+   * a different coordinate frame -- and drew guides to whatever happened to sit
+   * at its container-relative position.
+   */
+  it("adds the container's offset to a node inside an aggregation", () => {
+    expect(absoluteRectOf(diagram, "member")).toEqual({
+      id: "member",
+      x: 538,
+      y: 328,
+      width: 100,
+      height: 50,
+    });
+  });
+
+  it("leaves a top-level node where it is", () => {
+    expect(absoluteRectOf(diagram, "outside")).toMatchObject({ x: 20, y: 300 });
+  });
+
+  it("finds attributes, which are not structural", () => {
+    const withAttribute = [
+      ...diagram,
+      node("attr", 10, 10, { type: "entity-attribute", parentNode: "box" }),
+    ];
+    expect(absoluteRectOf(withAttribute, "attr")).toMatchObject({
+      x: 410,
+      y: 110,
+    });
+  });
+
+  it("is undefined for a node that is hidden or unmeasured", () => {
+    const hidden = [node("h", 0, 0, { hidden: true })];
+    expect(absoluteRectOf(hidden, "h")).toBeUndefined();
+    expect(absoluteRectOf(diagram, "nope")).toBeUndefined();
+  });
 });
 
 describe("toAbsoluteRects", () => {

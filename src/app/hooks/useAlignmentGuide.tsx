@@ -5,6 +5,7 @@ import {
   Rect,
   STRUCTURAL_TYPES,
   endOf,
+  absoluteRectOf,
   findActiveCandidates,
   startOf,
   toAbsoluteRects,
@@ -164,18 +165,20 @@ export const useAlignmentGuide = () => {
       );
 
       const draggedIsStructural = STRUCTURAL_TYPES.includes(node.type ?? "");
-      const [draggedRect] = toAbsoluteRects(
-        live.filter((n) => n.id === node.id),
-        { structuralOnly: false },
-      );
+      // Resolved against the whole list, and filtered afterwards. A node inside
+      // an aggregation stores its position relative to the container, so its
+      // absolute rectangle can only be worked out with the container present --
+      // hand toAbsoluteRects a list with the parent missing and it silently
+      // returns the relative position, which then gets compared against
+      // everyone else's absolute one.
+      const draggedRect = absoluteRectOf(live, node.id);
       if (!draggedRect) return;
 
       // aligning an entity against attribute ovals is noise; aligning an
       // attribute against its siblings is not
-      const others = toAbsoluteRects(
-        live.filter((n) => n.id !== node.id),
-        { structuralOnly: draggedIsStructural },
-      );
+      const others = toAbsoluteRects(live, {
+        structuralOnly: draggedIsStructural,
+      }).filter((rect) => rect.id !== node.id);
       if (others.length === 0) {
         setGuides((prev) => (prev.length ? [] : prev));
         return;
