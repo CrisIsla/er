@@ -146,13 +146,35 @@ const ErDiagram = ({
    * created where they belong, and the effect stays as the fallback for the
    * case where the rebuild happens before the layout arrives.
    */
-  const incoming = useMemo(
+  const parsedIncoming = useMemo(
     () =>
       lastChange?.type === "json" || lastChange?.type === "localStorage"
         ? incomingLayout(lastChange.positions.nodes)
         : null,
     [lastChange],
   );
+
+  /**
+   * The last stored layout that has finished landing.
+   *
+   * Nothing ever clears `lastChange`: it keeps pointing at the example or file
+   * that was loaded for the rest of the session. Left to itself the rebuild
+   * would therefore re-apply those positions on every semantic edit, dragging
+   * the whole diagram back to how the file shipped and throwing away whatever
+   * the user had arranged since.
+   *
+   * Clearing it where it is raised is not an option either: writing an
+   * example's document into the editor is itself an edit, so the parse it
+   * triggers would clear the layout before the diagram had a chance to use it.
+   * Marking it applied here, once the settling effect below confirms it landed,
+   * is what makes it win exactly as long as it should.
+   */
+  const appliedLayout = useRef<DiagramChange | null>(null);
+  const incoming =
+    lastChange !== null && lastChange === appliedLayout.current
+      ? null
+      : parsedIncoming;
+
   const hasPendingLayout = useRef(false);
   hasPendingLayout.current = pendingLayout !== null;
 
@@ -184,6 +206,16 @@ const ErDiagram = ({
     });
 
     if (settled) {
+      // Landing is not on its own evidence that the layout was used. Node ids
+      // are array indices, so a stored layout can be dragged onto whatever
+      // diagram happens to be on screen -- and while the document has an error
+      // the rebuild is skipped entirely, so the nodes it would have built at
+      // these positions do not exist yet. Retiring the layout here would lose
+      // it for good: the rebuild that finally runs once the error is fixed
+      // would find nothing to place. Hold it until the document parses.
+      if (erDocHasError) return;
+
+      appliedLayout.current = lastChange;
       setPendingLayout(null);
       setTimeout(
         () =>
@@ -210,7 +242,15 @@ const ErDiagram = ({
           : moved;
       }),
     );
-  }, [pendingLayout, nodes, setNodes, saveToLocalStorage, fitView]);
+  }, [
+    pendingLayout,
+    lastChange,
+    erDocHasError,
+    nodes,
+    setNodes,
+    saveToLocalStorage,
+    fitView,
+  ]);
 
   if (!erDocHasError && erDoc !== prevErDoc) {
     setPrevErDoc(erDoc);

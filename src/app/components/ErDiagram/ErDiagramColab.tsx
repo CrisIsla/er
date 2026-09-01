@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -208,13 +208,25 @@ const ErDiagram = ({
    * positions and correcting them from an effect. Same reasoning as
    * ErDiagram.tsx.
    */
-  const incoming = useMemo(
+  const parsedIncoming = useMemo(
     () =>
       lastChange?.type === "json" || lastChange?.type === "localStorage"
         ? incomingLayout(lastChange.positions.nodes)
         : null,
     [lastChange],
   );
+
+  /**
+   * The last stored layout that has finished landing. Nothing clears
+   * `lastChange`, so without this the rebuild would drag the diagram back to
+   * the loaded file's positions on every semantic edit. Same reasoning as
+   * ErDiagram.tsx.
+   */
+  const appliedLayout = useRef<DiagramChange | null>(null);
+  const incoming =
+    lastChange !== null && lastChange === appliedLayout.current
+      ? null
+      : parsedIncoming;
 
   useEffect(() => {
     if (lastChange?.type === "json" || lastChange?.type === "localStorage")
@@ -243,6 +255,16 @@ const ErDiagram = ({
     });
 
     if (settled) {
+      // Landing is not on its own evidence that the layout was used. Node ids
+      // are array indices, so a stored layout can be dragged onto whatever
+      // diagram happens to be on screen -- and while the document has an error
+      // the rebuild is skipped entirely, so the nodes it would have built at
+      // these positions do not exist yet. Retiring the layout here would lose
+      // it for good: the rebuild that finally runs once the error is fixed
+      // would find nothing to place. Hold it until the document parses.
+      if (erDocHasError) return;
+
+      appliedLayout.current = lastChange;
       setPendingLayout(null);
       setTimeout(() => window.requestAnimationFrame(() => fitView()), 10);
       return;
@@ -266,7 +288,7 @@ const ErDiagram = ({
     // syncYMapWithNodes is redefined every render; adding it here would make
     // this effect fire on every render instead of when the layout changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingLayout, nodes, setNodes, fitView]);
+  }, [pendingLayout, lastChange, erDocHasError, nodes, setNodes, fitView]);
 
   if (!erDocHasError && erDoc !== prevErDoc) {
     setPrevErDoc(erDoc);
