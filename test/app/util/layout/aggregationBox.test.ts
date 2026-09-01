@@ -233,13 +233,25 @@ describe("scaleAlong", () => {
 });
 
 describe("scaleMembers", () => {
+  const group = (members: any[]) => {
+    const x = Math.min(...members.map((m) => m.x));
+    const y = Math.min(...members.map((m) => m.y));
+    return {
+      members,
+      x,
+      y,
+      width: Math.max(...members.map((m) => m.x + m.width)) - x,
+      height: Math.max(...members.map((m) => m.y + m.height)) - y,
+    };
+  };
+
   const snapshot: ResizeSnapshot = {
     width: 500,
     height: 500,
     padding: 0,
-    members: [
-      { id: "a", x: 0, y: 0, width: 100, height: 100 },
-      { id: "b", x: 400, y: 200, width: 100, height: 100 },
+    groups: [
+      group([{ id: "a", x: 0, y: 0, width: 100, height: 100 }]),
+      group([{ id: "b", x: 400, y: 200, width: 100, height: 100 }]),
     ],
   };
 
@@ -252,9 +264,7 @@ describe("scaleMembers", () => {
 
   it("leaves the untouched axis bit-identical on an edge-handle drag", () => {
     const moved = scaleMembers(snapshot, { width: 1000, height: 500 });
-    expect(moved.map((m) => m.position.y)).toEqual(
-      snapshot.members.map((m) => m.y),
-    );
+    expect(moved.map((m) => m.position.y)).toEqual([0, 200]);
   });
 
   /**
@@ -282,37 +292,144 @@ describe("scaleMembers", () => {
 
   it("returns nothing for an empty container", () => {
     expect(
-      scaleMembers({ ...snapshot, members: [] }, { width: 900, height: 900 }),
+      scaleMembers({ ...snapshot, groups: [] }, { width: 900, height: 900 }),
     ).toEqual([]);
+  });
+
+  /**
+   * The point of grouping: an attribute is drawn a fixed distance from its
+   * owner and joined to it by a short spoke. Scaling the two independently
+   * pulls that spoke apart; only the room between groups should stretch.
+   */
+  it("keeps every distance inside a group exactly as it was", () => {
+    const owner = { id: "e", x: 100, y: 100, width: 100, height: 50 };
+    const attr = { id: "attr", x: 40, y: 110, width: 60, height: 30 };
+    const far = { id: "f", x: 380, y: 100, width: 100, height: 50 };
+    const snap: ResizeSnapshot = {
+      width: 520,
+      height: 400,
+      padding: 20,
+      groups: [group([owner, attr]), group([far])],
+    };
+
+    for (const next of [
+      { width: 900, height: 700 },
+      { width: 300, height: 250 },
+      { width: 520, height: 400 },
+    ]) {
+      const moved = new Map(
+        scaleMembers(snap, next).map((m) => [m.id, m.position]),
+      );
+      // every member of a group takes the same offset, so the distance between
+      // them survives to the last bit float addition can carry
+      expect(moved.get("attr")!.x - moved.get("e")!.x).toBeCloseTo(
+        attr.x - owner.x,
+        9,
+      );
+      expect(moved.get("attr")!.y - moved.get("e")!.y).toBeCloseTo(
+        attr.y - owner.y,
+        9,
+      );
+    }
+  });
+
+  it("still stretches the room between groups", () => {
+    const snap: ResizeSnapshot = {
+      width: 500,
+      height: 200,
+      padding: 0,
+      groups: [
+        group([{ id: "a", x: 0, y: 0, width: 100, height: 100 }]),
+        group([{ id: "b", x: 400, y: 0, width: 100, height: 100 }]),
+      ],
+    };
+    const moved = new Map(
+      scaleMembers(snap, { width: 1000, height: 200 }).map((m) => [
+        m.id,
+        m.position,
+      ]),
+    );
+    expect(moved.get("b")!.x - moved.get("a")!.x).toBe(900);
   });
 });
 
 describe("resizeSnapshot", () => {
+  const node = (
+    id: string,
+    x: number,
+    y: number,
+    extra: Partial<PositionedNode> = {},
+  ): PositionedNode => ({
+    id,
+    type: "entity",
+    position: { x, y },
+    width: 90,
+    height: 44,
+    ...extra,
+  });
+
   const nodes = [
-    node("agg", 0, 0, { type: "aggregation" }),
-    node("a", 40, 40, { parentNode: "agg" }),
-    node("ghost", 80, 80, { parentNode: "agg", hidden: true }),
-    node("outside", 0, 0),
+    node("agg", 0, 0, { type: "aggregation", width: 500, height: 500 }),
+    node("e", 100, 100, { parentNode: "agg" }),
+    node("attr", 40, 110, {
+      type: "entity-attribute",
+      width: 60,
+      height: 44,
+      parentNode: "agg",
+    }),
+    node("ghost", 80, 80, {
+      type: "entity-attribute",
+      parentNode: "agg",
+      hidden: true,
+    }),
+    node("r", 300, 100, { type: "relationship", parentNode: "agg" }),
+    node("outside", 900, 900),
+  ];
+  // ownership lives in the edges: the aggregation re-parented the attribute to
+  // the container, so its link to the entity survives only here
+  const edges = [
+    { id: "1", source: "e", target: "attr" },
+    { id: "2", source: "e", target: "ghost" },
+    { id: "3", source: "r", target: "e" },
   ];
 
-  /**
-   * Unlike the sizing rule, the transform moves hidden members too: one left
-   * behind would pop into the wrong place the moment it is revealed.
-   */
+  const snap = resizeSnapshot(nodes, edges, "agg", { width: 500, height: 500 });
+
+  it("puts an attribute in its owner's group", () => {
+    const withE = snap.groups.find((g) => g.members.some((m) => m.id === "e"))!;
+    expect(withE.members.map((m) => m.id).sort()).toEqual([
+      "attr",
+      "e",
+      "ghost",
+    ]);
+  });
+
+  it("gives an element with no attributes a group of its own", () => {
+    const withR = snap.groups.find((g) => g.members.some((m) => m.id === "r"))!;
+    expect(withR.members).toHaveLength(1);
+  });
+
+  it("covers the whole group with the group's box", () => {
+    const withE = snap.groups.find((g) => g.members.some((m) => m.id === "e"))!;
+    // attribute at x=40 w=60, entity at x=100 w=90 -> 40..190
+    expect([withE.x, withE.width]).toEqual([40, 150]);
+  });
+
   it("includes hidden members", () => {
-    const snapshot = resizeSnapshot(nodes, "agg", { width: 500, height: 500 });
-    expect(snapshot.members.map((m) => m.id)).toEqual(["a", "ghost"]);
+    expect(
+      snap.groups
+        .flatMap((g) => g.members)
+        .map((m) => m.id)
+        .sort(),
+    ).toEqual(["attr", "e", "ghost", "r"]);
   });
 
   it("records the box it was taken at", () => {
-    const snapshot = resizeSnapshot(nodes, "agg", { width: 640, height: 480 });
-    expect([snapshot.width, snapshot.height]).toEqual([640, 480]);
+    expect([snap.width, snap.height]).toEqual([500, 500]);
   });
 
   it("carries no container position, so it cannot be applied twice", () => {
-    expect(
-      resizeSnapshot(nodes, "agg", { width: 500, height: 500 }),
-    ).not.toHaveProperty("position");
+    expect(snap).not.toHaveProperty("position");
   });
 });
 

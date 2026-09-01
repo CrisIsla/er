@@ -18,6 +18,7 @@
  */
 
 import { PositionedNode, Rect } from "../alignmentCandidates";
+import { GraphEdge, buildOwnerMap, isAttributeNode } from "../erGraph";
 import {
   DEFAULT_AGGREGATION_SIZE,
   MIN_AGGREGATION_SIZE,
@@ -128,6 +129,25 @@ export type MemberRect = {
 };
 
 /**
+ * An entity or relationship together with the attributes that orbit it, and the
+ * box the three of them occupy.
+ *
+ * A resize moves a group as one rigid piece. An attribute is drawn at a fixed
+ * distance from its owner and joined to it by a short spoke, so scaling the two
+ * independently pulls that spoke apart and the ring stops reading as belonging
+ * to anything. What should stretch is the room *between* one entity and the
+ * next, not the room between an entity and its own attributes.
+ */
+export type MemberGroup = {
+  members: MemberRect[];
+  /** the box the whole group covers, in the container's frame */
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+/**
  * Everything the transform needs, captured when the drag starts.
  *
  * Deliberately holds no container *position*: when a top or left handle is
@@ -140,32 +160,62 @@ export type ResizeSnapshot = {
   width: number;
   height: number;
   padding: number;
-  members: MemberRect[];
+  groups: MemberGroup[];
 };
 
 export const resizeSnapshot = (
   nodes: PositionedNode[],
+  edges: GraphEdge[],
   containerId: string,
   box: NodeSize,
   padding: number = defaultPadding,
-): ResizeSnapshot => ({
-  width: box.width,
-  height: box.height,
-  padding,
-  // hidden members are included: one that kept its old position while
-  // everything around it moved would pop into the wrong place -- or outside the
-  // box -- the moment its owner is hovered and it is revealed
-  members: membersOf(nodes, containerId).map((member) => {
+): ResizeSnapshot => {
+  const members = membersOf(nodes, containerId);
+  const memberIds = new Set(members.map((member) => member.id));
+  // ownership comes from the edges, not from parentNode: an aggregation
+  // re-parents everything it contains to the container, so an attribute inside
+  // one has lost the link to its own entity
+  const { owner } = buildOwnerMap(nodes, edges);
+
+  /**
+   * Which piece a member travels with. An attribute joins its owner; anything
+   * else -- an entity, a relationship, a nested container, an attribute whose
+   * owner somehow sits outside this box -- is a piece of its own.
+   */
+  const groupOf = (member: PositionedNode) => {
+    if (!isAttributeNode(member)) return member.id;
+    const ownerId = owner.get(member.id);
+    return ownerId !== undefined && memberIds.has(ownerId)
+      ? ownerId
+      : member.id;
+  };
+
+  const byGroup = new Map<string, MemberRect[]>();
+  for (const member of members) {
     const { width, height } = measure(member);
-    return {
+    // hidden members travel with their group too: one left where it was would
+    // pop into the wrong place the moment its owner is hovered and it is shown
+    const rect = {
       id: member.id,
       x: member.position.x,
       y: member.position.y,
       width,
       height,
     };
-  }),
-});
+    const key = groupOf(member);
+    byGroup.set(key, [...(byGroup.get(key) ?? []), rect]);
+  }
+
+  return {
+    width: box.width,
+    height: box.height,
+    padding,
+    groups: [...byGroup.values()].map((groupMembers) => ({
+      members: groupMembers,
+      ...boundingBox(groupMembers),
+    })),
+  };
+};
 
 /**
  * Where a member sits on one axis after the box changes size.
@@ -216,25 +266,32 @@ export const scaleMembers = (
   snapshot: ResizeSnapshot,
   next: NodeSize,
 ): { id: string; position: Vec }[] =>
-  snapshot.members.map((member) => ({
-    id: member.id,
-    position: {
-      x: scaleAlong(
-        member.x,
-        member.width,
+  snapshot.groups.flatMap((group) => {
+    // the group's own box is what takes the new fraction of the room; every
+    // member then travels by the same offset, so an attribute keeps exactly the
+    // distance from its owner that it was drawn at
+    const dx =
+      scaleAlong(
+        group.x,
+        group.width,
         snapshot.width,
         next.width,
         snapshot.padding,
-      ),
-      y: scaleAlong(
-        member.y,
-        member.height,
+      ) - group.x;
+    const dy =
+      scaleAlong(
+        group.y,
+        group.height,
         snapshot.height,
         next.height,
         snapshot.padding,
-      ),
-    },
-  }));
+      ) - group.y;
+
+    return group.members.map((member) => ({
+      id: member.id,
+      position: { x: member.x + dx, y: member.y + dy },
+    }));
+  });
 
 /**
  * The smallest box a resize drag may produce.
@@ -257,24 +314,24 @@ export const scaleMembers = (
  */
 export const resizeFloor = (snapshot: ResizeSnapshot): NodeSize => {
   const axis = (
-    start: (m: MemberRect) => number,
-    size: (m: MemberRect) => number,
-    cross: (m: MemberRect) => number,
-    crossSize: (m: MemberRect) => number,
+    start: (m: MemberGroup) => number,
+    size: (m: MemberGroup) => number,
+    cross: (m: MemberGroup) => number,
+    crossSize: (m: MemberGroup) => number,
     box: number,
   ) => {
-    const { padding, members } = snapshot;
+    const { padding, groups: members } = snapshot;
     if (members.length === 0) return 0;
 
     // every member has to keep fitting between the padding lines
     let floor = 2 * padding + Math.max(...members.map(size));
 
-    const fractionOf = (m: MemberRect) => {
+    const fractionOf = (m: MemberGroup) => {
       const free = box - 2 * padding - size(m);
       return free > 0 ? clamp((start(m) - padding) / free, 0, 1) : 0.5;
     };
     // x(B) = f*B + offset
-    const offsetOf = (m: MemberRect) =>
+    const offsetOf = (m: MemberGroup) =>
       padding - fractionOf(m) * (2 * padding + size(m));
 
     for (const a of members)

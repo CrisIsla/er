@@ -77,6 +77,7 @@ export const useAggregationResize = (containerId: string | null) => {
         return resizeFloor(
           resizeSnapshot(
             Array.from(state.nodeInternals.values()) as PositionedNode[],
+            state.edges,
             node.id,
             {
               width: node.width ?? DEFAULT_AGGREGATION_SIZE.width,
@@ -148,8 +149,12 @@ export const useAggregationResize = (containerId: string | null) => {
         snapshotRef.current = null;
         return;
       }
+      const state = store.getState();
       snapshotRef.current = resizeSnapshot(
-        Array.from(store.getState().nodeInternals.values()) as PositionedNode[],
+        Array.from(state.nodeInternals.values()) as PositionedNode[],
+        // attributes are grouped with the element they belong to, and that
+        // ownership is only visible in the edges
+        state.edges,
         id,
         { width: params.width, height: params.height },
       );
