@@ -124,6 +124,59 @@ export const findFreeSpot = (
   return preferred;
 };
 
+/**
+ * The point that leaves the largest gap as small as it can be.
+ *
+ * A centroid balances the distances between *centres*, which is not the same as
+ * balancing the gaps between *shapes* once the shapes differ in size -- and for
+ * three or more participants it is not even close. A ternary relationship whose
+ * participants sit at 138, 378 and 798 has its centroid at 438, eight pixels
+ * from the middle one and two hundred and forty from the far one.
+ *
+ * Each axis is solved on its own, because the gap between two boxes is the
+ * larger of the two per-axis gaps and `max` commutes with itself. Along one
+ * axis a participant demands `|v - c| - S`, so the whole set demands
+ * `max(v - A, B - v)` with `A = min(c + S)` and `B = max(c - S)` -- smallest at
+ * the midpoint of A and B.
+ *
+ * Two properties make this safe as a drop-in for the centroid: with two equal
+ * participants it *is* the midpoint, so the common case does not move; and when
+ * every participant shares a coordinate the answer is exactly that coordinate,
+ * so an alignment the search worked for is never lost to rounding.
+ */
+export const gapCentre = (
+  participants: { centre: Vec; width: number; height: number }[],
+  connector: { width: number; height: number },
+): Vec => {
+  const along = (
+    centreOf: (p: (typeof participants)[number]) => number,
+    sizeOf: (p: (typeof participants)[number]) => number,
+    connectorSize: number,
+  ) => {
+    let near = Infinity;
+    let far = -Infinity;
+    for (const participant of participants) {
+      const reach = (connectorSize + sizeOf(participant)) / 2;
+      near = Math.min(near, centreOf(participant) + reach);
+      far = Math.max(far, centreOf(participant) - reach);
+    }
+    return (near + far) / 2;
+  };
+
+  return {
+    x: along(
+      (p) => p.centre.x,
+      (p) => p.width,
+      connector.width,
+    ),
+    y: along(
+      (p) => p.centre.y,
+      (p) => p.height,
+      connector.height,
+    ),
+  };
+};
+
 /** Unit vector perpendicular to the line joining the first two participants. */
 const perpendicularOf = (participants: string[], centres: Placement): Vec => {
   const first = centres.get(participants[0]);
@@ -217,10 +270,32 @@ export const placeConnectors = (
       continue;
     }
 
-    const points = participants
-      .map((id) => skeletonCentres.get(id))
-      .filter((centre): centre is Vec => centre !== undefined);
-    const base = centroid(points);
+    const placedParticipants = participants
+      .map((id) => ({
+        centre: skeletonCentres.get(id),
+        element: graph.elements.get(id),
+      }))
+      .filter(
+        (p): p is { centre: Vec; element: LayoutElement } =>
+          p.centre !== undefined && p.element !== undefined,
+      )
+      .map(({ centre, element }) => ({
+        centre,
+        width: element.visualWidth,
+        height: element.visualHeight,
+      }));
+
+    const base =
+      placedParticipants.length === 0
+        ? centroid(
+            participants
+              .map((id) => skeletonCentres.get(id))
+              .filter((centre): centre is Vec => centre !== undefined),
+          )
+        : gapCentre(placedParticipants, {
+            width: group[0].visualWidth,
+            height: group[0].visualHeight,
+          });
     const normal = perpendicularOf(participants, skeletonCentres);
     const spread = params.parallelGap + group[0].visualWidth;
 
