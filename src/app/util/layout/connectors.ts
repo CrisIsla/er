@@ -70,9 +70,15 @@ const occupiedAngles = (
   return angles;
 };
 
-/** The cardinal direction furthest from everything already attached. */
-const freestCardinal = (occupied: number[]) => {
-  if (occupied.length === 0) return CARDINALS[0];
+/**
+ * The cardinal directions, emptiest first.
+ *
+ * `sort` is stable, so cardinals that are equally clear -- every one of them,
+ * when nothing is attached yet -- keep the order `CARDINALS` declares them in,
+ * and the result stays reproducible.
+ */
+const cardinalsByClearance = (occupied: number[]): Vec[] => {
+  if (occupied.length === 0) return [...CARDINALS];
   const clearance = (direction: Vec) => {
     const angle = normalizeAngle(Math.atan2(direction.y, direction.x));
     return Math.min(
@@ -82,10 +88,12 @@ const freestCardinal = (occupied: number[]) => {
       }),
     );
   };
-  return CARDINALS.reduce((best, direction) =>
-    clearance(direction) > clearance(best) ? direction : best,
-  );
+  return [...CARDINALS].sort((a, b) => clearance(b) - clearance(a));
 };
+
+/** The cardinal direction furthest from everything already attached. */
+const freestCardinal = (occupied: number[]) =>
+  cardinalsByClearance(occupied)[0];
 
 /**
  * Nearest free position to `preferred`, searched outwards on the grid.
@@ -93,13 +101,22 @@ const freestCardinal = (occupied: number[]) => {
  * Used as the fallback whenever a centroid is already taken -- the middle
  * participant of a ternary relationship, or two ISA triangles hanging off the
  * same superclass.
+ *
+ * `directions` is which way it may look. The default tries all eight, but a
+ * caller that placed `preferred` deliberately can narrow it: pass the single
+ * direction the offset was made along and the search only pushes further out on
+ * that ray, so whatever the caller was arranging for survives being displaced.
+ *
+ * Returns null rather than `preferred` when nothing fits, so a caller with a
+ * second idea can tell the difference between a spot and a shrug.
  */
 export const findFreeSpot = (
   element: LayoutElement,
   preferred: Vec,
   occupied: Rect[],
   params: LayoutParams,
-): Vec => {
+  directions: readonly Vec[] = DIRECTIONS,
+): Vec | null => {
   const fits = (candidate: Vec) => {
     const rect = rectAt(
       element.id,
@@ -114,14 +131,14 @@ export const findFreeSpot = (
 
   const step = params.gridStep;
   for (let k = 1; k <= params.relax.maxStepsCeiling; k++)
-    for (const direction of DIRECTIONS) {
+    for (const direction of directions) {
       const candidate = {
         x: preferred.x + k * step * direction.x,
         y: preferred.y + k * step * direction.y,
       };
       if (fits(candidate)) return candidate;
     }
-  return preferred;
+  return null;
 };
 
 /**
@@ -259,22 +276,44 @@ export const placeConnectors = (
       }
       const taken = occupiedAngles(ownerId, skeletonCentres, graph);
       group.forEach((connector, index) => {
-        const direction = freestCardinal([
+        const rays = cardinalsByClearance([
           ...taken,
           ...group
             .slice(0, index)
             .map((placed) => angleOf(ownerCentre, centres.get(placed.id)!)),
         ]);
-        const angle = normalizeAngle(Math.atan2(direction.y, direction.x));
-        const distance =
-          supportRadius(owner.visualWidth, owner.visualHeight, angle) +
-          params.minSeparation +
-          supportRadius(connector.visualWidth, connector.visualHeight, angle);
-        const preferred = {
-          x: ownerCentre.x + direction.x * distance,
-          y: ownerCentre.y + direction.y * distance,
+
+        /** Where the diamond sits if it hangs off the owner in `direction`. */
+        const seat = (direction: Vec) => {
+          const angle = normalizeAngle(Math.atan2(direction.y, direction.x));
+          const distance =
+            supportRadius(owner.visualWidth, owner.visualHeight, angle) +
+            params.minSeparation +
+            supportRadius(connector.visualWidth, connector.visualHeight, angle);
+          return {
+            x: ownerCentre.x + direction.x * distance,
+            y: ownerCentre.y + direction.y * distance,
+          };
         };
-        const spot = findFreeSpot(connector, preferred, occupied, params);
+
+        // Being cardinal is the whole point of this branch, and it survives
+        // being displaced only if the search stays on the ray: useEdgePath
+        // chooses the side an edge leaves by comparing |dx| against |dy|, so a
+        // diagonal seat is a near-tie that flips sides under a pixel of
+        // movement and the two role edges stop having distinct handles. So each
+        // cardinal is tried in turn, pushing outwards along that one ray, and
+        // only once all four are blocked does it settle for any spot at all.
+        let spot: Vec | null = null;
+        for (const direction of rays) {
+          spot = findFreeSpot(connector, seat(direction), occupied, params, [
+            direction,
+          ]);
+          if (spot !== null) break;
+        }
+        spot ??=
+          findFreeSpot(connector, seat(rays[0]), occupied, params) ??
+          seat(rays[0]);
+
         centres.set(connector.id, spot);
         occupied.push(
           rectAt(
@@ -325,7 +364,10 @@ export const placeConnectors = (
         x: base.x + normal.x * offset,
         y: base.y + normal.y * offset,
       };
-      const spot = findFreeSpot(connector, preferred, occupied, params);
+      // nowhere clear at all: sit on the preferred point and overlap, rather
+      // than wander somewhere that reads as joining nothing
+      const spot =
+        findFreeSpot(connector, preferred, occupied, params) ?? preferred;
       centres.set(connector.id, spot);
       occupied.push(
         rectAt(
