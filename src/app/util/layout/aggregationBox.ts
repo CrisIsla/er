@@ -140,6 +140,19 @@ export type MemberRect = {
  */
 export type MemberGroup = {
   members: MemberRect[];
+  /**
+   * The entity or relationship the group is built around.
+   *
+   * This, not the group's box, is what takes a fraction of the new room. An
+   * attribute ring is far wider than the element it orbits -- in the shipped
+   * aggregation example a 90px entity carries a 246px group inside a 348px box
+   * -- and a member's travel range is `box - 2*padding - size`, so measuring by
+   * the ring leaves almost no range at all and every fraction saturates to 0 or
+   * 1. Groups then stop moving relative to each other: the diamond pinned to
+   * the left padding line while both entities pinned to the right, and the
+   * relationship no longer sat between the two entities it joins.
+   */
+  anchor: MemberRect;
   /** the box the whole group covers, in the container's frame */
   x: number;
   y: number;
@@ -210,8 +223,13 @@ export const resizeSnapshot = (
     width: box.width,
     height: box.height,
     padding,
-    groups: [...byGroup.values()].map((groupMembers) => ({
+    groups: [...byGroup.entries()].map(([key, groupMembers]) => ({
       members: groupMembers,
+      // the member the group is keyed by. `groupOf` returns an owner id only
+      // when that owner is itself in the box, so this always resolves; the
+      // fallback is for a caller that assembled a snapshot by hand
+      anchor:
+        groupMembers.find((member) => member.id === key) ?? groupMembers[0],
       ...boundingBox(groupMembers),
     })),
   };
@@ -267,25 +285,27 @@ export const scaleMembers = (
   next: NodeSize,
 ): { id: string; position: Vec }[] =>
   snapshot.groups.flatMap((group) => {
-    // the group's own box is what takes the new fraction of the room; every
-    // member then travels by the same offset, so an attribute keeps exactly the
-    // distance from its owner that it was drawn at
+    // the anchor is what takes the new fraction of the room, and every member of
+    // the group travels by that same offset -- so an attribute keeps exactly the
+    // distance from its owner that it was drawn at, while the elements that
+    // actually carry the relationships keep their spacing relative to each other
+    const { anchor } = group;
     const dx =
       scaleAlong(
-        group.x,
-        group.width,
+        anchor.x,
+        anchor.width,
         snapshot.width,
         next.width,
         snapshot.padding,
-      ) - group.x;
+      ) - anchor.x;
     const dy =
       scaleAlong(
-        group.y,
-        group.height,
+        anchor.y,
+        anchor.height,
         snapshot.height,
         next.height,
         snapshot.padding,
-      ) - group.y;
+      ) - anchor.y;
 
     return group.members.map((member) => ({
       id: member.id,
@@ -318,21 +338,31 @@ export const resizeFloor = (snapshot: ResizeSnapshot): NodeSize => {
     size: (m: MemberGroup) => number,
     cross: (m: MemberGroup) => number,
     crossSize: (m: MemberGroup) => number,
+    anchorStart: (m: MemberGroup) => number,
+    anchorSize: (m: MemberGroup) => number,
     box: number,
   ) => {
     const { padding, groups: members } = snapshot;
     if (members.length === 0) return 0;
 
-    // every member has to keep fitting between the padding lines
+    // every member has to keep fitting between the padding lines. Measured on
+    // the group, ring included: what may not be squeezed out of the box is
+    // everything drawn, not just the element the group is anchored on
     let floor = 2 * padding + Math.max(...members.map(size));
 
+    // the fraction the *anchor* takes, because that is what `scaleMembers`
+    // moves the group by
     const fractionOf = (m: MemberGroup) => {
-      const free = box - 2 * padding - size(m);
-      return free > 0 ? clamp((start(m) - padding) / free, 0, 1) : 0.5;
+      const free = box - 2 * padding - anchorSize(m);
+      return free > 0 ? clamp((anchorStart(m) - padding) / free, 0, 1) : 0.5;
     };
-    // x(B) = f*B + offset
+    // the group's leading edge is the anchor's line, shifted by however far the
+    // group reaches past its anchor: x(B) = f*B + offset
     const offsetOf = (m: MemberGroup) =>
-      padding - fractionOf(m) * (2 * padding + size(m));
+      start(m) -
+      anchorStart(m) +
+      padding -
+      fractionOf(m) * (2 * padding + anchorSize(m));
 
     for (const a of members)
       for (const b of members) {
@@ -362,6 +392,8 @@ export const resizeFloor = (snapshot: ResizeSnapshot): NodeSize => {
       (m) => m.width,
       (m) => m.y,
       (m) => m.height,
+      (m) => m.anchor.x,
+      (m) => m.anchor.width,
       snapshot.width,
     ),
     height: axis(
@@ -369,6 +401,8 @@ export const resizeFloor = (snapshot: ResizeSnapshot): NodeSize => {
       (m) => m.height,
       (m) => m.x,
       (m) => m.width,
+      (m) => m.anchor.y,
+      (m) => m.anchor.height,
       snapshot.height,
     ),
   };

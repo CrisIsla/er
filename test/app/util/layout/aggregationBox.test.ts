@@ -233,11 +233,13 @@ describe("scaleAlong", () => {
 });
 
 describe("scaleMembers", () => {
+  /** The owner first, the attributes that orbit it after -- as resizeSnapshot builds them. */
   const group = (members: any[]) => {
     const x = Math.min(...members.map((m) => m.x));
     const y = Math.min(...members.map((m) => m.y));
     return {
       members,
+      anchor: members[0],
       x,
       y,
       width: Math.max(...members.map((m) => m.x + m.width)) - x,
@@ -331,6 +333,52 @@ describe("scaleMembers", () => {
         9,
       );
     }
+  });
+
+  /**
+   * The regression grouping introduced: a member's travel range is
+   * `box - 2*padding - size`, so measuring a group by its bounding box charges
+   * it for the whole attribute ring. In a container barely wider than that ring
+   * the range collapses, every fraction saturates to 0 or 1, and groups stop
+   * moving relative to one another -- which is what broke the relationships,
+   * since the diamond that joins two entities has a much smaller ring than they
+   * do and so saturated the other way.
+   */
+  it("keeps a bare group tracking one with a wide ring", () => {
+    // an entity with a ring 246 wide, and a diamond with a ring 193 wide, in a
+    // 348 box: the proportions of the shipped aggregation example
+    const entity = { id: "e", x: 62 + 78, y: 0, width: 90, height: 44 };
+    const ring = { id: "attr", x: 62, y: 0, width: 246, height: 44 };
+    const diamond = { id: "r", x: 40 + 49, y: 100, width: 95, height: 95 };
+    const spoke = { id: "took", x: 40, y: 100, width: 193, height: 95 };
+    const snap: ResizeSnapshot = {
+      width: 348,
+      height: 545,
+      padding: 40,
+      groups: [group([entity, ring]), group([diamond, spoke])],
+    };
+
+    const xsAt = (width: number) => {
+      const moved = new Map(
+        scaleMembers(snap, { width, height: 545 }).map((m) => [
+          m.id,
+          m.position.x,
+        ]),
+      );
+      return { entity: moved.get("e")!, diamond: moved.get("r")! };
+    };
+
+    // measured by its ring the diamond's range was 348 - 80 - 193 = 75 wide and
+    // it sat on the padding line, so its fraction was 0 and it did not move at
+    // all while the entity -- fraction 1 by the same collapse -- ran away from
+    // it. Measured by the elements themselves both keep taking their share.
+    const start = xsAt(348);
+    const mid = xsAt(557);
+    const wide = xsAt(835);
+    expect(mid.diamond).toBeGreaterThan(start.diamond);
+    expect(wide.diamond).toBeGreaterThan(mid.diamond);
+    expect(mid.entity).toBeGreaterThan(start.entity);
+    expect(wide.entity).toBeGreaterThan(mid.entity);
   });
 
   it("still stretches the room between groups", () => {
