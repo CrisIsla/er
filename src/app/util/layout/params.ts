@@ -74,6 +74,22 @@ export type LayoutParams = {
     minSeparationFloor: number;
   };
   /**
+   * Drawing ISA hierarchies as trees rather than leaving them to the search.
+   *
+   * The discrete search cannot reach a fan: candidates sit on eight rays from an
+   * anchor, and a subclass beside its siblings needs a different offset on each
+   * axis, which a diagonal ray -- moving both by the same k*S -- cannot express.
+   * So each hierarchy is arranged on its own and handed to the search as one
+   * rigid shape carried by its root.
+   *
+   * `enabled: false` restores exactly the behaviour of the search alone.
+   */
+  hierarchy: {
+    enabled: boolean;
+    /** a hierarchy smaller than this is left to the search as ordinary elements */
+    minMembers: number;
+  };
+  /**
    * The alignment-preserving refinement pass. `seed` is what keeps the result
    * reproducible: the same diagram must lay out the same way every time, because
    * the layout re-runs on every edit that changes the node or edge count.
@@ -107,6 +123,15 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
   relax: {
     maxStepsCeiling: 16,
     minSeparationFloor: 10,
+  },
+  hierarchy: {
+    // three, not two: a superclass with a single subclass is not a fan, it is
+    // one element below another, which the search already draws and the refine
+    // pass already protects. Arranging it as a tree only costs the search the
+    // freedom to interleave -- on `company`, whose one `extends` sits in an
+    // otherwise relational diagram, doing so took crossings from 0 to 6.
+    enabled: true,
+    minMembers: 3,
   },
   refine: {
     enabled: true,

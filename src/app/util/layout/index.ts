@@ -27,6 +27,7 @@ import {
 } from "./buildLayoutGraph";
 import { placeConnectors } from "./connectors";
 import { rectAt } from "./geometry";
+import { hierarchyTrees } from "./hierarchy";
 import { boundingBox } from "./metrics";
 import { DEFAULT_LAYOUT_PARAMS, LayoutParams } from "./params";
 import { placeSkeleton } from "./placement";
@@ -244,13 +245,41 @@ export const layoutDiscreteSearch = (
 
   const graph = buildLayoutGraph(sized, edges, params);
 
+  // step 1b: arrange each ISA hierarchy as a tree and hang it on its root. The
+  // search cannot draw a fan -- its candidates lie on eight rays from an anchor,
+  // and a subclass beside its siblings needs a different offset on each axis --
+  // so the shape is settled here and the root carries it as a footprint.
+  const trees = hierarchyTrees(
+    graph,
+    sized.map((node) => node.id),
+    params,
+  );
+  for (const tree of trees) {
+    const root = graph.elements.get(tree.rootId);
+    if (root === undefined || root.role !== "skeleton") continue;
+    root.footprint = tree.footprint;
+  }
+
   // steps 1-3: the skeleton, by discrete search
   // step 6: revisit the greedy decisions, without ever breaking an alignment
   const centres: Placement = new Map(
-    refinePlacement(graph, placeSkeleton(graph, params), params),
+    refinePlacement(graph, placeSkeleton(graph, params, { trees }), params, {
+      trees,
+    }),
   );
+
+  // the triangles a tree seated ride along with it, so where they end up is only
+  // known once the roots have been placed and refined
+  const pinned: Placement = new Map();
+  for (const tree of trees) {
+    const root = centres.get(tree.rootId);
+    if (root === undefined) continue;
+    for (const [id, offset] of tree.triangles)
+      pinned.set(id, { x: root.x + offset.x, y: root.y + offset.y });
+  }
+
   // step 4: diamonds and triangles, relative to what they join
-  for (const [id, centre] of placeConnectors(graph, centres, params))
+  for (const [id, centre] of placeConnectors(graph, centres, params, pinned))
     centres.set(id, centre);
   // step 5: attributes into the free sectors around their owner
   for (const [id, centre] of placeAttributes(graph, centres, params))

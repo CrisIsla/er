@@ -45,6 +45,16 @@ export type SkeletonElement = ElementBase & {
   role: "skeleton";
   /** incident connectors + owned attributes; drives seeding and ordering */
   weight: number;
+  /**
+   * The room this element must be given, when that is not its own box.
+   *
+   * Set on the root of an ISA hierarchy: the tree is arranged before the search
+   * runs and travels with its root, so the root has to reserve the whole tree.
+   * `dx`/`dy` place the box's centre relative to the element's own, which a
+   * plain width and height could not do -- a tidy tree hangs *below* its root,
+   * and `rectAt` is symmetric about the centre.
+   */
+  footprint?: { dx: number; dy: number; width: number; height: number };
 };
 
 /**

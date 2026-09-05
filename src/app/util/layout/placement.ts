@@ -14,6 +14,7 @@ import { Rect } from "../alignmentCandidates";
 import { DIRECTIONS, rectAt, rectsOverlap, snap } from "./geometry";
 import { boundingBox, isAxisAligned, segmentLength } from "./metrics";
 import { segmentsCross } from "./geometry";
+import { TreeLayout } from "./hierarchy";
 import { LayoutParams } from "./params";
 import {
   LayoutElement,
@@ -33,10 +34,10 @@ const isAligned = (a: Vec, b: Vec) =>
  * The box an element must keep clear: what it covers on screen, grown by the
  * share of its attribute halo we reserve up front.
  */
-const clearanceRect = (
+/** What the element itself covers, grown by its share of the attribute halo. */
+const haloRect = (
   element: LayoutElement,
   centre: Vec,
-  params: LayoutParams,
   haloFactor: number,
 ): Rect => {
   const pad = element.haloRadius * haloFactor;
@@ -46,6 +47,42 @@ const clearanceRect = (
     element.visualWidth + 2 * pad,
     element.visualHeight + 2 * pad,
   );
+};
+
+const clearanceRect = (
+  element: LayoutElement,
+  centre: Vec,
+  params: LayoutParams,
+  haloFactor: number,
+): Rect => {
+  // an element carrying a footprint reserves that instead: the ISA tree hanging
+  // off a root is already spaced internally, so the halo is spent and the box is
+  // offset rather than centred
+  const footprint = element.role === "skeleton" ? element.footprint : undefined;
+  if (footprint !== undefined)
+    return rectAt(
+      element.id,
+      { x: centre.x + footprint.dx, y: centre.y + footprint.dy },
+      footprint.width,
+      footprint.height,
+    );
+
+  return haloRect(element, centre, haloFactor);
+};
+
+/**
+ * The box to space this element by: its footprint if it carries one, its own
+ * visual box otherwise.
+ *
+ * Only the size, not the offset -- these callers pick how far apart two centres
+ * start out, and being a little tight there costs nothing, because
+ * `rejectOccupied` still tests the real, offset rectangle afterwards.
+ */
+const spacingSize = (element: LayoutElement) => {
+  const footprint = element.role === "skeleton" ? element.footprint : undefined;
+  return footprint === undefined
+    ? { width: element.visualWidth, height: element.visualHeight }
+    : { width: footprint.width, height: footprint.height };
 };
 
 /**
@@ -89,9 +126,11 @@ const firstClearStep = (
   haloFactor: number,
   minSeparation: number,
 ) => {
+  const anchorBox = spacingSize(anchor);
+  const elementBox = spacingSize(element);
   const pad = anchor.haloRadius * haloFactor + element.haloRadius * haloFactor;
-  const alongX = (anchor.visualWidth + element.visualWidth) / 2 + pad;
-  const alongY = (anchor.visualHeight + element.visualHeight) / 2 + pad;
+  const alongX = (anchorBox.width + elementBox.width) / 2 + pad;
+  const alongY = (anchorBox.height + elementBox.height) / 2 + pad;
   // a diagonal step moves on both axes at once, so clearing either one is enough
   const extent =
     direction.x !== 0 && direction.y !== 0
@@ -318,11 +357,16 @@ const placeBesideDiagram = (
 ): Vec => {
   if (placedRects.length === 0) return { x: 0, y: 0 };
   const box = boundingBox(placedRects);
-  const halfWidth =
-    element.visualWidth / 2 + element.haloRadius * params.haloFactor;
+  const footprint = element.role === "skeleton" ? element.footprint : undefined;
+  // the centre has to clear the box by the element's reach to its *left* edge,
+  // which for an offset footprint is not half its width
+  const reachLeft =
+    footprint === undefined
+      ? element.visualWidth / 2 + element.haloRadius * params.haloFactor
+      : footprint.width / 2 - footprint.dx;
   const x =
     Math.ceil(
-      (box.x + box.width + params.minSeparation + halfWidth) / params.gridStep,
+      (box.x + box.width + params.minSeparation + reachLeft) / params.gridStep,
     ) * params.gridStep;
   return { x, y: snap(box.y + box.height / 2, params.gridStep) };
 };
@@ -337,25 +381,74 @@ const seedOrder = (graph: LayoutGraph) =>
       a.key.localeCompare(b.key),
   );
 
+export type PlaceSkeletonOptions = {
+  /** ISA hierarchies already arranged, each riding on its root */
+  trees?: TreeLayout[];
+};
+
 export const placeSkeleton = (
   graph: LayoutGraph,
   params: LayoutParams,
+  { trees = [] }: PlaceSkeletonOptions = {},
 ): Placement => {
   const centres: Placement = new Map();
   if (graph.skeleton.length === 0) return centres;
 
+  const treeByRoot = new Map(trees.map((tree) => [tree.rootId, tree]));
+  // a member is placed by its root, never on its own: it has no position of its
+  // own to search for, only an offset
+  const memberOfTree = new Map<string, string>();
+  for (const tree of trees)
+    for (const id of tree.offsets.keys())
+      if (id !== tree.rootId) memberOfTree.set(id, tree.rootId);
+
   const spans = buildConnectorSpans(graph);
-  const ordered = seedOrder(graph);
+  const ordered = seedOrder(graph).filter(
+    (element) => !memberOfTree.has(element.id),
+  );
   const placedRects: Rect[] = [];
   const existingSegments: { a: Vec; b: Vec }[] = [];
 
   const commit = (element: SkeletonElement, centre: Vec) => {
     centres.set(element.id, centre);
-    placedRects.push(clearanceRect(element, centre, params, params.haloFactor));
-    for (const neighbourId of graph.neighbours.get(element.id) ?? []) {
-      const neighbourCentre = centres.get(neighbourId);
-      if (neighbourCentre !== undefined)
-        existingSegments.push({ a: centre, b: neighbourCentre });
+
+    const tree = treeByRoot.get(element.id);
+    if (tree === undefined) {
+      placedRects.push(
+        clearanceRect(element, centre, params, params.haloFactor),
+      );
+    } else {
+      // the root's footprint is what the search reserved to *find* this spot,
+      // but a fan is mostly empty space and an outsider is welcome in it. So
+      // once the tree has landed it is represented member by member --
+      // `haloRect`, not `clearanceRect`, because the root's own entry would
+      // otherwise hand back the whole-tree box again.
+      for (const [id, offset] of tree.offsets) {
+        const member = graph.elements.get(id);
+        const at = { x: centre.x + offset.x, y: centre.y + offset.y };
+        if (id !== element.id) centres.set(id, at);
+        if (member !== undefined)
+          placedRects.push(haloRect(member, at, params.haloFactor));
+      }
+    }
+
+    // segments run from the member that actually carries the edge; taking them
+    // all from the root would price crossings against a line nobody sees. A
+    // whole tree lands at once, so unlike the one-at-a-time case its internal
+    // edges would otherwise be recorded from both ends and counted twice.
+    const ends = tree === undefined ? [element.id] : [...tree.offsets.keys()];
+    const seen = new Set<string>();
+    for (const endId of ends) {
+      const endCentre = centres.get(endId);
+      if (endCentre === undefined) continue;
+      for (const neighbourId of graph.neighbours.get(endId) ?? []) {
+        const neighbourCentre = centres.get(neighbourId);
+        if (neighbourCentre === undefined || neighbourId === endId) continue;
+        const pair = [endId, neighbourId].sort().join("|");
+        if (seen.has(pair)) continue;
+        seen.add(pair);
+        existingSegments.push({ a: endCentre, b: neighbourCentre });
+      }
     }
   };
 

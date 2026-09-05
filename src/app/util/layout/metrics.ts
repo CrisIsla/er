@@ -9,7 +9,8 @@
 
 import { Rect, centerOf } from "../alignmentCandidates";
 import { rectsOverlap, segmentsCross } from "./geometry";
-import { Box, Vec } from "./types";
+import { buildHierarchyForest } from "./hierarchy";
+import { Box, LayoutGraph, Placement, Vec } from "./types";
 
 export type Segment = { a: Vec; b: Vec };
 
@@ -84,6 +85,73 @@ export type DiagramMetrics = {
   edges: number;
   axisAlignedEdges: number;
   alignedPairs: number;
+};
+
+/**
+ * How well the ISA hierarchies are drawn.
+ *
+ * Deliberately not folded into `DiagramMetrics`: the general measures apply to
+ * every diagram, these apply to the three examples that have an `extends`, and
+ * reporting `NaN` for the rest would make the baseline table unreadable. (It is
+ * also what keeps `diagramMetrics`'s recorded shape intact.)
+ */
+export type HierarchyMetrics = {
+  /** ISA links the forest captured */
+  links: number;
+  /** ...of which are drawn with the subclass strictly below its superclass */
+  downward: number;
+  /** members sharing their layer's most common y, over all members */
+  onLayerRow: number;
+  members: number;
+  /** the widest spread of y within a single layer, in pixels. 0 is a clean tree */
+  layerSpread: number;
+};
+
+export const hierarchyMetrics = (
+  graph: LayoutGraph,
+  centres: Placement,
+  order: string[] = [],
+): HierarchyMetrics => {
+  const forest = buildHierarchyForest(graph, order);
+
+  let downward = 0;
+  for (const { parentId, childId } of forest.links) {
+    const parent = centres.get(parentId);
+    const child = centres.get(childId);
+    if (parent !== undefined && child !== undefined && child.y > parent.y)
+      downward++;
+  }
+
+  // layers are numbered per tree but compared per tree as well: two independent
+  // hierarchies have no reason to share a baseline, and scoring them against one
+  // would report a clean pair of trees as broken
+  let onLayerRow = 0;
+  let members = 0;
+  let layerSpread = 0;
+  for (const ids of forest.membersOf.values()) {
+    const rows = new Map<number, number[]>();
+    for (const id of ids) {
+      const centre = centres.get(id);
+      if (centre === undefined) continue;
+      const layer = forest.layerOf.get(id)!;
+      rows.set(layer, [...(rows.get(layer) ?? []), centre.y]);
+    }
+    for (const ys of rows.values()) {
+      members += ys.length;
+      const counts = new Map<number, number>();
+      for (const y of ys) counts.set(y, (counts.get(y) ?? 0) + 1);
+      onLayerRow += Math.max(...counts.values());
+      layerSpread = Math.max(layerSpread, Math.max(...ys) - Math.min(...ys));
+    }
+  }
+
+  return {
+    links: forest.links.length,
+    downward,
+    onLayerRow,
+    members,
+    layerSpread,
+  };
 };
 
 export const diagramMetrics = (

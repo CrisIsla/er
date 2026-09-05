@@ -29,6 +29,7 @@ import {
   isAxisAligned,
   totalLength,
 } from "./metrics";
+import { TreeLayout } from "./hierarchy";
 import { LayoutParams } from "./params";
 import { clearanceRect } from "./placement";
 import { LayoutGraph, Placement, SkeletonElement, Vec } from "./types";
@@ -50,6 +51,28 @@ export const createRng = (seed: number) => {
 
 /** An overlap is not a trade-off to be priced; it makes an arrangement invalid. */
 const OVERLAP_PENALTY = 1e6;
+
+/**
+ * ISA links drawn with the subclass at or above its superclass.
+ *
+ * `candidateCost` prices the same thing while the greedy pass places an element
+ * (placement.ts), but it does so one element at a time -- it asks whether *this*
+ * candidate would violate the ordering. Over a finished arrangement the question
+ * is simply per connector, so this is a plain loop rather than the two-branch
+ * form there. Wrapping that form in a loop over the skeleton would match each
+ * connector twice, once from each end, and silently double the weight.
+ */
+export const hierarchyViolations = (graph: LayoutGraph, centres: Placement) => {
+  let violations = 0;
+  for (const connector of graph.connectors) {
+    if (connector.hierarchy === null) continue;
+    const parent = centres.get(connector.hierarchy.parentId);
+    const child = centres.get(connector.hierarchy.childId);
+    if (parent !== undefined && child !== undefined && child.y <= parent.y)
+      violations++;
+  }
+  return violations;
+};
 
 const skeletonSegments = (
   graph: LayoutGraph,
@@ -98,6 +121,7 @@ export const layoutCost = (
     weights.aspect * aspect +
     weights.unaligned *
       segments.filter((segment) => !isAxisAligned(segment)).length +
+    weights.isaDown * hierarchyViolations(graph, centres) +
     OVERLAP_PENALTY * countOverlaps(rects, params.minSeparation)
   );
 };
@@ -119,15 +143,31 @@ const alignmentCount = (
 export type RefineOptions = {
   /** injectable so a test can make the budget expire on demand */
   now?: () => number;
+  /**
+   * ISA hierarchies, which move as one shape.
+   *
+   * Only the root is offered to the search; its subclasses travel with it. The
+   * tree was arranged to be read as a tree, and a single-vertex walk can only
+   * take it apart -- nudging one subclass out of its row cannot be undone one
+   * step at a time, so the annealer would never find its way back.
+   */
+  trees?: TreeLayout[];
 };
 
 export const refinePlacement = (
   graph: LayoutGraph,
   centres: Placement,
   params: LayoutParams,
-  { now = () => Date.now() }: RefineOptions = {},
+  { now = () => Date.now(), trees = [] }: RefineOptions = {},
 ): Placement => {
-  const movable = graph.skeleton.filter((element) => centres.has(element.id));
+  const treeByRoot = new Map(trees.map((tree) => [tree.rootId, tree]));
+  const rides = new Set<string>();
+  for (const tree of trees)
+    for (const id of tree.offsets.keys()) if (id !== tree.rootId) rides.add(id);
+
+  const movable = graph.skeleton.filter(
+    (element) => centres.has(element.id) && !rides.has(element.id),
+  );
   if (!params.refine.enabled || movable.length < 3) return centres;
 
   const random = createRng(params.refine.seed);
@@ -135,6 +175,7 @@ export const refinePlacement = (
 
   let current = new Map(centres);
   let currentCost = layoutCost(graph, current, params);
+  let currentViolations = hierarchyViolations(graph, current);
   let best = current;
   let bestCost = currentCost;
 
@@ -173,6 +214,14 @@ export const refinePlacement = (
 
     const candidate = new Map(current);
     candidate.set(element.id, to);
+    // the whole tree follows its root. Every member is already a key here, so
+    // this replaces values without disturbing the map's order -- which the
+    // determinism tests compare entry by entry.
+    const tree = treeByRoot.get(element.id);
+    if (tree !== undefined)
+      for (const [id, offset] of tree.offsets)
+        if (id !== element.id)
+          candidate.set(id, { x: to.x + offset.x, y: to.y + offset.y });
 
     // the constraint the whole algorithm rests on: a move may not cost the
     // element the alignment it already has
@@ -181,6 +230,15 @@ export const refinePlacement = (
       alignmentCount(element, from, graph, current)
     )
       continue;
+
+    // the same shape of guard for the hierarchy: a subclass the greedy pass put
+    // below its superclass may not be lifted back up. `isaDown` prices this in
+    // `layoutCost` as well, but at 15 it is readily outbid by a crossing (100)
+    // or the aspect term (25), and pricing alone is what left `bank` drawing its
+    // one ISA link sideways. Phrased as "may not increase" rather than "must be
+    // zero", so a diagram that starts with violations can still improve.
+    const candidateViolations = hierarchyViolations(graph, candidate);
+    if (candidateViolations > currentViolations) continue;
 
     const candidateCost = layoutCost(graph, candidate, params);
     const delta = candidateCost - currentCost;
@@ -194,6 +252,7 @@ export const refinePlacement = (
 
     current = candidate;
     currentCost = candidateCost;
+    currentViolations = candidateViolations;
     if (currentCost < bestCost) {
       best = current;
       bestCost = currentCost;

@@ -193,6 +193,12 @@ export const placeConnectors = (
   graph: LayoutGraph,
   skeletonCentres: Placement,
   params: LayoutParams,
+  /**
+   * Triangles an ISA tree has already seated on its trunk. They are emitted as
+   * they are: the tree chose those spots so the edge leaves the apex, and
+   * `gapCentre` would pull them back to the midpoint of the two entities.
+   */
+  pinned: Placement = new Map(),
 ): Placement => {
   const centres: Placement = new Map();
 
@@ -206,10 +212,22 @@ export const placeConnectors = (
       occupied.push(clearanceRect(element, centre, params, 0));
   }
 
-  const byGroup = new Map<string, ConnectorElement[]>();
-  const ordered = [...graph.connectors].sort((a, b) =>
+  // seated first, so everything placed afterwards treats them as obstacles
+  for (const connector of [...graph.connectors].sort((a, b) =>
     a.key.localeCompare(b.key),
-  );
+  )) {
+    const seat = pinned.get(connector.id);
+    if (seat === undefined) continue;
+    centres.set(connector.id, seat);
+    occupied.push(
+      rectAt(connector.id, seat, connector.visualWidth, connector.visualHeight),
+    );
+  }
+
+  const byGroup = new Map<string, ConnectorElement[]>();
+  const ordered = [...graph.connectors]
+    .filter((connector) => !pinned.has(connector.id))
+    .sort((a, b) => a.key.localeCompare(b.key));
   for (const connector of ordered)
     byGroup.set(connector.groupKey, [
       ...(byGroup.get(connector.groupKey) ?? []),

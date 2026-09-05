@@ -108,3 +108,38 @@ entity Person {
   address: [street, city]
 }
 `;
+
+/**
+ * A hierarchy whose members also take part in relationships.
+ *
+ * None of the five shipped examples covers this: `subclass` is a pure forest
+ * with no relationships at all, while `bank` and `company` each have a single
+ * one-link hierarchy hanging off an otherwise relational diagram. The case that
+ * actually stresses a tree layout is an edge reaching *into the middle* of a
+ * fan, which is what `licensed_for` does here -- `Truck` is neither the root nor
+ * an end of the sibling row, and it carries a subtree of its own.
+ */
+export const HIERARCHY_ERDOC = `
+entity Vehicle {
+  vin key
+  make
+}
+entity Car extends Vehicle {
+  doors
+}
+entity Truck extends Vehicle {
+  payload
+}
+entity Semi extends Truck {
+  axles
+}
+entity Motorcycle extends Vehicle {
+  engine_cc
+}
+entity Owner {
+  id key
+  name
+}
+relation owns(Owner N, Vehicle M!)
+relation licensed_for(Owner N, Truck M)
+`;
