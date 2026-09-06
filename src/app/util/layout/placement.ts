@@ -12,7 +12,12 @@
 
 import { Rect } from "../alignmentCandidates";
 import { DIRECTIONS, rectAt, rectsOverlap, snap } from "./geometry";
-import { boundingBox, isAxisAligned, segmentLength } from "./metrics";
+import {
+  boundingBox,
+  edgesThroughNodes,
+  isAxisAligned,
+  segmentLength,
+} from "./metrics";
 import { segmentsCross } from "./geometry";
 import { TreeLayout } from "./hierarchy";
 import { LayoutParams } from "./params";
@@ -283,9 +288,17 @@ export const candidateCost = (
   const weights = params.weights;
 
   const newSegments = anchors
-    .map((anchorId) => centres.get(anchorId))
-    .filter((centre): centre is Vec => centre !== undefined)
-    .map((centre) => ({ a: candidate, b: centre }));
+    .map((anchorId) => ({ anchorId, centre: centres.get(anchorId) }))
+    .filter(
+      (anchor): anchor is { anchorId: string; centre: Vec } =>
+        anchor.centre !== undefined,
+    )
+    .map(({ anchorId, centre }) => ({
+      a: candidate,
+      b: centre,
+      from: element.id,
+      to: anchorId,
+    }));
 
   let crossings = 0;
   for (const fresh of newSegments)
@@ -315,6 +328,11 @@ export const candidateCost = (
     (segment) => !isAxisAligned(segment),
   ).length;
 
+  // an edge that vanishes inside a box it does not join reads as joining
+  // whatever that box joins. Nothing else in the cost function can see it --
+  // `crossings` compares segments with segments, never a segment with a shape.
+  const through = edgesThroughNodes(placedRects, newSegments);
+
   // a weak nudge, not a hierarchy pass: prefer a subclass drawn below its
   // superclass, which is how people draw ISA trees
   let hierarchyViolations = 0;
@@ -338,6 +356,7 @@ export const candidateCost = (
     weights.compactness * growth +
     weights.aspect * aspect +
     weights.unaligned * unaligned +
+    weights.throughNode * through +
     weights.isaDown * hierarchyViolations
   );
 };

@@ -26,9 +26,22 @@ export type CostWeights = {
   /** an incident edge that ends up neither horizontal nor vertical */
   unaligned: number;
   /**
-   * Weak preference for drawing a subclass below its superclass. This is a cost
-   * term, not a hierarchy phase -- set it to 0 for placement that treats ISA
-   * triangles as completely ordinary connectors.
+   * An edge that disappears into an element it does not join.
+   *
+   * Priced above `unaligned` and below `crossings`: a slanted edge is merely
+   * untidy, and a crossing is at least legible, but an edge that vanishes inside
+   * a box reads as joining whatever that box joins.
+   */
+  throughNode: number;
+  /**
+   * Drawing a subclass below its superclass. A cost term, not a hierarchy phase
+   * -- set it to 0 for placement that treats ISA triangles as completely
+   * ordinary connectors.
+   *
+   * Priced above `throughNode`, because an upside-down subclass is a semantic
+   * error in an ER diagram while an edge through a box is an untidy one. Only
+   * hierarchies too small for the tree pass are steered by it, so it can be firm
+   * without the column collapse a high value used to cause.
    */
   isaDown: number;
 };
@@ -118,7 +131,8 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
     compactness: 0.05,
     aspect: 25,
     unaligned: 20,
-    isaDown: 15,
+    throughNode: 60,
+    isaDown: 80,
   },
   relax: {
     maxStepsCeiling: 16,

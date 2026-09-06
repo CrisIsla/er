@@ -43,7 +43,7 @@ const BASELINE: Record<
   roles: { crossings: 0, throughNodes: 0, area: 23719, length: 568 },
   aggregation: { crossings: 0, throughNodes: 0, area: 380955, length: 1604 },
   subclass: { crossings: 0, throughNodes: 0, area: 1110144, length: 3627 },
-  bank: { crossings: 2, throughNodes: 2, area: 661943, length: 4239 },
+  bank: { crossings: 2, throughNodes: 0, area: 639504, length: 4226 },
   company: { crossings: 1, throughNodes: 3, area: 481635, length: 4639 },
 };
 

@@ -22,8 +22,9 @@
 import { Rect } from "../alignmentCandidates";
 import { DIRECTIONS } from "./geometry";
 import {
-  Segment,
+  DrawnSegment,
   boundingBox,
+  edgesThroughNodes,
   countCrossings,
   countOverlaps,
   isAxisAligned,
@@ -77,8 +78,8 @@ export const hierarchyViolations = (graph: LayoutGraph, centres: Placement) => {
 const skeletonSegments = (
   graph: LayoutGraph,
   centres: Placement,
-): Segment[] => {
-  const segments: Segment[] = [];
+): DrawnSegment[] => {
+  const segments: DrawnSegment[] = [];
   const seen = new Set<string>();
   for (const element of graph.skeleton) {
     const from = centres.get(element.id);
@@ -88,7 +89,8 @@ const skeletonSegments = (
       if (seen.has(key)) continue;
       seen.add(key);
       const to = centres.get(neighbourId);
-      if (to !== undefined) segments.push({ a: from, b: to });
+      if (to !== undefined)
+        segments.push({ a: from, b: to, from: element.id, to: neighbourId });
     }
   }
   return segments;
@@ -121,6 +123,7 @@ export const layoutCost = (
     weights.aspect * aspect +
     weights.unaligned *
       segments.filter((segment) => !isAxisAligned(segment)).length +
+    weights.throughNode * edgesThroughNodes(rects, segments) +
     weights.isaDown * hierarchyViolations(graph, centres) +
     OVERLAP_PENALTY * countOverlaps(rects, params.minSeparation)
   );

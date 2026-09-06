@@ -35,8 +35,7 @@ const ATTRIBUTE_COLLISIONS: Record<string, number> = {
   roles: 0,
   aggregation: 0,
   subclass: 0,
-  // customer|ssn over premium_customer, and premium_customer|discount over a_c
-  bank: 2,
+  bank: 0,
   // Department|d_name lands on Employee itself; Project|p_name lands on both the
   // Supplies diamond and Supplies' own Quantity
   company: 7,
@@ -46,14 +45,14 @@ const ATTRIBUTE_COLLISIONS: Record<string, number> = {
  * How near an attribute currently comes to a structural line that is not its
  * own, per example, as a floor it may not fall below.
  *
- * `bank` is at zero: `premium_customer|discount` is drawn on top of one. These
- * are the numbers to raise, not thresholds that have been met.
+ * Numbers to raise, not thresholds that have been met: `attributeGap / 2` would
+ * be the honest floor, and `company` and `bank` are both under it.
  */
 const ATTRIBUTE_CLEARANCE: Record<string, number> = {
   roles: 0,
   aggregation: 62,
   subclass: 173,
-  bank: 0,
+  bank: 12,
   company: 21,
 };
 
