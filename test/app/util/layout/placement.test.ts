@@ -197,7 +197,8 @@ describe("placeSkeleton", () => {
       relation r(A, B)
     `);
     const centres = placeSkeleton(graph, params);
-    expect(centres.size).toBe(3);
+    // three entities and the diamond joining two of them
+    expect(centres.size).toBe(graph.skeleton.length);
     for (const element of graph.skeleton)
       expect(Number.isFinite(centres.get(element.id)!.x)).toBe(true);
   });

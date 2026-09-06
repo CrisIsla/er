@@ -144,10 +144,10 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
   weights: {
     crossings: 100,
     length: 0.02,
-    compactness: 0.05,
+    compactness: 0.3,
     aspect: 25,
     unaligned: 20,
-    throughNode: 60,
+    throughNode: 150,
     isaDown: 80,
   },
   relax: {
@@ -155,16 +155,17 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
     minSeparationFloor: 10,
   },
   relationships: {
-    asSkeleton: false,
+    asSkeleton: true,
   },
   hierarchy: {
-    // three, not two: a superclass with a single subclass is not a fan, it is
-    // one element below another, which the search already draws and the refine
-    // pass already protects. Arranging it as a tree only costs the search the
-    // freedom to interleave -- on `company`, whose one `extends` sits in an
-    // otherwise relational diagram, doing so took crossings from 0 to 6.
+    // two, now that the diamonds are placed. It was three: arranging a lone
+    // subclass as a tree used to cost the search the freedom to interleave, and
+    // on `company` took crossings from 0 to 6. With relationships in the
+    // skeleton that freedom is spent on the diamonds instead, and holding the
+    // pair rigid is what keeps `company`'s subclass below its superclass --
+    // measured, at three it inverts and no weight recovers it.
     enabled: true,
-    minMembers: 3,
+    minMembers: 2,
   },
   refine: {
     enabled: true,

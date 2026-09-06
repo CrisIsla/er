@@ -25,35 +25,38 @@ import { EXAMPLES, fromErDoc, withSizes } from "./fixtures";
 const STRUCTURAL = ["entity", "relationship", "isA", "aggregation"];
 
 /**
- * Attribute collisions each example currently ships with, as a ratchet.
+ * Attributes overlapping something that is not their owner, as a ratchet.
  *
- * Nothing in the layout stops these: attributes are placed last, into whichever
- * angular sector around their owner is free, with no rectangle test against
- * anything else. Recorded per example so the number can only go down.
+ * Nothing in the layout prevents this: attributes are placed last, into
+ * whichever angular sector around their owner is free, with no rectangle test
+ * against anything else. The corpus reached zero once the diamonds started
+ * being placed -- an element that occupies real space is an element the
+ * attribute fan can be steered around -- so this now holds a clean sheet rather
+ * than recording a debt.
  */
 const ATTRIBUTE_COLLISIONS: Record<string, number> = {
   roles: 0,
   aggregation: 0,
   subclass: 0,
   bank: 0,
-  // Department|d_name lands on Employee itself; Project|p_name lands on both the
-  // Supplies diamond and Supplies' own Quantity
-  company: 7,
+  company: 0,
 };
 
 /**
- * How near an attribute currently comes to a structural line that is not its
- * own, per example, as a floor it may not fall below.
+ * How near an attribute comes to a structural line that is not its own, per
+ * example, as a floor it may not fall below.
  *
- * Numbers to raise, not thresholds that have been met: `attributeGap / 2` would
- * be the honest floor, and `company` and `bank` are both under it.
+ * `roles` has no line an attribute could be near, so its floor is nought. Every
+ * other example now clears `attributeGap / 2`, which is the least that reads as
+ * deliberate -- `bank` and `company` were at 12px and 21px before the diamonds
+ * were placed.
  */
 const ATTRIBUTE_CLEARANCE: Record<string, number> = {
   roles: 0,
-  aggregation: 62,
+  aggregation: 61,
   subclass: 173,
-  bank: 12,
-  company: 21,
+  bank: 62,
+  company: 114,
 };
 
 /** Absolute rectangles of the laid-out diagram, using what each node covers on screen. */

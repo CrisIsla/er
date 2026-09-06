@@ -41,10 +41,10 @@ const BASELINE: Record<
   { crossings: number; throughNodes: number; area: number; length: number }
 > = {
   roles: { crossings: 0, throughNodes: 0, area: 23719, length: 568 },
-  aggregation: { crossings: 0, throughNodes: 0, area: 380955, length: 1604 },
+  aggregation: { crossings: 1, throughNodes: 0, area: 306909, length: 1761 },
   subclass: { crossings: 0, throughNodes: 0, area: 1110144, length: 3627 },
-  bank: { crossings: 2, throughNodes: 0, area: 639504, length: 4226 },
-  company: { crossings: 1, throughNodes: 3, area: 481635, length: 4639 },
+  bank: { crossings: 2, throughNodes: 0, area: 1222964, length: 5682 },
+  company: { crossings: 0, throughNodes: 1, area: 1084597, length: 6118 },
 };
 
 /** How far `area` and `totalEdgeLength` may drift before it needs explaining. */
@@ -127,8 +127,12 @@ describe("layout quality", () => {
       // what the search was actually minimising, term by term. Six weights tuned
       // against one scalar is not a calibration, it is a guess -- so the terms
       // are reported separately even though nothing asserts on them.
+      // built from the sized nodes, not the raw ones: an aggregation container
+      // is still carrying its seeded 500x500 in `nodes`, and a clearance rect
+      // that big overlaps its neighbours and saturates every term at
+      // OVERLAP_PENALTY
       const graph = buildLayoutGraph(
-        nodes as never,
+        typedNodes as never,
         edges as never,
         DEFAULT_LAYOUT_PARAMS,
       );

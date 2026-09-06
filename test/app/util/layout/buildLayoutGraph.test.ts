@@ -63,11 +63,14 @@ describe("bank: an aggregation used as a relationship participant", () => {
   });
 
   it("keeps both endpoints of a relationship that reaches the aggregation", () => {
-    const accts = graph.connectors.find((connector) =>
-      connector.key.startsWith("relationship: accts"),
+    // the diamond is placed by the search, so what it joins is its adjacency
+    const accts = graph.skeleton.find((element) =>
+      element.key.startsWith("relationship: accts"),
     )!;
-    expect(accts.participants).toHaveLength(2);
-    const keys = accts.participants.map((id) => labelOf(graph, id));
+    const keys = graph.neighbours
+      .get(accts.id)!
+      .map((id) => labelOf(graph, id));
+    expect(keys).toHaveLength(2);
     expect(keys).toContain("entity: Bank_With_Branches");
     expect(keys).toContain("entity: account");
   });
@@ -136,11 +139,14 @@ describe("company: n-ary and recursive relationships side by side", () => {
   const { graph } = build(company.erDoc);
 
   it("keeps all three participants of a ternary relationship", () => {
-    const supplies = graph.connectors.find((connector) =>
-      connector.key.startsWith("relationship: Supplies"),
+    const supplies = graph.skeleton.find((element) =>
+      element.key.startsWith("relationship: Supplies"),
     )!;
-    expect(supplies.participants).toHaveLength(3);
-    expect(supplies.isSelfLoop).toBe(false);
+    // three spokes, and -- unlike the clique it used to contract to -- no
+    // adjacency invented between the three entities themselves
+    expect(graph.neighbours.get(supplies.id)).toHaveLength(3);
+    for (const participant of graph.neighbours.get(supplies.id)!)
+      expect(graph.neighbours.get(participant)).toContain(supplies.id);
   });
 
   it("detects the recursive Manages relationship", () => {
@@ -278,20 +284,29 @@ describe("hidden attributes", () => {
     }
   });
 
-  it("draws the skeleton tighter once attributes are hidden", () => {
+  it("never spreads the skeleton out because attributes were hidden", () => {
     const { nodes, edges } = fromErDoc(source);
+    // measured centre to centre: a top-left spread also moves when the elements
+    // at the extremes change, and a 95-wide diamond replacing a 90-wide entity
+    // at one corner is not the skeleton getting looser
     const spread = (list: typeof nodes) => {
       const { positions } = layoutDiscreteSearch(list, edges);
       const structural = list.filter((node) =>
         ["entity", "relationship"].includes(node.type ?? ""),
       );
-      const xs = structural.map((node) => positions.get(node.id)!.x);
-      const ys = structural.map((node) => positions.get(node.id)!.y);
+      const xs = structural.map(
+        (node) => positions.get(node.id)!.x + (node.width ?? 0) / 2,
+      );
+      const ys = structural.map(
+        (node) => positions.get(node.id)!.y + (node.height ?? 0) / 2,
+      );
       return (
         Math.max(...xs) - Math.min(...xs) + (Math.max(...ys) - Math.min(...ys))
       );
     };
-    expect(spread(hideAttributes(nodes))).toBeLessThan(spread(nodes));
+    // not strictly tighter: three elements in an L is already the smallest
+    // arrangement there is, so on this diagram hiding the ring frees no room
+    expect(spread(hideAttributes(nodes))).toBeLessThanOrEqual(spread(nodes));
   });
 });
 
@@ -320,8 +335,13 @@ relation Solo(A: [left, right 1!])
       element.key.startsWith(key),
     )!;
 
+  const plain = {
+    ...DEFAULT_LAYOUT_PARAMS,
+    relationships: { asSkeleton: false },
+  };
+
   it("leaves the diamond a connector when the flag is off", () => {
-    const graph = graphOf(DEFAULT_LAYOUT_PARAMS);
+    const graph = graphOf(plain);
     expect(keyed(graph, "relationship: R").role).toBe("connector");
     // the participants are contracted into a clique, so A and B look adjacent
     const a = keyed(graph, "entity: A");
@@ -347,7 +367,7 @@ relation Solo(A: [left, right 1!])
 
   it("leaves a recursive relationship a connector either way", () => {
     // its centroid is the one entity it reaches, so it has no between to occupy
-    for (const params of [DEFAULT_LAYOUT_PARAMS, bipartite])
+    for (const params of [plain, bipartite])
       expect(keyed(graphOf(params), "relationship: Solo").role).toBe(
         "connector",
       );
@@ -361,7 +381,7 @@ relation Solo(A: [left, right 1!])
 
   it("weighs an element by what is drawn to it, whichever the flag", () => {
     // A: two relationships and one key attribute, both ways round
-    for (const params of [DEFAULT_LAYOUT_PARAMS, bipartite])
+    for (const params of [plain, bipartite])
       expect(weightOf(params, "entity: A")).toBe(3);
   });
 
