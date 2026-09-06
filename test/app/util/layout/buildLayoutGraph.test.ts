@@ -294,3 +294,78 @@ describe("hidden attributes", () => {
     expect(spread(hideAttributes(nodes))).toBeLessThan(spread(nodes));
   });
 });
+
+/**
+ * With `relationships.asSkeleton` the search places diamonds itself, and the
+ * adjacency it works on stops being a contraction of the drawn graph.
+ */
+describe("relationships as skeleton elements", () => {
+  const source = `
+entity A { a key }
+entity B { b key }
+entity C { c key }
+relation R(A, B 1!)
+relation Solo(A: [left, right 1!])
+`;
+  const bipartite = {
+    ...DEFAULT_LAYOUT_PARAMS,
+    relationships: { asSkeleton: true },
+  };
+  const graphOf = (params: typeof DEFAULT_LAYOUT_PARAMS) => {
+    const { nodes, edges } = fromErDoc(source);
+    return buildLayoutGraph(nodes, edges, params);
+  };
+  const keyed = (graph: ReturnType<typeof buildLayoutGraph>, key: string) =>
+    [...graph.elements.values()].find((element) =>
+      element.key.startsWith(key),
+    )!;
+
+  it("leaves the diamond a connector when the flag is off", () => {
+    const graph = graphOf(DEFAULT_LAYOUT_PARAMS);
+    expect(keyed(graph, "relationship: R").role).toBe("connector");
+    // the participants are contracted into a clique, so A and B look adjacent
+    const a = keyed(graph, "entity: A");
+    const b = keyed(graph, "entity: B");
+    expect(graph.neighbours.get(a.id)).toContain(b.id);
+  });
+
+  it("places the diamond and puts it between its participants when on", () => {
+    const graph = graphOf(bipartite);
+    const relationship = keyed(graph, "relationship: R");
+    const a = keyed(graph, "entity: A");
+    const b = keyed(graph, "entity: B");
+
+    expect(relationship.role).toBe("skeleton");
+    // A and B are no longer adjacent -- what sits between them is the diamond,
+    // and it is now there to do it
+    expect(graph.neighbours.get(a.id)).not.toContain(b.id);
+    expect(graph.neighbours.get(a.id)).toContain(relationship.id);
+    expect(graph.neighbours.get(relationship.id)).toEqual(
+      expect.arrayContaining([a.id, b.id]),
+    );
+  });
+
+  it("leaves a recursive relationship a connector either way", () => {
+    // its centroid is the one entity it reaches, so it has no between to occupy
+    for (const params of [DEFAULT_LAYOUT_PARAMS, bipartite])
+      expect(keyed(graphOf(params), "relationship: Solo").role).toBe(
+        "connector",
+      );
+  });
+
+  const weightOf = (params: typeof DEFAULT_LAYOUT_PARAMS, key: string) => {
+    const graph = graphOf(params);
+    return graph.skeleton.find((element) => element.key.startsWith(key))!
+      .weight;
+  };
+
+  it("weighs an element by what is drawn to it, whichever the flag", () => {
+    // A: two relationships and one key attribute, both ways round
+    for (const params of [DEFAULT_LAYOUT_PARAMS, bipartite])
+      expect(weightOf(params, "entity: A")).toBe(3);
+  });
+
+  it("weighs a placed diamond by how many things it joins", () => {
+    expect(weightOf(bipartite, "relationship: R")).toBe(2);
+  });
+});

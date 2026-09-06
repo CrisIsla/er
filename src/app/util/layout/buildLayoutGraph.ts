@@ -126,11 +126,55 @@ export const buildLayoutGraph = (
   const attributeParents = buildAttributeParents(nodes, edges);
   const adjacency = buildAdjacency(edges);
 
+  /**
+   * Entities and aggregation boxes: what is placed on its own account whatever
+   * the parameters say.
+   *
+   * A connector's participants are its neighbours among *these*, worked out
+   * before any relationship is promoted below. The promotion depends on the
+   * count, so the count cannot depend on the promotion.
+   */
+  const anchored = new Set(
+    nodes
+      .filter(
+        (node) =>
+          !aggregated.has(node.id) && SKELETON_TYPES.includes(node.type ?? ""),
+      )
+      .map((node) => node.id),
+  );
+
+  const participantsOf = (node: LayoutInputNode) =>
+    Array.from(
+      new Set((adjacency.get(node.id) ?? []).filter((id) => anchored.has(id))),
+    );
+
+  /**
+   * Relationships the search places rather than drops.
+   *
+   * Two or more distinct participants, because a recursive relationship has no
+   * "between" to occupy: its centroid is the one entity it reaches, so it is
+   * seated beside it instead, on a cardinal bearing the search would not think
+   * to preserve (connectors.ts).
+   */
+  const placedRelationships = new Set(
+    params.relationships.asSkeleton
+      ? nodes
+          .filter(
+            (node) =>
+              node.type === "relationship" &&
+              !aggregated.has(node.id) &&
+              participantsOf(node).length >= 2,
+          )
+          .map((node) => node.id)
+      : [],
+  );
+
   const roleOf = (node: LayoutInputNode) => {
     // an aggregation lays out as one opaque box, so its contents keep the
     // positions they already have
     if (aggregated.has(node.id)) return "frozen" as const;
     if (SKELETON_TYPES.includes(node.type ?? "")) return "skeleton" as const;
+    if (placedRelationships.has(node.id)) return "skeleton" as const;
     if (CONNECTOR_TYPES.includes(node.type ?? "")) return "connector" as const;
     if (isAttributeNode(node)) return "satellite" as const;
     return "frozen" as const;
@@ -204,11 +248,7 @@ export const buildLayoutGraph = (
       elements.set(node.id, element);
       skeleton.push(element);
     } else if (role === "connector") {
-      const participants = Array.from(
-        new Set(
-          (adjacency.get(node.id) ?? []).filter((id) => skeletonIds.has(id)),
-        ),
-      );
+      const participants = participantsOf(node);
       const element: ConnectorElement = {
         ...base,
         role,
@@ -218,7 +258,7 @@ export const buildLayoutGraph = (
         // (erToReactflowElements.ts:181), so every edge lands on the same id
         isSelfLoop: participants.length === 1,
         hierarchy:
-          type === "isA" ? hierarchyOf(node.id, edges, skeletonIds) : null,
+          type === "isA" ? hierarchyOf(node.id, edges, anchored) : null,
       };
       elements.set(node.id, element);
       connectors.push(element);
@@ -238,42 +278,62 @@ export const buildLayoutGraph = (
     }
   }
 
-  // adjacency between skeleton elements, induced by the connectors
+  // What the search treats as adjacent, which is not the same question as what
+  // the diagram draws: it is whatever the search has to keep near whatever else.
   const neighbours = new Map<string, string[]>();
   for (const id of skeletonIds) neighbours.set(id, []);
+  const link = (from: string, to: string) => {
+    const existing = neighbours.get(from);
+    if (existing !== undefined && !existing.includes(to)) existing.push(to);
+  };
+
+  // a connector is dropped between the things it joins, so those things have to
+  // end up near each other: it contracts to a clique over its participants
   for (const connector of connectors) {
-    // a self-loop constrains nothing about where other entities go
+    // a self-loop constrains nothing about where other elements go
     if (connector.participants.length < 2) continue;
     for (const a of connector.participants)
       for (const b of connector.participants) {
         if (a === b) continue;
-        const existing = neighbours.get(a)!;
-        if (!existing.includes(b)) existing.push(b);
+        link(a, b);
       }
   }
 
-  // ...and the lines the diagram actually draws, which is a different graph:
-  // one link per connector per participant, never contracted
+  // a relationship the search places is a element in its own right, so it is
+  // adjacent to what it joins rather than a contraction of it. Its participants
+  // stop being adjacent to *each other*: what has to sit between them is the
+  // diamond, and it is now there to do it.
+  for (const node of nodes) {
+    if (!placedRelationships.has(node.id)) continue;
+    for (const participant of participantsOf(node)) {
+      link(node.id, participant);
+      link(participant, node.id);
+    }
+  }
+
+  // ...and the lines the diagram actually draws, which is a different graph
+  // again: one link per connector per participant, never contracted. Built from
+  // the node list rather than from `connectors`, because whether a diamond is
+  // drawn does not depend on who places it.
   const wiring = new Map<string, string[]>();
   const join = (from: string, to: string) =>
     wiring.set(from, [...(wiring.get(from) ?? []), to]);
-  for (const connector of connectors)
-    for (const participant of connector.participants) {
-      join(connector.id, participant);
-      join(participant, connector.id);
+  for (const node of nodes) {
+    if (aggregated.has(node.id)) continue;
+    if (!CONNECTOR_TYPES.includes(node.type ?? "")) continue;
+    for (const participant of participantsOf(node)) {
+      join(node.id, participant);
+      join(participant, node.id);
     }
+  }
 
-  const connectorCount = new Map<string, number>();
-  for (const connector of connectors)
-    for (const participant of connector.participants)
-      connectorCount.set(
-        participant,
-        (connectorCount.get(participant) ?? 0) + 1,
-      );
-
+  // how much of the diagram hangs off this element: the lines drawn to it, plus
+  // the attributes orbiting it. Read off `wiring` rather than counted from
+  // `connectors`, so a relationship the search places is weighed by how many
+  // things it joins instead of scoring zero for no longer being a connector.
   for (const element of skeleton)
     element.weight =
-      (connectorCount.get(element.id) ?? 0) +
+      (wiring.get(element.id) ?? []).length +
       (ownedAttributes.get(element.id) ?? []).filter(
         (attribute) => attribute.hidden !== true,
       ).length;

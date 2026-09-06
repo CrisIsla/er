@@ -87,6 +87,22 @@ export type LayoutParams = {
     minSeparationFloor: number;
   };
   /**
+   * Whether the search places relationship diamonds itself.
+   *
+   * A diamond is a node of the drawn graph, not decoration on an edge. Dropped
+   * at a centroid after every entity is fixed it can only take the room that was
+   * left over, however many things it joins -- and the search, which contracts
+   * each relationship into a clique over its participants, is meanwhile
+   * optimising a graph nobody draws: three entities joined pairwise by three
+   * diamonds appear to it as a triangle, which draws perfectly as three
+   * collinear points and leaves the three diamonds with one space between them.
+   *
+   * `asSkeleton: false` restores exactly that.
+   */
+  relationships: {
+    asSkeleton: boolean;
+  };
+  /**
    * Drawing ISA hierarchies as trees rather than leaving them to the search.
    *
    * The discrete search cannot reach a fan: candidates sit on eight rays from an
@@ -137,6 +153,9 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
   relax: {
     maxStepsCeiling: 16,
     minSeparationFloor: 10,
+  },
+  relationships: {
+    asSkeleton: false,
   },
   hierarchy: {
     // three, not two: a superclass with a single subclass is not a fan, it is
