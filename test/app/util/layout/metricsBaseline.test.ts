@@ -14,13 +14,41 @@ import {
 } from "../../../../src/app/util/alignmentCandidates";
 import { findAggregatedNodeIds } from "../../../../src/app/util/erGraph";
 import { layoutDiscreteSearch } from "../../../../src/app/util/layout";
+import { buildLayoutGraph } from "../../../../src/app/util/layout/buildLayoutGraph";
 import {
-  Segment,
+  DrawnSegment,
   diagramMetrics,
+  edgesThroughNodes,
 } from "../../../../src/app/util/layout/metrics";
+import { DEFAULT_LAYOUT_PARAMS } from "../../../../src/app/util/layout/params";
+import { layoutCost } from "../../../../src/app/util/layout/refine";
 import { EXAMPLES, fromErDoc, withSizes } from "./fixtures";
 
 const STRUCTURAL = ["entity", "relationship", "isA", "aggregation"];
+
+/**
+ * What each example measures today, as a ratchet.
+ *
+ * The gate this replaces was `area < 30e6`, which the largest example clears by
+ * a factor of thirty-six: it could not catch anything the layout would plausibly
+ * do wrong. These are the real numbers, so a change has to be argued for rather
+ * than absorbed. `area` and `length` get a tolerance because they move
+ * continuously with any spacing change; `crossings` and `throughNodes` are small
+ * integers and are held exactly, upwards.
+ */
+const BASELINE: Record<
+  string,
+  { crossings: number; throughNodes: number; area: number; length: number }
+> = {
+  roles: { crossings: 0, throughNodes: 0, area: 23719, length: 568 },
+  aggregation: { crossings: 0, throughNodes: 0, area: 380955, length: 1604 },
+  subclass: { crossings: 0, throughNodes: 0, area: 1110144, length: 3627 },
+  bank: { crossings: 2, throughNodes: 2, area: 661943, length: 4239 },
+  company: { crossings: 1, throughNodes: 3, area: 481635, length: 4639 },
+};
+
+/** How far `area` and `totalEdgeLength` may drift before it needs explaining. */
+const TOLERANCE = 0.15;
 
 const measureLayout = (
   nodes: PositionedNode[],
@@ -40,11 +68,12 @@ const measureLayout = (
       : { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
   };
 
-  const segments: Segment[] = [];
+  const segments: DrawnSegment[] = [];
   for (const edge of edges) {
     const a = centre(edge.source);
     const b = centre(edge.target);
-    if (a !== null && b !== null) segments.push({ a, b });
+    if (a !== null && b !== null)
+      segments.push({ a, b, from: edge.source, to: edge.target });
   }
 
   // an aggregation's members are represented at the top level by the box that
@@ -57,7 +86,21 @@ const measureLayout = (
         placed.find((node) => node.id === rect.id)?.type ?? "",
       ),
   );
-  return diagramMetrics(structural, segments);
+  const parentOf = new Map(placed.map((node) => [node.id, node.parentNode]));
+  const structuralSegments = segments.filter(
+    (segment) =>
+      structural.some((rect) => rect.id === segment.from) &&
+      structural.some((rect) => rect.id === segment.to),
+  );
+
+  return {
+    ...diagramMetrics(structural, segments),
+    throughNodes: edgesThroughNodes(
+      structural,
+      structuralSegments,
+      (rectId, nodeId) => parentOf.get(nodeId) === rectId,
+    ),
+  };
 };
 
 describe("layout quality", () => {
@@ -81,16 +124,57 @@ describe("layout quality", () => {
         ? measureLayout(typedNodes, edges, humanPositions)
         : null;
 
+      // what the search was actually minimising, term by term. Six weights tuned
+      // against one scalar is not a calibration, it is a guess -- so the terms
+      // are reported separately even though nothing asserts on them.
+      const graph = buildLayoutGraph(
+        nodes as never,
+        edges as never,
+        DEFAULT_LAYOUT_PARAMS,
+      );
+      const centres = new Map(
+        typedNodes.map((node) => {
+          const position = positions.get(node.id) ?? node.position;
+          return [
+            node.id,
+            {
+              x: position.x + (node.width ?? 0) / 2,
+              y: position.y + (node.height ?? 0) / 2,
+            },
+          ];
+        }),
+      );
+      const term = (only: keyof typeof DEFAULT_LAYOUT_PARAMS.weights) =>
+        Math.round(
+          layoutCost(graph, centres, {
+            ...DEFAULT_LAYOUT_PARAMS,
+            weights: Object.fromEntries(
+              Object.entries(DEFAULT_LAYOUT_PARAMS.weights).map(
+                ([key, value]) => [key, key === only ? value : 0],
+              ),
+            ) as typeof DEFAULT_LAYOUT_PARAMS.weights,
+          }),
+        );
+
+      const baseline = BASELINE[example.name];
+
       rows.push({
         example: example.name,
         crossings: ours.crossings,
         humanCrossings: human?.crossings ?? "-",
         overlaps: ours.overlaps,
-        humanOverlaps: human?.overlaps ?? "-",
+        throughNodes: ours.throughNodes,
         alignedEdges: `${ours.axisAlignedEdges}/${ours.edges}`,
         humanAligned: human ? `${human.axisAlignedEdges}/${human.edges}` : "-",
-        areaMpx: Math.round(ours.area / 1e6),
-        humanAreaMpx: human ? Math.round(human.area / 1e6) : "-",
+        area: Math.round(ours.area),
+        length: Math.round(ours.totalEdgeLength),
+        // the cost decomposition
+        cCross: term("crossings"),
+        cLength: term("length"),
+        cCompact: term("compactness"),
+        cAspect: term("aspect"),
+        cUnalign: term("unaligned"),
+        cIsaDown: term("isaDown"),
       });
 
       it("never overlaps two structural elements", () => {
@@ -103,8 +187,22 @@ describe("layout quality", () => {
         expect(ours.axisAlignedEdges / ours.edges).toBeGreaterThan(0.3);
       });
 
-      it("does not sprawl", () => {
-        expect(ours.area).toBeLessThan(30e6);
+      it("draws no more edges through an element than it already does", () => {
+        // an edge vanishing into a box it does not join is worse than a
+        // crossing, which is at least legible -- and nothing in the cost
+        // function can see it
+        expect(ours.throughNodes).toBeLessThanOrEqual(baseline.throughNodes);
+      });
+
+      it("crosses no more edges than it already does", () => {
+        expect(ours.crossings).toBeLessThanOrEqual(baseline.crossings);
+      });
+
+      it("stays within a sixth of the area and edge length it had", () => {
+        expect(ours.area).toBeLessThan(baseline.area * (1 + TOLERANCE));
+        expect(ours.totalEdgeLength).toBeLessThan(
+          baseline.length * (1 + TOLERANCE),
+        );
       });
     });
   }

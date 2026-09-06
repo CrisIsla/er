@@ -87,6 +87,54 @@ export type DiagramMetrics = {
   alignedPairs: number;
 };
 
+/** A drawn edge, carrying the ids it runs between. */
+export type DrawnSegment = Segment & { from: string; to: string };
+
+/**
+ * Edges that disappear into an element they do not join.
+ *
+ * Nothing else measures this. `countCrossings` sees only segment against
+ * segment, so an edge routed straight through the middle of a box costs
+ * nothing -- and it is arguably worse than a crossing, because a crossing is at
+ * least legible. On `company` the edge from `Works_on` to `Employee` runs
+ * through `Department`, and the one from `Supplies` to `Supplier` runs through
+ * `Project`, and the layout has no way to know.
+ *
+ * Tested against the rectangle's four sides rather than its bounding box, so a
+ * slanted edge is judged as exactly as an axis-aligned one.
+ */
+export const edgesThroughNodes = (
+  rects: Rect[],
+  segments: DrawnSegment[],
+  /** e.g. an aggregation container, which legitimately encloses its members */
+  encloses: (rectId: string, nodeId: string) => boolean = () => false,
+) => {
+  let through = 0;
+  for (const segment of segments)
+    for (const rect of rects) {
+      if (rect.id === segment.from || rect.id === segment.to) continue;
+      if (encloses(rect.id, segment.from) || encloses(rect.id, segment.to))
+        continue;
+      const { x, y, width, height } = rect;
+      const corners = [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+      const hit = corners.some((corner, index) =>
+        segmentsCross(
+          segment.a,
+          segment.b,
+          corner,
+          corners[(index + 1) % corners.length],
+        ),
+      );
+      if (hit) through++;
+    }
+  return through;
+};
+
 /** How close a point comes to a segment. */
 export const distanceToSegment = (point: Vec, segment: Segment) => {
   const dx = segment.b.x - segment.a.x;
