@@ -104,6 +104,21 @@ export type LayoutGraph = {
   frozen: FrozenElement[];
   /** skeleton adjacency induced by the connectors */
   neighbours: Map<string, string[]>;
+  /**
+   * What is joined to what in the drawn diagram: each connector to each of its
+   * participants, and back.
+   *
+   * `neighbours` is not that. It contracts every connector into a clique over
+   * the elements it joins, because that is the graph the search places -- a
+   * relationship between two entities makes them adjacent, and the diamond is
+   * dropped between them afterwards. So a ternary appears there as a triangle
+   * between three entities, which is not a shape anyone draws.
+   *
+   * Anything reasoning about the lines actually on screen -- where an element's
+   * edges leave it, what an attribute must not be fanned across -- wants this
+   * one instead.
+   */
+  wiring: Map<string, string[]>;
 };
 
 /** Absolute centres, keyed by element id. */

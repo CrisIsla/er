@@ -19,19 +19,6 @@ const round = (value: number) => Math.round(value * 100) / 100;
 
 const roundVec = (v: Vec): Vec => ({ x: round(v.x), y: round(v.y) });
 
-/** Which elements each element is joined to in the drawn diagram. */
-const buildAttachments = (graph: LayoutGraph) => {
-  const attachments = new Map<string, string[]>();
-  const link = (from: string, to: string) =>
-    attachments.set(from, [...(attachments.get(from) ?? []), to]);
-  for (const connector of graph.connectors)
-    for (const participant of connector.participants) {
-      link(connector.id, participant);
-      link(participant, connector.id);
-    }
-  return attachments;
-};
-
 /**
  * Splits `count` items between the free sectors in proportion to how wide they
  * are, using largest-remainder so the parts always add back up to `count`.
@@ -78,7 +65,9 @@ export const placeAttributes = (
   params: LayoutParams,
 ): Placement => {
   const placed: Placement = new Map();
-  const attachments = buildAttachments(graph);
+  // what each element is joined to on screen, which is what decides the
+  // directions its attributes may not be fanned into
+  const attachments = graph.wiring;
 
   const byOwner = new Map<string, SatelliteElement[]>();
   for (const satellite of [...graph.satellites].sort((a, b) =>

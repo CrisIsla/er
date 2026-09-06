@@ -252,6 +252,17 @@ export const buildLayoutGraph = (
       }
   }
 
+  // ...and the lines the diagram actually draws, which is a different graph:
+  // one link per connector per participant, never contracted
+  const wiring = new Map<string, string[]>();
+  const join = (from: string, to: string) =>
+    wiring.set(from, [...(wiring.get(from) ?? []), to]);
+  for (const connector of connectors)
+    for (const participant of connector.participants) {
+      join(connector.id, participant);
+      join(participant, connector.id);
+    }
+
   const connectorCount = new Map<string, number>();
   for (const connector of connectors)
     for (const participant of connector.participants)
@@ -267,7 +278,15 @@ export const buildLayoutGraph = (
         (attribute) => attribute.hidden !== true,
       ).length;
 
-  return { elements, skeleton, connectors, satellites, frozen, neighbours };
+  return {
+    elements,
+    skeleton,
+    connectors,
+    satellites,
+    frozen,
+    neighbours,
+    wiring,
+  };
 };
 
 export { DEFAULT_SIZES, measure };

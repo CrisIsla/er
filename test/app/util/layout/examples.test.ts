@@ -11,16 +11,51 @@ import {
   Rect,
   toAbsoluteRects,
 } from "../../../../src/app/util/alignmentCandidates";
+import { isAttributeNode } from "../../../../src/app/util/erGraph";
 import { layoutDiscreteSearch } from "../../../../src/app/util/layout";
 import { minimumAggregationSize } from "../../../../src/app/util/layout/aggregationBox";
 import {
   rectsOverlap,
   visualRectOf,
 } from "../../../../src/app/util/layout/geometry";
+import { nearestAttributeApproach } from "../../../../src/app/util/layout/metrics";
 import { DEFAULT_LAYOUT_PARAMS } from "../../../../src/app/util/layout/params";
 import { EXAMPLES, fromErDoc, withSizes } from "./fixtures";
 
 const STRUCTURAL = ["entity", "relationship", "isA", "aggregation"];
+
+/**
+ * Attribute collisions each example currently ships with, as a ratchet.
+ *
+ * Nothing in the layout stops these: attributes are placed last, into whichever
+ * angular sector around their owner is free, with no rectangle test against
+ * anything else. Recorded per example so the number can only go down.
+ */
+const ATTRIBUTE_COLLISIONS: Record<string, number> = {
+  roles: 0,
+  aggregation: 0,
+  subclass: 0,
+  // customer|ssn over premium_customer, and premium_customer|discount over a_c
+  bank: 2,
+  // Department|d_name lands on Employee itself; Project|p_name lands on both the
+  // Supplies diamond and Supplies' own Quantity
+  company: 7,
+};
+
+/**
+ * How near an attribute currently comes to a structural line that is not its
+ * own, per example, as a floor it may not fall below.
+ *
+ * `bank` is at zero: `premium_customer|discount` is drawn on top of one. These
+ * are the numbers to raise, not thresholds that have been met.
+ */
+const ATTRIBUTE_CLEARANCE: Record<string, number> = {
+  roles: 0,
+  aggregation: 62,
+  subclass: 173,
+  bank: 0,
+  company: 21,
+};
 
 /** Absolute rectangles of the laid-out diagram, using what each node covers on screen. */
 const laidOutRects = (
@@ -113,6 +148,89 @@ describe.each(EXAMPLES)("$name", ({ name, erDoc }) => {
         overlapping.push(`${node.data?.erId}`);
     }
     expect(overlapping).toEqual([]);
+  });
+
+  /**
+   * The test above only ever compares an attribute with its own React Flow
+   * parent, so an attribute sitting on a *different* element passes it. That is
+   * the whole of the attribute pass's blind spot: placeAttributes fans into free
+   * angular sectors around one owner and performs no rectangle test of any kind,
+   * so nothing but this stops a ring from being drawn over the diagram.
+   */
+  it("does not fan an attribute further over the diagram than it already does", () => {
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    const rects = laidOutRects(sized, positions);
+    const byRect = new Map(rects.map((rect) => [rect.id, rect]));
+    const owners = new Map(nodes.map((node) => [node.id, node.parentNode]));
+
+    const overlapping = new Set<string>();
+    for (const node of nodes) {
+      if (!isAttributeNode(node) || node.hidden) continue;
+      const mine = byRect.get(node.id);
+      if (mine === undefined) continue;
+      for (const other of rects) {
+        if (other.id === node.id) continue;
+        // its own owner, and any attribute composed out of it, are allowed
+        if (other.id === owners.get(node.id)) continue;
+        if (owners.get(other.id) === node.id) continue;
+        const otherNode = byId.get(other.id);
+        // an aggregation container legitimately encloses whatever is inside it
+        if (otherNode?.type === "aggregation") continue;
+        if (rectsOverlap(mine, other))
+          overlapping.add(
+            [node.data?.erId, otherNode?.data?.erId].sort().join(" / "),
+          );
+      }
+    }
+
+    // A ratchet, not a clean bill of health. `placeAttributes` fans into free
+    // angular sectors around one owner and performs no rectangle test of any
+    // kind -- it cannot see a sibling entity, a diamond it is not attached to,
+    // or another element's attributes -- so the corpus starts with real
+    // collisions. Recorded so they cannot grow while the layout is worked on;
+    // lower the number when a change removes some.
+    expect(overlapping.size).toBeLessThanOrEqual(ATTRIBUTE_COLLISIONS[name]);
+  });
+
+  /**
+   * The rectangle tests cannot see this one. An attribute is an ellipse hung off
+   * its owner and a relationship edge is a thin line: the two cross without
+   * either box overlapping anything, and the attribute then reads as belonging
+   * to whatever that line joins. `bank` currently draws
+   * `premium_customer|discount` exactly on top of one.
+   */
+  it("does not move an attribute nearer a line it does not belong to", () => {
+    const byId = new Map(nodes.map((node) => [node.id, node]));
+    const typeOf = (id: string) => byId.get(id)?.type ?? "";
+    const centres = new Map(
+      laidOutRects(sized, positions).map((rect) => [
+        rect.id,
+        { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 },
+      ]),
+    );
+
+    const attributes = nodes
+      .filter((node) => isAttributeNode(node) && !node.hidden)
+      .map((node) => ({
+        id: String(node.data?.erId ?? node.id),
+        centre: centres.get(node.id)!,
+        ownerId: node.parentNode ?? node.id,
+      }));
+    const drawn = edges
+      .filter(
+        (edge) =>
+          STRUCTURAL.includes(typeOf(edge.source)) &&
+          STRUCTURAL.includes(typeOf(edge.target)),
+      )
+      .map((edge) => ({
+        a: centres.get(edge.source)!,
+        b: centres.get(edge.target)!,
+        from: edge.source,
+        to: edge.target,
+      }));
+
+    const { nearest } = nearestAttributeApproach(attributes, drawn);
+    expect(nearest).toBeGreaterThanOrEqual(ATTRIBUTE_CLEARANCE[name]);
   });
 
   it("keeps aggregation members inside their container", () => {

@@ -87,6 +87,64 @@ export type DiagramMetrics = {
   alignedPairs: number;
 };
 
+/** How close a point comes to a segment. */
+export const distanceToSegment = (point: Vec, segment: Segment) => {
+  const dx = segment.b.x - segment.a.x;
+  const dy = segment.b.y - segment.a.y;
+  const length = dx * dx + dy * dy;
+  const t =
+    length === 0
+      ? 0
+      : Math.max(
+          0,
+          Math.min(
+            1,
+            ((point.x - segment.a.x) * dx + (point.y - segment.a.y) * dy) /
+              length,
+          ),
+        );
+  return Math.hypot(
+    point.x - (segment.a.x + t * dx),
+    point.y - (segment.a.y + t * dy),
+  );
+};
+
+/**
+ * How near the nearest attribute comes to a line it does not belong to.
+ *
+ * The rectangle tests cannot see this. An attribute is an ellipse hung a fixed
+ * distance off its owner, and a relationship edge is a thin line -- the two
+ * cross without either box overlapping anything, and the attribute reads as
+ * belonging to whatever the line joins. `placeAttributes` knows only the angles
+ * of its owner's own connectors, so nothing else prevents it.
+ *
+ * `segments` are the drawn structural edges, each carrying the ids it runs
+ * between so an attribute can be excused the spokes of its own owner -- those it
+ * is drawn beside on purpose.
+ */
+export const nearestAttributeApproach = (
+  attributes: { id: string; centre: Vec; ownerId: string }[],
+  segments: (Segment & { from: string; to: string })[],
+) => {
+  let nearest = Infinity;
+  let worst: string | null = null;
+  for (const attribute of attributes)
+    for (const segment of segments) {
+      // the spokes of its own owner are what it is drawn beside on purpose
+      if (
+        segment.from === attribute.ownerId ||
+        segment.to === attribute.ownerId
+      )
+        continue;
+      const distance = distanceToSegment(attribute.centre, segment);
+      if (distance < nearest) {
+        nearest = distance;
+        worst = attribute.id;
+      }
+    }
+  return { nearest, worst };
+};
+
 /**
  * How well the ISA hierarchies are drawn.
  *
