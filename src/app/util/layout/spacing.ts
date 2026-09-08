@@ -30,6 +30,7 @@
 
 import { Rect, overlapsOnCrossAxis } from "../alignmentCandidates";
 import { rectAt } from "./geometry";
+import { TreeLayout } from "./hierarchy";
 import { LayoutParams } from "./params";
 import { LayoutElement, LayoutGraph, Placement, Vec } from "./types";
 
@@ -44,9 +45,10 @@ const EPSILON = 1e-6;
  * A monotone coordinate transform along one axis: exact on the lines it was
  * built from, linearly interpolated between them, a plain translation outside.
  *
- * `from` is ascending and `to` is the same length. Interpolation is what lets
- * the map be applied to something that is not on a line itself -- an ISA
- * triangle seated between two rows keeps its share of the row it sits in.
+ * `from` is ascending and `to` is the same length. Interpolation is what makes
+ * it total: anything that is not on a line of its own keeps its share of the gap
+ * it sits in, so the map can be applied to a whole placement without first
+ * asking which of its points defined the lattice.
  */
 export type AxisSpacing = { from: number[]; to: number[] };
 
@@ -80,33 +82,6 @@ export const remap = ({ from, to }: AxisSpacing, value: number): number => {
   return to[index] + fraction * (to[index + 1] - to[index]);
 };
 
-/**
- * A `SkeletonElement.footprint` carried through the same transform.
- *
- * The box is stored relative to its owner's centre, so it is resolved to
- * absolute corners, mapped, and re-expressed against the owner's new centre.
- */
-export const remapFootprint = (
-  spacing: Spacing,
-  footprint: { dx: number; dy: number; width: number; height: number },
-  before: Vec,
-  after: Vec,
-) => {
-  const left = remap(spacing.x, before.x + footprint.dx - footprint.width / 2);
-  const right = remap(spacing.x, before.x + footprint.dx + footprint.width / 2);
-  const top = remap(spacing.y, before.y + footprint.dy - footprint.height / 2);
-  const bottom = remap(
-    spacing.y,
-    before.y + footprint.dy + footprint.height / 2,
-  );
-  return {
-    dx: (left + right) / 2 - after.x,
-    dy: (top + bottom) / 2 - after.y,
-    width: right - left,
-    height: bottom - top,
-  };
-};
-
 export const applySpacing = (spacing: Spacing, centres: Placement): Placement =>
   new Map(
     [...centres].map(([id, centre]) => [
@@ -115,89 +90,167 @@ export const applySpacing = (spacing: Spacing, centres: Placement): Placement =>
     ]),
   );
 
-/**
- * What the element itself covers: the box the arrangement was decided from.
- *
- * A tree root's `footprint` is deliberately not consulted. It is a device for
- * finding the whole tree a spot while its members have no position of their own;
- * by the time this runs they are placed, and every one of them is on this list
- * in its own right. Reserving the tree box as well would have a root demand room
- * from its own children.
- */
+/** What the element itself covers: the box the arrangement was decided from. */
 const bareRect = (element: LayoutElement, centre: Vec): Rect =>
   rectAt(element.id, centre, element.visualWidth, element.visualHeight);
 
-/** ...and how far its attribute ring reaches past that box. */
-const ringOf = (element: LayoutElement, params: LayoutParams) =>
-  element.haloRadius * params.haloFactor;
+/**
+ * ...and how far its attribute ring reaches past that box.
+ *
+ * `drawnHalo`, not `haloRadius`: the point of this pass is to make room for what
+ * is on screen, and when the arrangement was made attribute-blind the other one
+ * is zero. Only `haloFactor` of it, because attributes are steered into
+ * whichever sector around their owner is free, so reserving the whole ring in
+ * every direction would spread the diagram out far more than it needs.
+ */
+const ringOf = (element: LayoutElement, params: LayoutParams) => ({
+  drawn: element.drawnHalo * params.haloFactor,
+  // ...and how much of that the arrangement was never told about, which is
+  // nothing at all unless it was made attribute-blind
+  unreserved: (element.drawnHalo - element.haloRadius) * params.haloFactor,
+});
 
-/** One element, reduced to what spacing needs to know about it. */
+/**
+ * One element, reduced to what spacing needs to know about it.
+ *
+ * `centre` is the line it rides on, which is not always its own: every member of
+ * an ISA hierarchy rides on its root's. The tree was arranged to be read as a
+ * tree -- parents centred over evenly spaced children -- and widening the
+ * individual lines its members happen to sit on would take that apart, so the
+ * whole of it moves as one. `bare` is still each member's own box, where it
+ * really is, so the room the tree needs from its neighbours is measured against
+ * what it actually covers rather than the empty rectangle around it.
+ */
 type Spaced = {
   id: string;
-  /** its centre on the axis being solved */
-  line: number;
+  centre: Vec;
   bare: Rect;
-  ring: number;
+  /** how far its ring reaches past `bare`, and how much of that is a surprise */
+  ring: { drawn: number; unreserved: number };
 };
+
+/** One line owes another this much room, centre to centre. */
+type Demand = { from: number; to: number; need: number };
 
 const sizeOn = (rect: Rect, axis: Axis) =>
   axis === "x" ? rect.width : rect.height;
 
-/**
- * Where each line on one axis ends up, given everything sitting on all of them.
- *
- * Two questions are asked of every pair, and answered from different boxes.
- * *Which axis has to keep them apart* is read off the bare boxes: that is a
- * property of the arrangement, and must not change with the view -- a pair that
- * shares a row is separated by x whatever rings they are wearing. *How far apart
- * they must be* is then measured with the rings, because that is what is drawn.
- * Asking the first question of the ringed boxes instead would let a pair sitting
- * diagonally from each other count as sharing both a row and a column, and be
- * pushed apart twice over.
- */
-const solveAxis = (
-  axis: Axis,
-  elements: Spaced[],
-  joined: (a: string, b: string) => boolean,
-  params: LayoutParams,
-): AxisSpacing => {
-  const from = [...new Set(elements.map((element) => element.line))].sort(
-    (a, b) => a - b,
-  );
-  const indexOf = new Map(from.map((line, index) => [line, index]));
+/** How far an element's box sits from the element's own centre, on one axis. */
+const offsetOn = ({ bare, centre }: Spaced, axis: Axis) =>
+  (axis === "x" ? bare.x + bare.width / 2 : bare.y + bare.height / 2) -
+  centre[axis];
 
-  // per line, what an earlier line owes it: `{ index, need }` centre to centre
-  const demands: { index: number; need: number }[][] = from.map(() => []);
-  for (const a of elements)
-    for (const b of elements) {
-      const before = indexOf.get(a.line)!;
-      const after = indexOf.get(b.line)!;
-      if (before >= after) continue;
-      if (!overlapsOnCrossAxis(a.bare, b.bare, axis)) continue;
-      // ...but an element joined to whatever is across the gap wears no ring
-      // there: `placeAttributes` fans into the sectors an owner's edges leave
-      // free, so the one direction a ring is never in is the direction of a line
-      // out of it. Demanding room for it between two things that are wired
-      // together reserves space for something that is not drawn.
-      const ring = joined(a.id, b.id) ? 0 : a.ring + b.ring;
-      demands[after].push({
-        index: before,
-        need:
-          (sizeOn(a.bare, axis) + sizeOn(b.bare, axis)) / 2 +
-          ring +
-          params.minSeparation,
-      });
+/**
+ * What every pair of elements asks of the axis that has to keep them apart.
+ *
+ * Two questions, answered from different boxes. *Which axis has to keep them
+ * apart* is read off the bare boxes: that is a property of the arrangement and
+ * must not change with the view -- a pair that shares a row is separated by x
+ * whatever rings they are wearing. *How far apart they must be* is then measured
+ * with the rings, because that is what is drawn.
+ *
+ * Asking the first question of the ringed boxes too would let a pair sitting
+ * diagonally from each other count as sharing both a row and a column, and be
+ * pushed apart twice over. But a diagonal pair whose rings do overlap has to be
+ * pushed apart *somehow*, and there the arrangement has no opinion: the demand
+ * goes to whichever axis is closer to satisfying it already, which is the one
+ * that moves the diagram least.
+ */
+const collectDemands = (
+  elements: Spaced[],
+  lineIndex: { x: Map<number, number>; y: Map<number, number> },
+  joined: (a: Spaced, b: Spaced) => boolean,
+  params: LayoutParams,
+) => {
+  const demands: Record<Axis, Demand[]> = { x: [], y: [] };
+
+  for (let i = 0; i < elements.length; i++)
+    for (let j = i + 1; j < elements.length; j++) {
+      const a = elements[i];
+      const b = elements[j];
+      // an element joined to whatever is across the gap wears no ring there:
+      // `placeAttributes` fans into the sectors an owner's edges leave free, so
+      // the one direction a ring is never in is the direction of a line out of
+      // it. Reserving room for it between two things that are wired together
+      // makes space for something nobody draws.
+      const wired = joined(a, b);
+
+      const shortfall = {} as Record<Axis, number>;
+      const claim = {} as Record<Axis, Demand | null>;
+      for (const axis of AXES) {
+        const first = a.centre[axis] <= b.centre[axis] ? a : b;
+        const second = first === a ? b : a;
+        // centre to centre, which is not box to box: a hierarchy member's box
+        // is nowhere near the root's line it rides on, so how far each box sits
+        // from its own line has to come back out of the distance demanded
+        const between =
+          (sizeOn(first.bare, axis) + sizeOn(second.bare, axis)) / 2 +
+          offsetOn(first, axis) -
+          offsetOn(second, axis) +
+          params.minSeparation;
+        const rings = wired
+          ? { drawn: 0, unreserved: 0 }
+          : {
+              drawn: first.ring.drawn + second.ring.drawn,
+              unreserved: first.ring.unreserved + second.ring.unreserved,
+            };
+        const from = lineIndex[axis].get(first.centre[axis])!;
+        const to = lineIndex[axis].get(second.centre[axis])!;
+        const need = between + rings.drawn;
+        shortfall[axis] =
+          between +
+          rings.unreserved -
+          (second.centre[axis] - first.centre[axis]);
+        claim[axis] = from === to ? null : { from, to, need };
+      }
+
+      // the bare boxes say which axis is the only one that can separate them
+      const mandatory = AXES.filter((axis) =>
+        overlapsOnCrossAxis(a.bare, b.bare, axis),
+      );
+      if (mandatory.length > 0) {
+        for (const axis of mandatory) {
+          const demand = claim[axis];
+          if (demand !== null) demands[axis].push(demand);
+        }
+        continue;
+      }
+
+      // ...and when neither is, only a pair that is short on *both* axes needs
+      // anything at all -- being clear on one is being clear.
+      //
+      // Short by the part of the ring the *arrangement* never saw, not by the
+      // whole of it. A sighted arrangement already refused to put two ringed
+      // boxes within a minimum of each other on both axes at once, so there is
+      // nothing here to make up; a blind one reserved no ring anywhere, and
+      // every diagonal pair of it has to be checked.
+      if (shortfall.x <= EPSILON || shortfall.y <= EPSILON) continue;
+      const axis = shortfall.x <= shortfall.y ? "x" : "y";
+      const demand = claim[axis];
+      if (demand !== null) demands[axis].push(demand);
     }
 
-  // one forward pass is enough: every constraint points from a lower line to a
+  return demands;
+};
+
+/** Where each line on one axis ends up, given what is owed across it. */
+const solveAxis = (
+  from: number[],
+  demands: Demand[],
+  params: LayoutParams,
+): AxisSpacing => {
+  const owed: Demand[][] = from.map(() => []);
+  for (const demand of demands) owed[demand.to].push(demand);
+
+  // one forward pass is enough: every demand points from a lower line to a
   // higher one, and the lines are settled in ascending order
   const shift = from.map(() => 0);
   for (let index = 1; index < from.length; index++) {
     shift[index] = shift[index - 1];
     let deficit = 0;
-    for (const demand of demands[index]) {
+    for (const demand of owed[index]) {
       const gap =
-        from[index] + shift[index] - (from[demand.index] + shift[demand.index]);
+        from[index] + shift[index] - (from[demand.from] + shift[demand.from]);
       deficit = Math.max(deficit, demand.need - gap);
     }
     // widening by a whole number of grid steps keeps every centre exactly as
@@ -213,6 +266,19 @@ const solveAxis = (
 const moves = ({ from, to }: AxisSpacing) =>
   from.some((line, index) => to[index] !== line);
 
+export type SpacingOptions = {
+  /**
+   * ISA hierarchies, so their members can be gathered onto their root's line.
+   *
+   * A tree stays rigid here. It was arranged to be read as a tree -- parents
+   * centred over evenly spaced children -- and that is a property of the whole
+   * shape, not of any one gap in it: widen the lines its members happen to sit
+   * on by different amounts and the fan comes apart. So the tree asks for room
+   * as one, member by member, and moves as one.
+   */
+  trees?: TreeLayout[];
+};
+
 /**
  * The transform to apply to a finished arrangement.
  *
@@ -224,35 +290,54 @@ export const spacingFor = (
   graph: LayoutGraph,
   centres: Placement,
   params: LayoutParams,
+  { trees = [] }: SpacingOptions = {},
 ): Spacing => {
   if (!params.spacing.enabled) return IDENTITY_SPACING;
 
-  const placed: { element: LayoutElement; centre: Vec }[] = [];
-  for (const element of graph.skeleton) {
-    const centre = centres.get(element.id);
-    if (centre !== undefined) placed.push({ element, centre });
-  }
-  if (placed.length === 0) return IDENTITY_SPACING;
+  // member -> the root whose line it rides on
+  const ridesOn = new Map<string, string>();
+  for (const tree of trees)
+    for (const id of tree.offsets.keys()) ridesOn.set(id, tree.rootId);
 
   const wired = new Set<string>();
   for (const [id, neighbours] of graph.wiring)
     for (const neighbourId of neighbours)
       wired.add([id, neighbourId].sort().join("|"));
-  const joined = (a: string, b: string) => wired.has([a, b].sort().join("|"));
 
-  const [x, y] = AXES.map((axis) =>
-    solveAxis(
-      axis,
-      placed.map(({ element, centre }) => ({
-        id: element.id,
-        line: axis === "x" ? centre.x : centre.y,
-        bare: bareRect(element, centre),
-        ring: ringOf(element, params),
-      })),
-      joined,
-      params,
+  const elements: Spaced[] = [];
+  for (const element of graph.skeleton) {
+    const centre = centres.get(element.id);
+    if (centre === undefined) continue;
+    const line = centres.get(ridesOn.get(element.id) ?? element.id);
+    if (line === undefined) continue;
+    elements.push({
+      id: element.id,
+      centre: line,
+      bare: bareRect(element, centre),
+      ring: ringOf(element, params),
+    });
+  }
+  if (elements.length === 0) return IDENTITY_SPACING;
+
+  const lines = {
+    x: [...new Set(elements.map((item) => item.centre.x))].sort(
+      (a, b) => a - b,
     ),
-  );
+    y: [...new Set(elements.map((item) => item.centre.y))].sort(
+      (a, b) => a - b,
+    ),
+  };
+  const lineIndex = {
+    x: new Map(lines.x.map((line, index) => [line, index])),
+    y: new Map(lines.y.map((line, index) => [line, index])),
+  };
+
+  const joined = (a: Spaced, b: Spaced) =>
+    wired.has([a.id, b.id].sort().join("|"));
+
+  const demands = collectDemands(elements, lineIndex, joined, params);
+  const x = solveAxis(lines.x, demands.x, params);
+  const y = solveAxis(lines.y, demands.y, params);
 
   // an arrangement that already has the room it needs is left strictly alone,
   // rather than passed through a transform that happens to be the identity

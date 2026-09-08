@@ -119,6 +119,49 @@ export type LayoutParams = {
     minMembers: number;
   };
   /**
+   * What the arranging stage is allowed to know.
+   *
+   * `attributeBlind` hides the attribute ring and the attribute count from it,
+   * so the arrangement it reaches is a property of the entities and
+   * relationships alone. Two people looking at the same model with different
+   * attribute settings then see the same diagram at different spacings, rather
+   * than two different diagrams -- and adding a field to one entity stops
+   * reordering the others.
+   *
+   * Only sound with the spacing pass on: arranging blind and *not* re-opening
+   * the gaps closes the room the rings were incidentally being given, which the
+   * exploration measured as a regression on its own.
+   *
+   * **Off, and measured off.** It does what it claims -- blind, the corpus keeps
+   * every element in the same relative order whether the attributes are shown,
+   * hidden, or ten deeper, which sighted it does not (`attributeBlind.test.ts`).
+   * The corpus will not pay for it yet: at every reserve swept between 0 and 130
+   * it costs `bank` a crossing, and `company` between one and five more edges
+   * disappearing into an element they do not join. That is a hard constraint
+   * doing what it is told -- alignment is decided before cost is looked at, so a
+   * denser arrangement leaves the search a shorter list of positions that keep
+   * an element in line with two neighbours, and collinear elements are exactly
+   * the ones an edge runs through. Loosening it is a different piece of work
+   * from this one.
+   */
+  arrangement: {
+    attributeBlind: boolean;
+    /**
+     * The ring the arranging stage reserves around *every* element when it is
+     * blind, in place of the one each element really wears.
+     *
+     * Not zero, and the reason is worth stating: the measurement that motivated
+     * this work found the attribute-aware arrangement structurally *better* --
+     * fewer crossings, fewer edges vanishing into a box -- because the rings
+     * were acting as incidental breathing room. Take them away entirely and the
+     * search closes gaps the edges were using. A constant keeps the room while
+     * making it a property of the diagram rather than of its attributes; whether
+     * an element has a ring at all is as much a matter of the current view as
+     * how big it is.
+     */
+    blindHalo: number;
+  };
+  /**
    * Opening the gaps between the rows and columns once the arrangement is
    * settled, so that *where* a thing goes and *how far away* it goes stop being
    * one decision (spacing.ts).
@@ -127,6 +170,19 @@ export type LayoutParams = {
    */
   spacing: {
     enabled: boolean;
+    /**
+     * Whether hiding the attributes closes the gaps that were left for them.
+     *
+     * On, a diagram with its attributes hidden is drawn as tightly as one that
+     * never had any -- which is what hiding them is usually for. Off, every gap
+     * stays the size the shown view uses, so toggling the attributes reveals and
+     * conceals them without anything else on the canvas moving at all.
+     *
+     * A preference rather than a quality setting: both answers are right, and
+     * which one is wanted depends on whether the reader is after a compact
+     * picture of the structure or a stable one.
+     */
+    closeHiddenGaps: boolean;
   };
   /**
    * The alignment-preserving refinement pass. `seed` is what keeps the result
@@ -177,8 +233,13 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
     enabled: true,
     minMembers: 2,
   },
+  arrangement: {
+    attributeBlind: false,
+    blindHalo: 90,
+  },
   spacing: {
     enabled: true,
+    closeHiddenGaps: true,
   },
   refine: {
     enabled: true,

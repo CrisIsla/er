@@ -9,13 +9,15 @@
 
 import { buildLayoutGraph } from "../../../../src/app/util/layout/buildLayoutGraph";
 import { isOnGrid } from "../../../../src/app/util/layout/geometry";
-import { DEFAULT_LAYOUT_PARAMS } from "../../../../src/app/util/layout/params";
+import {
+  DEFAULT_LAYOUT_PARAMS,
+  LayoutParams,
+} from "../../../../src/app/util/layout/params";
 import {
   AxisSpacing,
   IDENTITY_SPACING,
   applySpacing,
   remap,
-  remapFootprint,
   spacingFor,
 } from "../../../../src/app/util/layout/spacing";
 import { LayoutGraph, Placement } from "../../../../src/app/util/layout/types";
@@ -23,9 +25,9 @@ import { fromErDoc } from "./fixtures";
 
 const params = DEFAULT_LAYOUT_PARAMS;
 
-const graphOf = (source: string) => {
+const graphOf = (source: string, using: LayoutParams = params) => {
   const { nodes, edges } = fromErDoc(source);
-  return buildLayoutGraph(nodes, edges, params);
+  return buildLayoutGraph(nodes, edges, using);
 };
 
 /**
@@ -113,39 +115,6 @@ describe("applySpacing", () => {
   });
 });
 
-describe("remapFootprint", () => {
-  const footprint = { dx: 0, dy: 90, width: 240, height: 300 };
-
-  it("leaves a footprint alone under the identity", () => {
-    expect(
-      remapFootprint(
-        IDENTITY_SPACING,
-        footprint,
-        { x: 0, y: 0 },
-        { x: 0, y: 0 },
-      ),
-    ).toEqual(footprint);
-  });
-
-  it("grows the box by however much the rows under it opened", () => {
-    // the root sits on y=0, the tree reaches from -60 to 240; doubling that
-    // stretch has to leave the box twice as tall and still hanging off the root
-    const spacing = {
-      x: { from: [], to: [] },
-      y: { from: [-60, 240], to: [-60, 540] },
-    };
-    const moved = remapFootprint(
-      spacing,
-      footprint,
-      { x: 0, y: 0 },
-      { x: 0, y: 0 },
-    );
-    expect(moved.height).toBe(600);
-    expect(moved.width).toBe(240);
-    expect(moved.dy).toBe(240);
-  });
-});
-
 describe("spacingFor", () => {
   const twoEntities = `
     entity Alpha {
@@ -168,7 +137,7 @@ describe("spacingFor", () => {
     expect(
       spacingFor(graph, centres, {
         ...params,
-        spacing: { enabled: false },
+        spacing: { ...params.spacing, enabled: false },
       }),
     ).toBe(IDENTITY_SPACING);
   });
@@ -221,9 +190,53 @@ describe("spacingFor", () => {
     }
   });
 
-  it("leaves a row clear that only a diagonal neighbour is crowding", () => {
-    // Alpha and Beta are a step apart on both axes, so neither axis alone has to
-    // hold their rings: they are already past each other.
+  it("leaves a diagonal pair alone once it is clear of itself", () => {
+    const graph = graphOf(twoEntities);
+    const centres: Placement = new Map([
+      [idOf(graph, "Alpha"), { x: 0, y: 0 }],
+      [idOf(graph, "Beta"), { x: 300, y: 300 }],
+    ]);
+    expect(spacingFor(graph, centres, params)).toBe(IDENTITY_SPACING);
+  });
+
+  /**
+   * A pair sitting diagonally from each other shares neither a row nor a
+   * column, so the arrangement has no opinion about which axis holds them
+   * apart -- but if their rings overlap, one of them has to. Pushing on both
+   * would separate the same pair twice over and inflate the diagram for
+   * nothing.
+   *
+   * Only worth asking of an arrangement that was never told about the rings.
+   * One that was refused to put two of them this close in the first place, so
+   * there is nothing here left to make up.
+   */
+  it("pushes a crowded diagonal pair apart on one axis only", () => {
+    const blind = {
+      ...params,
+      arrangement: { attributeBlind: true, blindHalo: 0 },
+    };
+    const graph = graphOf(twoEntities, blind);
+    const alpha = idOf(graph, "Alpha");
+    const beta = idOf(graph, "Beta");
+    const centres: Placement = new Map([
+      [alpha, { x: 0, y: 0 }],
+      [beta, { x: 120, y: 120 }],
+    ]);
+
+    const spaced = applySpacing(spacingFor(graph, centres, blind), centres);
+    const widerOnX = spaced.get(beta)!.x - spaced.get(alpha)!.x > 120;
+    const widerOnY = spaced.get(beta)!.y - spaced.get(alpha)!.y > 120;
+    expect(widerOnX || widerOnY).toBe(true);
+    expect(widerOnX && widerOnY).toBe(false);
+  });
+
+  /**
+   * ...and the other half of that: a sighted arrangement has already been
+   * through `rejectOccupied`, which refuses a candidate whose ring comes within
+   * a minimum of another on both axes at once. Re-reserving it here would
+   * inflate the diagram to pay for room it already has.
+   */
+  it("makes no room for a ring the arrangement already reserved", () => {
     const graph = graphOf(twoEntities);
     const centres: Placement = new Map([
       [idOf(graph, "Alpha"), { x: 0, y: 0 }],

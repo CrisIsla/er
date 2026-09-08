@@ -197,16 +197,19 @@ export const buildLayoutGraph = (
   }
 
   /**
-   * How far the attribute fan reaches past the owner's own box.
+   * Whether an attribute takes up room on the canvas.
    *
-   * Sized from the attributes that are actually drawn. Hiding attributes is a
-   * request for a diagram without them, so reserving their space anyway would
-   * leave the skeleton spread out around gaps the user cannot see.
+   * Hiding attributes is normally a request for a diagram without them, so a
+   * hidden one takes up none and the gaps left for it close. `closeHiddenGaps:
+   * false` is the other answer: every gap keeps the size the shown view uses, so
+   * the attributes appear and disappear without moving anything else.
    */
+  const takesRoom = (attribute: LayoutInputNode) =>
+    !params.spacing.closeHiddenGaps || attribute.hidden !== true;
+
+  /** How far the attribute fan reaches past the owner's own box. */
   const haloOf = (nodeId: string) => {
-    const attributes = (ownedAttributes.get(nodeId) ?? []).filter(
-      (attribute) => attribute.hidden !== true,
-    );
+    const attributes = (ownedAttributes.get(nodeId) ?? []).filter(takesRoom);
     if (attributes.length === 0) return 0;
     const reach = (attribute: LayoutInputNode) => {
       const { width, height } = measure(attribute);
@@ -230,6 +233,15 @@ export const buildLayoutGraph = (
     const type = node.type ?? "";
     const { width, height } = measure(node);
     const visual = visualSize(type, width, height);
+    const drawnHalo = role === "frozen" ? 0 : haloOf(node.id);
+    // ...and what the arranging stage is told about it, which blind is the same
+    // for everything. Not "no ring": whether an element wears one at all is as
+    // much a property of the current view as how big it is, so reserving room
+    // only where attributes happen to exist would still move the diagram when
+    // the first one is added.
+    const reserved = params.arrangement.attributeBlind
+      ? params.arrangement.blindHalo
+      : drawnHalo;
     const base = {
       id: node.id,
       type,
@@ -238,7 +250,8 @@ export const buildLayoutGraph = (
       height,
       visualWidth: visual.width,
       visualHeight: visual.height,
-      haloRadius: role === "frozen" ? 0 : haloOf(node.id),
+      haloRadius: role === "frozen" ? 0 : reserved,
+      drawnHalo,
       hidden: node.hidden === true,
     };
 
@@ -331,12 +344,17 @@ export const buildLayoutGraph = (
   // the attributes orbiting it. Read off `wiring` rather than counted from
   // `connectors`, so a relationship the search places is weighed by how many
   // things it joins instead of scoring zero for no longer being a connector.
+  //
+  // Blind, the attributes drop out and weight is pure degree. That changes what
+  // the diagram is seeded on -- a ternary diamond joins three things, which no
+  // entity in the corpus beats on lines alone -- and it is meant to: the point
+  // is an ordering that does not move when a field is added to an entity.
   for (const element of skeleton)
     element.weight =
       (wiring.get(element.id) ?? []).length +
-      (ownedAttributes.get(element.id) ?? []).filter(
-        (attribute) => attribute.hidden !== true,
-      ).length;
+      (params.arrangement.attributeBlind
+        ? 0
+        : (ownedAttributes.get(element.id) ?? []).filter(takesRoom).length);
 
   return {
     elements,

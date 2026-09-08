@@ -126,7 +126,7 @@ describe.each(EXAMPLES)("$name", ({ name, erDoc }) => {
     const rerun = fromErDoc(erDoc);
     const unspaced = layoutDiscreteSearch(rerun.nodes, rerun.edges, {
       ...DEFAULT_LAYOUT_PARAMS,
-      spacing: { enabled: false },
+      spacing: { ...DEFAULT_LAYOUT_PARAMS.spacing, enabled: false },
     });
     expect([...unspaced.positions.entries()]).toEqual([...positions.entries()]);
     expect([...unspaced.sizes.entries()]).toEqual([...sizes.entries()]);

@@ -41,6 +41,14 @@ export type DiagramSettings = {
   collisionEnabled: boolean;
   // which algorithm the auto layout and the layout button run
   layoutAlgorithm: LayoutAlgorithm;
+  /**
+   * Whether hiding the attributes lets the layout close the gaps left for them.
+   *
+   * On, a diagram read with the attributes off is as compact as one that never
+   * had any. Off, every gap keeps the size the shown view uses, so toggling the
+   * attributes reveals and conceals them without anything else moving.
+   */
+  closeHiddenAttributeGaps: boolean;
   // where edges stop at entities, relationships and ISA triangles
   edgeAnchor: EdgeAnchor;
 };
@@ -53,6 +61,7 @@ export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
   snapRadius: 12,
   collisionEnabled: false,
   layoutAlgorithm: "discrete-search",
+  closeHiddenAttributeGaps: true,
   edgeAnchor: "side",
 };
 

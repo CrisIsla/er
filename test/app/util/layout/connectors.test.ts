@@ -121,6 +121,7 @@ const diamond = {
   visualWidth: 100,
   visualHeight: 100,
   haloRadius: 0,
+  drawnHalo: 0,
   hidden: false,
   participants: [],
   groupKey: "",

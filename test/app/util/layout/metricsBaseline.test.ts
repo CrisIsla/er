@@ -41,11 +41,21 @@ const BASELINE: Record<
   { crossings: number; throughNodes: number; area: number; length: number }
 > = {
   roles: { crossings: 0, throughNodes: 0, area: 23719, length: 568 },
-  aggregation: { crossings: 1, throughNodes: 0, area: 306909, length: 1761 },
+  aggregation: { crossings: 1, throughNodes: 0, area: 399735, length: 1965 },
   subclass: { crossings: 0, throughNodes: 0, area: 1110144, length: 3627 },
-  bank: { crossings: 2, throughNodes: 0, area: 1222964, length: 5682 },
-  company: { crossings: 0, throughNodes: 1, area: 1084597, length: 6118 },
+  bank: { crossings: 1, throughNodes: 0, area: 1269857, length: 5766 },
+  company: { crossings: 0, throughNodes: 1, area: 953857, length: 6058 },
 };
+
+/**
+ * `aggregation` grew by a third and `bank` by a twentieth when the refinement
+ * pass was made to honour the clearance the greedy pass had already paid for:
+ * `rejectOccupied` will not put two attribute rings within a minimum of each
+ * other, and until then a refinement was free to give that back. `bank` bought a
+ * crossing with it (2 down to 1) and `company` came in a eighth smaller, so the
+ * corpus is ahead on the two terms priced above area -- but the room is real,
+ * and where it does not buy anything it simply costs.
+ */
 
 /** How far `area` and `totalEdgeLength` may drift before it needs explaining. */
 const TOLERANCE = 0.15;

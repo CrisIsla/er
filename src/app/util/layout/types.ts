@@ -34,8 +34,21 @@ type ElementBase = {
   /** size actually covered on screen */
   visualWidth: number;
   visualHeight: number;
-  /** how far the attributes fanned around this element reach past its edge */
+  /**
+   * How far the attributes fanned around this element reach past its edge, as
+   * far as the *arranging* stage is concerned.
+   *
+   * Zero when the arrangement is being made attribute-blind, which is the whole
+   * point of that setting: what the search decides is then a property of the
+   * entities and relationships alone, and the room the ring needs is opened up
+   * afterwards by the spacing pass.
+   */
   haloRadius: number;
+  /**
+   * ...and how far it really reaches, whatever the arrangement was told. This is
+   * the one the spacing pass measures with, because it is the one that is drawn.
+   */
+  drawnHalo: number;
   /** currently not drawn, so it takes up no room on screen */
   hidden: boolean;
 };

@@ -14,7 +14,13 @@
  */
 
 import { LayoutParams } from "./params";
-import { LayoutGraph, SkeletonElement, Vec } from "./types";
+import {
+  ConnectorElement,
+  LayoutGraph,
+  Placement,
+  SkeletonElement,
+  Vec,
+} from "./types";
 
 export type HierarchyLink = { parentId: string; childId: string };
 
@@ -192,6 +198,28 @@ const slotColumns = (element: SkeletonElement, params: LayoutParams) =>
 const halfHeight = (element: SkeletonElement, params: LayoutParams) =>
   element.visualHeight / 2 + element.haloRadius * params.haloFactor;
 
+/**
+ * Where the triangle joining a subclass to its superclass goes: on the
+ * subclass's own column, one separation above it.
+ *
+ * On the column, rather than at the midpoint of the two entities, so
+ * `useEdgePath` takes its vertical branch and the edge leaves the apex handle
+ * DefaultIsA pushes down to `top: 106%`.
+ */
+const triangleSeat = (
+  child: Vec,
+  childElement: SkeletonElement,
+  connector: ConnectorElement,
+  params: LayoutParams,
+): Vec => ({
+  x: child.x,
+  y:
+    child.y -
+    (childElement.visualHeight / 2 +
+      params.minSeparation +
+      connector.visualHeight / 2),
+});
+
 export const layoutHierarchyTree = (
   forest: HierarchyForest,
   rootId: string,
@@ -308,16 +336,10 @@ export const layoutHierarchyTree = (
     const child = offsets.get(childId);
     const childElement = skeletonOf(childId);
     if (child === undefined || childElement === null) continue;
-    // x on the child's own column, so useEdgePath takes its vertical branch and
-    // the edge leaves the apex handle DefaultIsA pushes down to `top: 106%`
-    triangles.set(connector.id, {
-      x: child.x,
-      y:
-        child.y -
-        (childElement.visualHeight / 2 +
-          params.minSeparation +
-          connector.visualHeight / 2),
-    });
+    triangles.set(
+      connector.id,
+      triangleSeat(child, childElement, connector, params),
+    );
   }
 
   // --- the box the search has to keep clear for all of it ---
@@ -360,4 +382,37 @@ export const hierarchyTrees = (
     if (layout !== null) trees.push(layout);
   }
   return trees;
+};
+
+/**
+ * Where every arranged hierarchy's triangles end up, given where its members
+ * finally landed.
+ *
+ * Re-derived rather than carried: `TreeLayout.triangles` are offsets from a root
+ * measured on the row pitch the tree was arranged at, and the spacing pass moves
+ * the rows. Interpolating a seat through that transform would leave it floating
+ * in the middle of a widened gap instead of tucked above its subclass.
+ */
+export const seatTriangles = (
+  graph: LayoutGraph,
+  trees: TreeLayout[],
+  centres: Placement,
+  params: LayoutParams,
+): Placement => {
+  const seats: Placement = new Map();
+  const seated = new Set<string>();
+  for (const tree of trees)
+    for (const id of tree.triangles.keys()) seated.add(id);
+
+  for (const connector of graph.connectors) {
+    if (connector.hierarchy === null || !seated.has(connector.id)) continue;
+    const child = centres.get(connector.hierarchy.childId);
+    const childElement = graph.elements.get(connector.hierarchy.childId);
+    if (child === undefined || childElement?.role !== "skeleton") continue;
+    seats.set(
+      connector.id,
+      triangleSeat(child, childElement, connector, params),
+    );
+  }
+  return seats;
 };

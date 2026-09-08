@@ -190,6 +190,38 @@ export const ConfigPanel = ({
 
               <Box>
                 <Heading size="xs" pb={2}>
+                  {t("attributeSpacing")}
+                </Heading>
+
+                <Stack direction="column">
+                  <Radio
+                    colorScheme="gray"
+                    isChecked={settings.closeHiddenAttributeGaps}
+                    onChange={() =>
+                      setSetting("closeHiddenAttributeGaps", true)
+                    }
+                  >
+                    <Tooltip label={t("closeHiddenAttributeGapsHint")}>
+                      {t("closeHiddenAttributeGaps")}
+                    </Tooltip>
+                  </Radio>
+
+                  <Radio
+                    colorScheme="gray"
+                    isChecked={!settings.closeHiddenAttributeGaps}
+                    onChange={() =>
+                      setSetting("closeHiddenAttributeGaps", false)
+                    }
+                  >
+                    <Tooltip label={t("keepHiddenAttributeGapsHint")}>
+                      {t("keepHiddenAttributeGaps")}
+                    </Tooltip>
+                  </Radio>
+                </Stack>
+              </Box>
+
+              <Box>
+                <Heading size="xs" pb={2}>
                   {t("alignment")}
                 </Heading>
 

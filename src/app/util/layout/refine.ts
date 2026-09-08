@@ -20,7 +20,7 @@
  */
 
 import { Rect } from "../alignmentCandidates";
-import { DIRECTIONS } from "./geometry";
+import { DIRECTIONS, rectAt } from "./geometry";
 import {
   DrawnSegment,
   boundingBox,
@@ -32,7 +32,6 @@ import {
 } from "./metrics";
 import { TreeLayout } from "./hierarchy";
 import { LayoutParams } from "./params";
-import { clearanceRect } from "./placement";
 import { LayoutGraph, Placement, SkeletonElement, Vec } from "./types";
 
 /**
@@ -103,15 +102,41 @@ export const layoutCost = (
   params: LayoutParams,
 ) => {
   const weights = params.weights;
-  const rects: Rect[] = [];
+  // Two rectangles per element, and they answer different questions.
+  //
+  // `boxes` is what is drawn, which is what an edge can disappear into. `room`
+  // adds the share of the attribute ring the placement pass reserves, which is
+  // what may not be encroached on: `rejectOccupied` refuses a candidate that
+  // breaks it, and a refinement that quietly gave it away would undo the
+  // clearance the greedy pass had just paid for.
+  //
+  // Both are element by element, never by a tree root's footprint. That is the
+  // room the search reserved to *find* the whole tree a spot; here every member
+  // has a centre of its own, so counting it as well would have a root overlap
+  // its own children -- eight phantom overlaps on `subclass`, at a million
+  // apiece, drowning every aesthetic term this is supposed to be weighing.
+  // `placeSkeleton` explodes a landed tree the same way.
+  const boxes: Rect[] = [];
+  const room: Rect[] = [];
   for (const element of graph.skeleton) {
     const centre = centres.get(element.id);
-    if (centre !== undefined)
-      rects.push(clearanceRect(element, centre, params, 0));
+    if (centre === undefined) continue;
+    boxes.push(
+      rectAt(element.id, centre, element.visualWidth, element.visualHeight),
+    );
+    const pad = element.haloRadius * params.haloFactor;
+    room.push(
+      rectAt(
+        element.id,
+        centre,
+        element.visualWidth + 2 * pad,
+        element.visualHeight + 2 * pad,
+      ),
+    );
   }
 
   const segments = skeletonSegments(graph, centres);
-  const box = boundingBox(rects);
+  const box = boundingBox(boxes);
   const aspect =
     Math.max(box.width, box.height) /
     Math.max(1, Math.min(box.width, box.height));
@@ -123,9 +148,9 @@ export const layoutCost = (
     weights.aspect * aspect +
     weights.unaligned *
       segments.filter((segment) => !isAxisAligned(segment)).length +
-    weights.throughNode * edgesThroughNodes(rects, segments) +
+    weights.throughNode * edgesThroughNodes(boxes, segments) +
     weights.isaDown * hierarchyViolations(graph, centres) +
-    OVERLAP_PENALTY * countOverlaps(rects, params.minSeparation)
+    OVERLAP_PENALTY * countOverlaps(room, params.minSeparation)
   );
 };
 

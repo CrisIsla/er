@@ -9,7 +9,12 @@ import {
   readNodeSize,
   withNodeSize,
 } from "../util/nodeSize";
-import { LayoutAlgorithm, useDiagramSettings } from "./useDiagramSettings";
+import { DEFAULT_LAYOUT_PARAMS, LayoutParams } from "../util/layout/params";
+import {
+  DiagramSettings,
+  LayoutAlgorithm,
+  useDiagramSettings,
+} from "./useDiagramSettings";
 
 type LayoutNode = Partial<
   ElkNode &
@@ -35,7 +40,11 @@ const nodesInitializedSelector = (state: ReactFlowState) =>
     (node) => node.width && node.height,
   );
 
-type LayoutRunner = (nodes: Node[], edges: Edge[]) => Promise<Node[]>;
+type LayoutRunner = (
+  nodes: Node[],
+  edges: Edge[],
+  params?: LayoutParams,
+) => Promise<Node[]>;
 
 /**
  * Resolved when the layout runs rather than at module load: getLayoutedElements
@@ -46,6 +55,15 @@ const runnerFor = (algorithm: LayoutAlgorithm): LayoutRunner =>
   algorithm === "multi-layout"
     ? getLayoutedElements
     : getDiscreteLayoutedElements;
+
+/** The parts of the layout the user gets to choose. */
+const paramsFor = (settings: DiagramSettings): LayoutParams => ({
+  ...DEFAULT_LAYOUT_PARAMS,
+  spacing: {
+    ...DEFAULT_LAYOUT_PARAMS.spacing,
+    closeHiddenGaps: settings.closeHiddenAttributeGaps,
+  },
+});
 
 type ApplyLayoutOptions = {
   /** runs once the store has flushed, with the nodes and edges just written */
@@ -81,7 +99,11 @@ const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
 
     let layoutedNodes: Node[] = [];
     try {
-      layoutedNodes = await runnerFor(algorithm)(getNodes(), getEdges());
+      layoutedNodes = await runnerFor(algorithm)(
+        getNodes(),
+        getEdges(),
+        paramsFor(settings),
+      );
     } catch (error) {
       console.error("Diagram layout failed", error);
     } finally {
@@ -124,14 +146,19 @@ const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
         }),
       0,
     );
-  }, [algorithm, getNodes, getEdges, setNodes, setEdges, fitView]);
+  }, [algorithm, settings, getNodes, getEdges, setNodes, setEdges, fitView]);
 
   return { applyLayout };
 };
 
+/**
+ * `_params` is the discrete search's, and this pipeline has no equivalent for
+ * any of it -- it is accepted so the two runners stay interchangeable.
+ */
 const getLayoutedElements = async (
   flowNodes: Node[],
   flowEdges: Edge[],
+  _params?: LayoutParams,
   elkOptions: { [key: string]: string } = {},
 ) => {
   const elk = new ELK();
