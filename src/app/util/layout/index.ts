@@ -32,6 +32,7 @@ import { boundingBox } from "./metrics";
 import { DEFAULT_LAYOUT_PARAMS, LayoutParams } from "./params";
 import { placeSkeleton } from "./placement";
 import { refinePlacement } from "./refine";
+import { applySpacing, remapFootprint, spacingFor } from "./spacing";
 import { LayoutGraph, Placement, Vec } from "./types";
 
 export type LayoutPositions = Map<string, Vec>;
@@ -262,20 +263,40 @@ export const layoutDiscreteSearch = (
 
   // steps 1-3: the skeleton, by discrete search
   // step 6: revisit the greedy decisions, without ever breaking an alignment
-  const centres: Placement = new Map(
+  const arranged: Placement = new Map(
     refinePlacement(graph, placeSkeleton(graph, params, { trees }), params, {
       trees,
     }),
   );
 
   // the triangles a tree seated ride along with it, so where they end up is only
-  // known once the roots have been placed and refined
-  const pinned: Placement = new Map();
+  // known once the roots have been placed and refined. Worked out here, before
+  // the spacing pass, so they are carried by it like everything else rather than
+  // left hanging at the old row pitch.
+  const seated: Placement = new Map();
   for (const tree of trees) {
-    const root = centres.get(tree.rootId);
+    const root = arranged.get(tree.rootId);
     if (root === undefined) continue;
     for (const [id, offset] of tree.triangles)
-      pinned.set(id, { x: root.x + offset.x, y: root.y + offset.y });
+      seated.set(id, { x: root.x + offset.x, y: root.y + offset.y });
+  }
+
+  // step 6b: open the rows and columns until what is drawn fits between them.
+  // After the refinement, whose alignment guard is an exact test on the centres
+  // it was given and whose cost is measured on the unspaced geometry; before the
+  // connectors and attributes, which both want the final centres.
+  const spacing = spacingFor(graph, arranged, params);
+  const centres: Placement = applySpacing(spacing, arranged);
+  const pinned = applySpacing(spacing, seated);
+  // a root's footprint is a box in its own frame, and placeConnectors still
+  // reads it -- so it travels through the same transform as everything else
+  for (const tree of trees) {
+    const root = graph.elements.get(tree.rootId);
+    const before = arranged.get(tree.rootId);
+    const after = centres.get(tree.rootId);
+    if (root?.role !== "skeleton" || root.footprint === undefined) continue;
+    if (before === undefined || after === undefined) continue;
+    root.footprint = remapFootprint(spacing, root.footprint, before, after);
   }
 
   // step 4: diamonds and triangles, relative to what they join

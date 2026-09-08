@@ -115,6 +115,23 @@ describe.each(EXAMPLES)("$name", ({ name, erDoc }) => {
     expect([...again.sizes.entries()]).toEqual([...sizes.entries()]);
   });
 
+  /**
+   * The gate the spacing pass was introduced under. It only ever *widens*, so on
+   * an arrangement that already has the room it needs it must be exactly the
+   * identity -- not nearly, not to within a pixel. While that holds, anything
+   * the corpus does differently is attributable to a later stage rather than to
+   * the pass itself.
+   */
+  it("does not move an arrangement that already has the room it needs", () => {
+    const rerun = fromErDoc(erDoc);
+    const unspaced = layoutDiscreteSearch(rerun.nodes, rerun.edges, {
+      ...DEFAULT_LAYOUT_PARAMS,
+      spacing: { enabled: false },
+    });
+    expect([...unspaced.positions.entries()]).toEqual([...positions.entries()]);
+    expect([...unspaced.sizes.entries()]).toEqual([...sizes.entries()]);
+  });
+
   it("leaves no two structural elements overlapping", () => {
     const byId = new Map(nodes.map((node) => [node.id, node]));
     const rects = laidOutRects(sized, positions).filter((rect) =>

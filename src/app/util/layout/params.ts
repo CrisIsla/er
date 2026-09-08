@@ -119,6 +119,16 @@ export type LayoutParams = {
     minMembers: number;
   };
   /**
+   * Opening the gaps between the rows and columns once the arrangement is
+   * settled, so that *where* a thing goes and *how far away* it goes stop being
+   * one decision (spacing.ts).
+   *
+   * `enabled: false` leaves the search's own distances exactly as they are.
+   */
+  spacing: {
+    enabled: boolean;
+  };
+  /**
    * The alignment-preserving refinement pass. `seed` is what keeps the result
    * reproducible: the same diagram must lay out the same way every time, because
    * the layout re-runs on every edit that changes the node or edge count.
@@ -166,6 +176,9 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
     // measured, at three it inverts and no weight recovers it.
     enabled: true,
     minMembers: 2,
+  },
+  spacing: {
+    enabled: true,
   },
   refine: {
     enabled: true,

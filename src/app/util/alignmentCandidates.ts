@@ -60,8 +60,10 @@ const endOf = (rect: Rect, axis: Axis) =>
   startOf(rect, axis) + sizeOf(rect, axis);
 
 /** Do two rects overlap on the axis perpendicular to `axis`? Used to decide
- * whether they sit in the same visual row (for "x") or column (for "y"). */
-const overlapsOnCrossAxis = (a: Rect, b: Rect, axis: Axis) => {
+ * whether they sit in the same visual row (for "x") or column (for "y") -- and,
+ * in the layout's spacing pass, whether `axis` is the one that has to keep them
+ * apart at all. */
+export const overlapsOnCrossAxis = (a: Rect, b: Rect, axis: Axis) => {
   const cross: Axis = axis === "x" ? "y" : "x";
   return (
     startOf(a, cross) < endOf(b, cross) && startOf(b, cross) < endOf(a, cross)
