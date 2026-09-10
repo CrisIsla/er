@@ -141,51 +141,17 @@ export const ConfigPanel = ({
                   {t("attributes")}
                 </Heading>
 
-                <Stack direction="column">
-                  <Checkbox
-                    colorScheme="gray"
-                    isChecked={settings.showAttributes}
-                    onChange={(e) =>
-                      setSetting("showAttributes", e.target.checked)
-                    }
-                  >
+                <Checkbox
+                  colorScheme="gray"
+                  isChecked={settings.showAttributes}
+                  onChange={(e) =>
+                    setSetting("showAttributes", e.target.checked)
+                  }
+                >
+                  <Tooltip label={t("showAttributesHint")}>
                     {t("showAttributes")}
-                  </Checkbox>
-
-                  <Radio
-                    colorScheme="gray"
-                    isChecked={settings.attributeMode === "always"}
-                    isDisabled={!settings.showAttributes}
-                    onChange={() => setSetting("attributeMode", "always")}
-                  >
-                    <Tooltip
-                      label={
-                        !settings.showAttributes
-                          ? t("attributesModeDisabled")
-                          : undefined
-                      }
-                    >
-                      {t("attributesAlways")}
-                    </Tooltip>
-                  </Radio>
-
-                  <Radio
-                    colorScheme="gray"
-                    isChecked={settings.attributeMode === "hover"}
-                    isDisabled={!settings.showAttributes}
-                    onChange={() => setSetting("attributeMode", "hover")}
-                  >
-                    <Tooltip
-                      label={
-                        !settings.showAttributes
-                          ? t("attributesModeDisabled")
-                          : undefined
-                      }
-                    >
-                      {t("attributesHover")}
-                    </Tooltip>
-                  </Radio>
-                </Stack>
+                  </Tooltip>
+                </Checkbox>
               </Box>
 
               <Box>
@@ -197,11 +163,18 @@ export const ConfigPanel = ({
                   <Radio
                     colorScheme="gray"
                     isChecked={settings.closeHiddenAttributeGaps}
+                    isDisabled={settings.showAttributes}
                     onChange={() =>
                       setSetting("closeHiddenAttributeGaps", true)
                     }
                   >
-                    <Tooltip label={t("closeHiddenAttributeGapsHint")}>
+                    <Tooltip
+                      label={
+                        settings.showAttributes
+                          ? t("attributeSpacingDisabled")
+                          : t("closeHiddenAttributeGapsHint")
+                      }
+                    >
                       {t("closeHiddenAttributeGaps")}
                     </Tooltip>
                   </Radio>
@@ -209,11 +182,18 @@ export const ConfigPanel = ({
                   <Radio
                     colorScheme="gray"
                     isChecked={!settings.closeHiddenAttributeGaps}
+                    isDisabled={settings.showAttributes}
                     onChange={() =>
                       setSetting("closeHiddenAttributeGaps", false)
                     }
                   >
-                    <Tooltip label={t("keepHiddenAttributeGapsHint")}>
+                    <Tooltip
+                      label={
+                        settings.showAttributes
+                          ? t("attributeSpacingDisabled")
+                          : t("keepHiddenAttributeGapsHint")
+                      }
+                    >
                       {t("keepHiddenAttributeGaps")}
                     </Tooltip>
                   </Radio>

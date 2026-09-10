@@ -21,10 +21,15 @@ import EdgeCustomSVGs from "./EdgeCustomSVGs";
 import AlignmentGuides from "./AlignmentGuides";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
 import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
+import { AttributeTooltip } from "./AttributeTooltip";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
 import { useDiagramSettings } from "../../hooks/useDiagramSettings";
 import { isAttributeNode } from "../../util/erGraph";
-import { incomingLayout, mergeRebuiltNodes } from "../../util/rebuildNodes";
+import {
+  incomingLayout,
+  mergeRebuiltEdges,
+  mergeRebuiltNodes,
+} from "../../util/rebuildNodes";
 import { isFiniteSize, readNodeSize, withNodeSize } from "../../util/nodeSize";
 import { ErJSON } from "../../hooks/useJSON";
 import { useResizeCommit } from "../../hooks/useResizeCommit";
@@ -98,7 +103,8 @@ const ErDiagram = ({
     useAlignmentGuide();
   const { saveToLocalStorage, loadFromLocalStorage, setRfInstance } =
     useDiagramToLocalStorage();
-  const { onNodeMouseEnter, onNodeMouseLeave } = useAttributeVisibility();
+  const { onNodeMouseEnter, onNodeMouseLeave, hoveredOwnerId } =
+    useAttributeVisibility();
   const { settings } = useDiagramSettings();
 
   /**
@@ -109,8 +115,7 @@ const ErDiagram = ({
    * back once React Flow has measured every node, a frame later. Deciding it here
    * means the attributes are never drawn in the first place.
    */
-  const attributesStartHidden =
-    !settings.showAttributes || settings.attributeMode === "hover";
+  const attributesStartHidden = !settings.showAttributes;
 
   /**
    * Hides the nodes and edges -- not the grid -- until the view has been fitted.
@@ -279,22 +284,14 @@ const ErDiagram = ({
       }),
     );
 
-    const edgeStartsHidden = (edge: Edge) =>
-      attributesStartHidden &&
-      (attributeIds.has(edge.source) || attributeIds.has(edge.target));
-
-    setEdges((oldEdges) => {
-      const alreadyExists: string[] = [];
-      return oldEdges
-        .map((oldEdge) => {
-          const updatedEdge = fromErEdges.find((ne) => ne.id === oldEdge.id);
-          if (updatedEdge) alreadyExists.push(updatedEdge.id);
-          return updatedEdge;
-        })
-        .concat(fromErEdges.filter((ne) => !alreadyExists.includes(ne.id)))
-        .filter((e) => e !== undefined)
-        .map((e) => ({ ...e!, hidden: edgeStartsHidden(e!) })) as Edge[];
-    });
+    setEdges((oldEdges) =>
+      mergeRebuiltEdges({
+        oldEdges,
+        newEdges: fromErEdges as Edge[],
+        attributeIds,
+        attributesStartHidden,
+      }),
+    );
     // not while a stored layout is still landing: this would snapshot the
     // diagram mid-flight, and the settling effect saves it properly anyway
     if (!hasPendingLayout.current) setTimeout(saveToLocalStorage, 100);
@@ -375,6 +372,7 @@ const ErDiagram = ({
       onNodeMouseLeave={onNodeMouseLeave}
       proOptions={{ hideAttribution: true }}
     >
+      {hoveredOwnerId !== null && <AttributeTooltip nodeId={hoveredOwnerId} />}
       <Background
         id="1"
         gap={10}

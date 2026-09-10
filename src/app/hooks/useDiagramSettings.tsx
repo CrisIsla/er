@@ -9,8 +9,6 @@ import {
   useState,
 } from "react";
 
-export type AttributeMode = "always" | "hover";
-
 /**
  * Which algorithm arranges the diagram. "discrete-search" is the placement by
  * discrete search, which treats alignment as a hard constraint; "multi-layout"
@@ -27,10 +25,16 @@ export type LayoutAlgorithm = "discrete-search" | "multi-layout";
 export type EdgeAnchor = "side" | "centre";
 
 export type DiagramSettings = {
-  // whether attribute nodes are drawn at all
+  /**
+   * Whether attribute nodes are drawn on the canvas.
+   *
+   * Off, they are not drawn at all and hovering an element lists what it owns in
+   * a box beside it (AttributeTooltip.tsx). This used to be two settings -- a
+   * checkbox and an always/on-hover pair -- which between them could express a
+   * state the panel could not reach, and whose on-hover mode revealed the drawn
+   * ellipses into whatever room happened to be left around their owner.
+   */
   showAttributes: boolean;
-  // how attributes are revealed when they are shown
-  attributeMode: AttributeMode;
   // show guides when a third element matches the spacing of two others
   spacingGuidesEnabled: boolean;
   // pull dragged elements onto guide positions
@@ -55,7 +59,6 @@ export type DiagramSettings = {
 
 export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
   showAttributes: true,
-  attributeMode: "always",
   spacingGuidesEnabled: true,
   snapEnabled: false,
   snapRadius: 12,
@@ -83,18 +86,36 @@ const DiagramSettingsContext = createContext<DiagramSettingsContextProps>({
   setSetting: () => {},
 });
 
-// reads stored settings, falling back to the defaults for anything
-// missing or malformed so an old/partial blob can't break the panel
-const loadFromLocalStorage = (): DiagramSettings => {
-  if (typeof window === "undefined") return DEFAULT_DIAGRAM_SETTINGS;
+/**
+ * Reads stored settings, falling back to the defaults for anything missing or
+ * malformed so an old or partial blob can't break the panel.
+ *
+ * `attributeMode` is the one field that needs translating rather than ignoring.
+ * It used to hold `"hover"` for "draw them only around whatever the pointer is
+ * over", and the nearest thing to that now is not drawing them at all -- so
+ * somebody who was reading their diagram that way lands on the hover box instead
+ * of suddenly having every attribute drawn.
+ */
+export const readStoredSettings = (stored: string | null): DiagramSettings => {
+  if (stored === null) return DEFAULT_DIAGRAM_SETTINGS;
   try {
-    const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (stored === null) return DEFAULT_DIAGRAM_SETTINGS;
-    return { ...DEFAULT_DIAGRAM_SETTINGS, ...JSON.parse(stored) };
+    const { attributeMode, ...rest } = JSON.parse(stored) as Partial<
+      DiagramSettings & { attributeMode?: string }
+    >;
+    return {
+      ...DEFAULT_DIAGRAM_SETTINGS,
+      ...rest,
+      ...(attributeMode === "hover" ? { showAttributes: false } : {}),
+    };
   } catch {
     return DEFAULT_DIAGRAM_SETTINGS;
   }
 };
+
+const loadFromLocalStorage = (): DiagramSettings =>
+  typeof window === "undefined"
+    ? DEFAULT_DIAGRAM_SETTINGS
+    : readStoredSettings(localStorage.getItem(LOCAL_STORAGE_KEY));
 
 export const DiagramSettingsProvider = ({
   children,

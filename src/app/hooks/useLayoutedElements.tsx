@@ -1,7 +1,8 @@
 import ELK, { ElkExtendedEdge, ElkNode } from "elkjs/lib/elk.bundled.js";
 import { useCallback, useEffect, useRef } from "react";
-import { Edge, Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
+import { Edge, Node, useReactFlow } from "reactflow";
 import { AggregationNode, ErNode } from "../types/ErDiagram";
+import { isAttributeNode } from "../util/erGraph";
 import { getDiscreteLayoutedElements } from "../util/layout/toReactflow";
 import {
   NodeSize,
@@ -32,13 +33,6 @@ const defaultOptions = {
   "elk.spacing.nodeNode": "1.1",
   "elk.force.iterations": "100",
 };
-
-const nodeCountSelector = (state: ReactFlowState) => state.nodeInternals.size;
-const edgeCountSelector = (state: ReactFlowState) => state.edges.length;
-const nodesInitializedSelector = (state: ReactFlowState) =>
-  Array.from(state.nodeInternals.values()).every(
-    (node) => node.width && node.height,
-  );
 
 type LayoutRunner = (
   nodes: Node[],
@@ -87,8 +81,8 @@ const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
   const { settings } = useDiagramSettings();
   const algorithm = settings.layoutAlgorithm;
 
-  // held in a ref so an inline callback can't change applyLayout's identity:
-  // an unstable applyLayout in the effect below would re-run the layout forever
+  // held in a ref so an inline callback can't change applyLayout's identity on
+  // every render of whichever button is holding it
   const onAppliedRef = useRef(onApplied);
   onAppliedRef.current = onApplied;
   const runningRef = useRef(false);
@@ -130,9 +124,22 @@ const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
           : null;
       return size === null ? positioned : withNodeSize(positioned, size);
     });
+    // edges are revealed here because a new one is born hidden so it cannot be
+    // seen flying from the generator's seed position to wherever the layout puts
+    // it. An attribute's edge is a different matter: it is hidden because the
+    // reader asked for a diagram without attributes, and unhiding it drew a line
+    // from an element to a node nobody can see.
+    const attributeIds = new Set(
+      getNodes()
+        .filter(isAttributeNode)
+        .map((node) => node.id),
+    );
     const nextEdges = getEdges().map((edge) => ({
       ...edge,
-      hidden: false,
+      hidden:
+        attributeIds.has(edge.source) || attributeIds.has(edge.target)
+          ? edge.hidden
+          : false,
       style: { ...edge.style },
     }));
 

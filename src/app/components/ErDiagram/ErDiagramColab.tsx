@@ -21,10 +21,15 @@ import EdgeCustomSVGs from "./EdgeCustomSVGs";
 import AlignmentGuides from "./AlignmentGuides";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
 import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
+import { AttributeTooltip } from "./AttributeTooltip";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
 import { useDiagramSettings } from "../../hooks/useDiagramSettings";
 import { isAttributeNode } from "../../util/erGraph";
-import { incomingLayout, mergeRebuiltNodes } from "../../util/rebuildNodes";
+import {
+  incomingLayout,
+  mergeRebuiltEdges,
+  mergeRebuiltNodes,
+} from "../../util/rebuildNodes";
 import { useResizeCommit } from "../../hooks/useResizeCommit";
 import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
 import { ErJSON, toErJSONEdges, toErJSONNodes } from "../../hooks/useJSON";
@@ -116,14 +121,14 @@ const ErDiagram = ({
     useAlignmentGuide();
   const { saveToLocalStorage, setRfInstance } = useDiagramToLocalStorage();
   const { getNodes, getEdges } = useReactFlow();
-  const { onNodeMouseEnter, onNodeMouseLeave } = useAttributeVisibility();
+  const { onNodeMouseEnter, onNodeMouseLeave, hoveredOwnerId } =
+    useAttributeVisibility();
   const { settings } = useDiagramSettings();
 
   // the rebuild below drops the `hidden` flag useAttributeVisibility sets, and
   // that hook can only restore it a frame later, once every node is measured --
   // so decide it here and never draw the attributes at all
-  const attributesStartHidden =
-    !settings.showAttributes || settings.attributeMode === "hover";
+  const attributesStartHidden = !settings.showAttributes;
   const params = useParams();
   const modelId = params.modelId as string;
 
@@ -317,24 +322,12 @@ const ErDiagram = ({
     });
 
     setEdges((oldEdges) => {
-      const alreadyExists: string[] = [];
-      const updatedEdges = oldEdges
-        .map((oldEdge) => {
-          const updatedEdge = fromErEdges.find((ne) => ne.id === oldEdge.id);
-          if (updatedEdge) alreadyExists.push(updatedEdge.id);
-          return updatedEdge;
-        })
-        .concat(
-          fromErEdges
-            .filter((ne) => !alreadyExists.includes(ne.id))
-            .map((e) => ({
-              ...e,
-              hidden:
-                attributesStartHidden &&
-                (attributeIds.has(e.source) || attributeIds.has(e.target)),
-            })),
-        )
-        .filter((e) => e !== undefined) as Edge[];
+      const updatedEdges = mergeRebuiltEdges({
+        oldEdges,
+        newEdges: fromErEdges as Edge[],
+        attributeIds,
+        attributesStartHidden,
+      });
       syncYMapWithEdges(updatedEdges);
       return updatedEdges;
     });
@@ -435,6 +428,7 @@ const ErDiagram = ({
       onNodeMouseLeave={onNodeMouseLeave}
       proOptions={{ hideAttribution: true }}
     >
+      {hoveredOwnerId !== null && <AttributeTooltip nodeId={hoveredOwnerId} />}
       <Background
         id="1"
         gap={10}

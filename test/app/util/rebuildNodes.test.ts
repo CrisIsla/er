@@ -5,8 +5,10 @@ import {
   readNodeSize,
 } from "../../../src/app/util/nodeSize";
 import {
+  RebuildEdge,
   RebuildNode,
   incomingLayout,
+  mergeRebuiltEdges,
   mergeRebuiltNodes,
 } from "../../../src/app/util/rebuildNodes";
 
@@ -211,5 +213,81 @@ describe("save and load round trip", () => {
       node("0", "entity: A", { width: 137, height: 44 }),
     ] as unknown as Node[]);
     expect(file).toEqual([{ id: "0", position: { x: 0, y: 0 } }]);
+  });
+});
+
+describe("mergeRebuiltEdges", () => {
+  const edge = (
+    id: string,
+    source: string,
+    target: string,
+    hidden?: boolean,
+  ): RebuildEdge => ({ id, source, target, hidden });
+
+  const merged = (
+    input: Partial<Parameters<typeof mergeRebuiltEdges>[0]> = {},
+  ) =>
+    mergeRebuiltEdges({
+      oldEdges: [],
+      newEdges: [],
+      attributeIds: new Set<string>(),
+      attributesStartHidden: false,
+      ...input,
+    });
+
+  it("replaces an edge that still exists with its new version", () => {
+    const result = merged({
+      oldEdges: [edge("e1", "a", "b")],
+      newEdges: [edge("e1", "a", "c")],
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0].target).toBe("c");
+  });
+
+  it("adds an edge that has appeared and drops one that has gone", () => {
+    const result = merged({
+      oldEdges: [edge("gone", "a", "b")],
+      newEdges: [edge("fresh", "a", "b")],
+    });
+    expect(result.map((item) => item.id)).toEqual(["fresh"]);
+  });
+
+  /**
+   * The bug this function was extracted to end: the collaborative diagram
+   * applied the hidden rule only to the edges it was adding, so an attribute
+   * edge that a layout run had revealed stayed revealed -- a line drawn from an
+   * element to a node nobody could see.
+   */
+  it("hides an existing attribute edge, not only a new one", () => {
+    const result = merged({
+      oldEdges: [edge("old", "entity", "attr", false)],
+      newEdges: [edge("old", "entity", "attr"), edge("new", "entity", "attr2")],
+      attributeIds: new Set(["attr", "attr2"]),
+      attributesStartHidden: true,
+    });
+    expect(result.map((item) => [item.id, item.hidden])).toEqual([
+      ["old", true],
+      ["new", true],
+    ]);
+  });
+
+  it("reveals an attribute edge again when the attributes come back", () => {
+    const result = merged({
+      oldEdges: [edge("old", "entity", "attr", true)],
+      newEdges: [edge("old", "entity", "attr")],
+      attributeIds: new Set(["attr"]),
+      attributesStartHidden: false,
+    });
+    expect(result[0].hidden).toBe(false);
+  });
+
+  it("leaves an edge between two structural elements alone", () => {
+    const result = merged({
+      oldEdges: [edge("e", "entity", "relationship")],
+      newEdges: [edge("e", "entity", "relationship")],
+      attributeIds: new Set(["attr"]),
+      attributesStartHidden: true,
+    });
+    expect(result[0].hidden).toBe(false);
   });
 });

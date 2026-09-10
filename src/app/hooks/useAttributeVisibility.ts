@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Edge,
   NodeMouseHandler,
@@ -9,12 +9,22 @@ import {
 import { buildOwnerMap, isAttributeNode } from "../util/erGraph";
 import { useDiagramSettings } from "./useDiagramSettings";
 
-// true once every node has been measured. We only hide after this, so a node
-// can't be stranded without dimensions -- useLayoutedElements refuses to run
-// until all nodes report a width and a height.
+/**
+ * True once every node the diagram is drawing has been measured, so this does
+ * not act on a half-built diagram.
+ *
+ * **Hidden nodes are exempt, and must be.** React Flow renders `null` for a
+ * hidden node and only observes it while it is visible, so one that is created
+ * already hidden is never measured at all -- and every semantic edit creates
+ * exactly that, because the rebuild makes fresh nodes from the AST and this
+ * setting decides they start hidden. Counting them left the condition
+ * permanently false after the first keystroke, which turned this whole hook off:
+ * the attributes could no longer be brought back, because the setting reaches
+ * the nodes only through here.
+ */
 const nodesMeasuredSelector = (state: ReactFlowState) =>
   Array.from(state.nodeInternals.values()).every(
-    (node) => node.width && node.height,
+    (node) => node.hidden || (node.width && node.height),
   );
 
 /**
@@ -48,15 +58,25 @@ const visibilityFingerprint = (state: ReactFlowState) => {
   return `${attributes}:${hiddenNodes}:${attributeEdges}:${hiddenEdges}`;
 };
 
+/** Which nodes own at least one attribute, so hovering one is worth a box. */
+const ownersSelector = (state: ReactFlowState) => {
+  const nodes = Array.from(state.nodeInternals.values());
+  const { owner } = buildOwnerMap(nodes, state.edges);
+  return [...new Set(owner.values())].sort().join("|");
+};
+
 /**
- * Keeps attribute nodes (and their edges) in sync with the attribute settings.
+ * Keeps attribute nodes (and their edges) in sync with the attribute setting,
+ * and reports which element the pointer is over.
  *
  * Uses `hidden` rather than removing the nodes on purpose: hidden nodes stay in
- * `nodeInternals`, so the node count ELK watches doesn't change and the diagram
- * doesn't re-layout every time attributes are toggled.
+ * `nodeInternals`, so the counts nothing else has to re-derive don't change and
+ * the diagram doesn't re-layout every time attributes are toggled.
  *
- * Returns the hover handlers the diagram must pass to <ReactFlow> for the
- * "only on hover" mode to work.
+ * `hoveredOwnerId` is what the hover box hangs off (AttributeTooltip.tsx): the
+ * element under the pointer, but only while the attributes are not drawn and
+ * only if it actually owns any. Null the rest of the time, so the common case
+ * renders nothing at all.
  */
 export const useAttributeVisibility = () => {
   const { settings } = useDiagramSettings();
@@ -65,6 +85,7 @@ export const useAttributeVisibility = () => {
 
   const nodesMeasured = useStore(nodesMeasuredSelector);
   const fingerprint = useStore(visibilityFingerprint);
+  const owners = useStore(ownersSelector);
 
   const onNodeMouseEnter: NodeMouseHandler = useCallback((_evt, node) => {
     setHoveredId(node.id);
@@ -76,46 +97,31 @@ export const useAttributeVisibility = () => {
     setHoveredId((current) => (current === node.id ? null : current));
   }, []);
 
-  const { showAttributes, attributeMode } = settings;
+  const { showAttributes } = settings;
+
+  const ownsAttributes = useMemo(() => new Set(owners.split("|")), [owners]);
+  const hoveredOwnerId =
+    !showAttributes && hoveredId !== null && ownsAttributes.has(hoveredId)
+      ? hoveredId
+      : null;
 
   useEffect(() => {
     if (!nodesMeasured) return;
 
     const nodes = getNodes();
     const edges = getEdges();
-    const { owner, attributeIds } = buildOwnerMap(nodes, edges);
+    const { attributeIds } = buildOwnerMap(nodes, edges);
     if (attributeIds.size === 0) return;
 
-    // hovering a revealed attribute counts as hovering its owner, otherwise
-    // moving the pointer onto one would hide its siblings out from under it
-    const hoveredOwner =
-      hoveredId === null ? null : owner.get(hoveredId) ?? hoveredId;
-
-    const shouldHideAttribute = (id: string) => {
-      if (!showAttributes) return true;
-      if (attributeMode === "always") return false;
-      return owner.get(id) !== hoveredOwner;
-    };
-
-    const desiredNodeState = new Map<string, boolean>();
-    for (const id of attributeIds)
-      desiredNodeState.set(id, shouldHideAttribute(id));
+    const hide = !showAttributes;
+    const touchesAttribute = (edge: Edge) =>
+      attributeIds.has(edge.source) || attributeIds.has(edge.target);
 
     const nodesChanged = nodes.some(
-      (node) =>
-        desiredNodeState.has(node.id) &&
-        Boolean(node.hidden) !== desiredNodeState.get(node.id),
+      (node) => attributeIds.has(node.id) && Boolean(node.hidden) !== hide,
     );
-    // an edge follows whichever of its endpoints is an attribute
-    const edgeHidden = (edge: Edge) =>
-      (attributeIds.has(edge.source) &&
-        desiredNodeState.get(edge.source) === true) ||
-      (attributeIds.has(edge.target) &&
-        desiredNodeState.get(edge.target) === true);
     const edgesChanged = edges.some(
-      (edge) =>
-        (attributeIds.has(edge.source) || attributeIds.has(edge.target)) &&
-        Boolean(edge.hidden) !== edgeHidden(edge),
+      (edge) => touchesAttribute(edge) && Boolean(edge.hidden) !== hide,
     );
 
     // bail when nothing differs, so applying state can't feed back into the
@@ -125,31 +131,25 @@ export const useAttributeVisibility = () => {
     if (nodesChanged)
       setNodes((current) =>
         current.map((node) =>
-          desiredNodeState.has(node.id)
-            ? { ...node, hidden: desiredNodeState.get(node.id) }
-            : node,
+          attributeIds.has(node.id) ? { ...node, hidden: hide } : node,
         ),
       );
 
     if (edgesChanged)
       setEdges((current) =>
         current.map((edge) =>
-          attributeIds.has(edge.source) || attributeIds.has(edge.target)
-            ? { ...edge, hidden: edgeHidden(edge) }
-            : edge,
+          touchesAttribute(edge) ? { ...edge, hidden: hide } : edge,
         ),
       );
   }, [
     fingerprint,
     nodesMeasured,
-    hoveredId,
     showAttributes,
-    attributeMode,
     getNodes,
     getEdges,
     setNodes,
     setEdges,
   ]);
 
-  return { onNodeMouseEnter, onNodeMouseLeave };
+  return { onNodeMouseEnter, onNodeMouseLeave, hoveredOwnerId };
 };

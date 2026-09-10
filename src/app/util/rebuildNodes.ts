@@ -61,6 +61,55 @@ export const incomingLayout = (
         ),
       };
 
+/** Minimal shape of a React Flow edge, structurally compatible without importing it. */
+export type RebuildEdge = {
+  id: string;
+  source: string;
+  target: string;
+  hidden?: boolean;
+};
+
+/**
+ * Merging the freshly generated edge list onto the one on screen.
+ *
+ * Every edge is regenerated from the AST, so the merge is only about identity
+ * and visibility: an edge that still exists is replaced by its new version, one
+ * that has appeared is added, and one that has gone is dropped.
+ *
+ * `hidden` is decided here for *every* attribute edge, not only the new ones.
+ * The two diagram components each had their own copy of this and disagreed on
+ * exactly that point -- the collaborative one left an existing attribute edge
+ * with whatever flag it happened to be carrying, so an edge revealed by a layout
+ * run stayed revealed, pointing at a node nobody could see.
+ */
+export const mergeRebuiltEdges = <T extends RebuildEdge>({
+  oldEdges,
+  newEdges,
+  attributeIds,
+  attributesStartHidden,
+}: {
+  oldEdges: T[];
+  newEdges: T[];
+  attributeIds: Set<string>;
+  attributesStartHidden: boolean;
+}): T[] => {
+  const byId = new Map(newEdges.map((edge) => [edge.id, edge]));
+  const kept = oldEdges
+    .map((oldEdge) => byId.get(oldEdge.id))
+    .filter((edge): edge is T => edge !== undefined);
+  const keptIds = new Set(kept.map((edge) => edge.id));
+
+  const touchesAttribute = (edge: T) =>
+    attributeIds.has(edge.source) || attributeIds.has(edge.target);
+
+  return [...kept, ...newEdges.filter((edge) => !keptIds.has(edge.id))].map(
+    (edge) => ({
+      ...edge,
+      hidden: attributesStartHidden && touchesAttribute(edge),
+    }),
+  );
+};
+
 export type RebuildInput<T extends RebuildNode> = {
   /** what is on screen now */
   oldNodes: T[];
