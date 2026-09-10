@@ -1,6 +1,7 @@
 import { buildLayoutGraph } from "../../../../src/app/util/layout/buildLayoutGraph";
 import { DEFAULT_LAYOUT_PARAMS } from "../../../../src/app/util/layout/params";
 import { layoutDiscreteSearch } from "../../../../src/app/util/layout";
+import { LayoutGraph } from "../../../../src/app/util/layout/types";
 import { COMPOSITE_ERDOC, fromErDoc } from "./fixtures";
 import aggregation from "../../../../src/app/static/examples/aggregation.json";
 import bank from "../../../../src/app/static/examples/bank.json";
@@ -241,37 +242,54 @@ describe("hidden attributes", () => {
         : node,
     );
 
-  it("reserves no room around an element whose attributes are all hidden", () => {
+  const personIn = (graph: LayoutGraph) =>
+    graph.skeleton.find((element) => element.key === "entity: Person")!;
+
+  const bothWays = (params = DEFAULT_LAYOUT_PARAMS) => {
     const { nodes, edges } = fromErDoc(source);
-    const shown = buildLayoutGraph(nodes, edges, DEFAULT_LAYOUT_PARAMS);
-    const hidden = buildLayoutGraph(
-      hideAttributes(nodes),
-      edges,
-      DEFAULT_LAYOUT_PARAMS,
-    );
+    return {
+      shown: personIn(buildLayoutGraph(nodes, edges, params)),
+      hidden: personIn(buildLayoutGraph(hideAttributes(nodes), edges, params)),
+    };
+  };
 
-    const person = (graph: typeof shown) =>
-      graph.skeleton.find((element) => element.key === "entity: Person")!;
-
-    expect(person(shown).haloRadius).toBeGreaterThan(0);
-    expect(person(hidden).haloRadius).toBe(0);
+  /**
+   * The two halo readings, and why there are two.
+   *
+   * `haloRadius` is what the *arranging* stage sets aside, and hiding an
+   * attribute must not change it. That number decides how far out a candidate
+   * position starts and how close two elements may be accepted, so letting the
+   * view move it would mean toggling the attributes off drew a *different*
+   * diagram rather than the same one tighter -- which is exactly what it used to
+   * do. `drawnHalo` is what the spacing pass makes room for, and that does
+   * follow the view: it is how the gaps come back down again.
+   */
+  it("sets aside the same room whether the attributes are drawn or not", () => {
+    const { shown, hidden } = bothWays();
+    expect(shown.haloRadius).toBeGreaterThan(0);
+    expect(hidden.haloRadius).toBe(shown.haloRadius);
   });
 
-  it("does not count hidden attributes towards an element's weight", () => {
-    const { nodes, edges } = fromErDoc(source);
-    const shown = buildLayoutGraph(nodes, edges, DEFAULT_LAYOUT_PARAMS);
-    const hidden = buildLayoutGraph(
-      hideAttributes(nodes),
-      edges,
-      DEFAULT_LAYOUT_PARAMS,
-    );
-    const weightOf = (graph: typeof shown) =>
-      graph.skeleton.find((element) => element.key === "entity: Person")!
-        .weight;
+  it("...but reports a ring only as wide as what is drawn", () => {
+    const { shown, hidden } = bothWays();
+    expect(shown.drawnHalo).toBe(shown.haloRadius);
+    expect(hidden.drawnHalo).toBe(0);
+  });
 
-    // 3 attributes + 1 relationship, versus the relationship alone
-    expect(weightOf(shown)).toBe(4);
-    expect(weightOf(hidden)).toBe(1);
+  it("holds the ring open when the gaps are told to stay", () => {
+    const { hidden } = bothWays({
+      ...DEFAULT_LAYOUT_PARAMS,
+      spacing: { ...DEFAULT_LAYOUT_PARAMS.spacing, closeHiddenGaps: false },
+    });
+    expect(hidden.drawnHalo).toBe(hidden.haloRadius);
+  });
+
+  it("weighs an element by every attribute it owns, drawn or not", () => {
+    // 3 attributes + 1 relationship, either way: weight sets the seed order, so
+    // it is the arranging stage's number and answers to the model, not the view
+    const { shown, hidden } = bothWays();
+    expect(shown.weight).toBe(4);
+    expect(hidden.weight).toBe(4);
   });
 
   it("still returns a position for every hidden attribute", () => {

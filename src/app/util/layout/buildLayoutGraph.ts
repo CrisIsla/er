@@ -197,19 +197,36 @@ export const buildLayoutGraph = (
   }
 
   /**
-   * Whether an attribute takes up room on the canvas.
+   * Every attribute an element owns, whether or not it is being drawn.
    *
-   * Hiding attributes is normally a request for a diagram without them, so a
-   * hidden one takes up none and the gaps left for it close. `closeHiddenGaps:
-   * false` is the other answer: every gap keeps the size the shown view uses, so
-   * the attributes appear and disappear without moving anything else.
+   * This is the list the *arranging* stage is measured against, and hiding an
+   * attribute does not shorten it. Whether an attribute is on screen is a
+   * property of the view, and letting it decide how much room an element is
+   * given would let it decide where every other element goes -- toggling the
+   * attributes off would not draw the same diagram tighter, it would draw a
+   * different diagram. The gaps are closed afterwards, by the spacing pass.
    */
-  const takesRoom = (attribute: LayoutInputNode) =>
-    !params.spacing.closeHiddenGaps || attribute.hidden !== true;
+  const declaredAttributes = (nodeId: string) =>
+    ownedAttributes.get(nodeId) ?? [];
 
-  /** How far the attribute fan reaches past the owner's own box. */
-  const haloOf = (nodeId: string) => {
-    const attributes = (ownedAttributes.get(nodeId) ?? []).filter(takesRoom);
+  /**
+   * ...and the ones that are actually drawn, which is what the spacing pass
+   * makes room for.
+   *
+   * Hiding attributes is normally a request for a diagram without them, so the
+   * gaps left for a hidden one close up. `closeHiddenGaps: false` is the other
+   * answer: every gap keeps the size the shown view uses, so the attributes
+   * appear and disappear without anything else moving at all.
+   */
+  const drawnAttributes = (nodeId: string) =>
+    params.spacing.closeHiddenGaps
+      ? declaredAttributes(nodeId).filter(
+          (attribute) => attribute.hidden !== true,
+        )
+      : declaredAttributes(nodeId);
+
+  /** How far a fan of attributes reaches past its owner's own box. */
+  const haloOf = (attributes: LayoutInputNode[]) => {
     if (attributes.length === 0) return 0;
     const reach = (attribute: LayoutInputNode) => {
       const { width, height } = measure(attribute);
@@ -233,7 +250,7 @@ export const buildLayoutGraph = (
     const type = node.type ?? "";
     const { width, height } = measure(node);
     const visual = visualSize(type, width, height);
-    const drawnHalo = role === "frozen" ? 0 : haloOf(node.id);
+    const drawnHalo = role === "frozen" ? 0 : haloOf(drawnAttributes(node.id));
     // ...and what the arranging stage is told about it, which blind is the same
     // for everything. Not "no ring": whether an element wears one at all is as
     // much a property of the current view as how big it is, so reserving room
@@ -241,7 +258,7 @@ export const buildLayoutGraph = (
     // the first one is added.
     const reserved = params.arrangement.attributeBlind
       ? params.arrangement.blindHalo
-      : drawnHalo;
+      : haloOf(declaredAttributes(node.id));
     const base = {
       id: node.id,
       type,
@@ -341,9 +358,11 @@ export const buildLayoutGraph = (
   }
 
   // how much of the diagram hangs off this element: the lines drawn to it, plus
-  // the attributes orbiting it. Read off `wiring` rather than counted from
-  // `connectors`, so a relationship the search places is weighed by how many
-  // things it joins instead of scoring zero for no longer being a connector.
+  // the attributes orbiting it -- every one it owns, drawn or not, for the same
+  // reason `declaredAttributes` gives. Read off `wiring` rather than counted
+  // from `connectors`, so a relationship the search places is weighed by how
+  // many things it joins instead of scoring zero for no longer being a
+  // connector.
   //
   // Blind, the attributes drop out and weight is pure degree. That changes what
   // the diagram is seeded on -- a ternary diamond joins three things, which no
@@ -354,7 +373,7 @@ export const buildLayoutGraph = (
       (wiring.get(element.id) ?? []).length +
       (params.arrangement.attributeBlind
         ? 0
-        : (ownedAttributes.get(element.id) ?? []).filter(takesRoom).length);
+        : declaredAttributes(element.id).length);
 
   return {
     elements,

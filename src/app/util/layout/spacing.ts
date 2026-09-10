@@ -17,7 +17,12 @@
  * position is always a whole number of grid steps from an anchor, and the
  * anchor chain reaches the seed at the origin, so every centre falls on one of a
  * small set of x values and y values. Call those **lines**. Spacing is then
- * nothing more than widening the gaps between consecutive lines.
+ * nothing more than resizing the gaps between consecutive lines.
+ *
+ * It goes both ways. A gap that is short of what is drawn opens; a gap holding
+ * room for a ring that is *not* drawn -- attributes the reader has hidden --
+ * gives exactly that much back, and no more. Which is what makes hiding the
+ * attributes draw the same diagram tighter rather than a different diagram.
  *
  * **Why that cannot disturb the arrangement.** The result is a single-valued,
  * strictly increasing function of the coordinate, applied identically to
@@ -105,9 +110,10 @@ const bareRect = (element: LayoutElement, centre: Vec): Rect =>
  */
 const ringOf = (element: LayoutElement, params: LayoutParams) => ({
   drawn: element.drawnHalo * params.haloFactor,
-  // ...and how much of that the arrangement was never told about, which is
-  // nothing at all unless it was made attribute-blind
-  unreserved: (element.drawnHalo - element.haloRadius) * params.haloFactor,
+  // ...and how much room the arranging stage set aside for one, which is not the
+  // same number: it counts every attribute the element owns, drawn or not, so
+  // that what it decides does not depend on the view
+  reserved: element.haloRadius * params.haloFactor,
 });
 
 /**
@@ -125,12 +131,17 @@ type Spaced = {
   id: string;
   centre: Vec;
   bare: Rect;
-  /** how far its ring reaches past `bare`, and how much of that is a surprise */
-  ring: { drawn: number; unreserved: number };
+  /** how far its ring reaches past `bare`, and how much room was set aside */
+  ring: { drawn: number; reserved: number };
 };
 
-/** One line owes another this much room, centre to centre. */
-type Demand = { from: number; to: number; need: number };
+/**
+ * One line owes another this much room, centre to centre -- `need` for what is
+ * drawn, `reserved` for what the arrangement set aside. The difference between
+ * them is the room being held for a ring nobody can see, which is what a gap may
+ * give back.
+ */
+type Demand = { from: number; to: number; need: number; reserved: number };
 
 const sizeOn = (rect: Rect, axis: Axis) =>
   axis === "x" ? rect.width : rect.height;
@@ -189,19 +200,27 @@ const collectDemands = (
           offsetOn(second, axis) +
           params.minSeparation;
         const rings = wired
-          ? { drawn: 0, unreserved: 0 }
+          ? { drawn: 0, reserved: 0 }
           : {
               drawn: first.ring.drawn + second.ring.drawn,
-              unreserved: first.ring.unreserved + second.ring.unreserved,
+              reserved: first.ring.reserved + second.ring.reserved,
             };
         const from = lineIndex[axis].get(first.centre[axis])!;
         const to = lineIndex[axis].get(second.centre[axis])!;
-        const need = between + rings.drawn;
+        // the ring the arrangement never saw, which is nothing at all unless it
+        // was made attribute-blind
+        const unreserved = Math.max(0, rings.drawn - rings.reserved);
         shortfall[axis] =
-          between +
-          rings.unreserved -
-          (second.centre[axis] - first.centre[axis]);
-        claim[axis] = from === to ? null : { from, to, need };
+          between + unreserved - (second.centre[axis] - first.centre[axis]);
+        claim[axis] =
+          from === to
+            ? null
+            : {
+                from,
+                to,
+                need: between + rings.drawn,
+                reserved: between + rings.reserved,
+              };
       }
 
       // the bare boxes say which axis is the only one that can separate them
@@ -233,7 +252,20 @@ const collectDemands = (
   return demands;
 };
 
-/** Where each line on one axis ends up, given what is owed across it. */
+/**
+ * Where each line on one axis ends up, given what is owed across it.
+ *
+ * One forward pass is enough: every demand points from a lower line to a higher
+ * one, and the lines are settled in ascending order.
+ *
+ * A line moves for one of two reasons, and the two are the same arithmetic. It
+ * is *short* of what is drawn -- the arrangement was made blind to the rings, or
+ * the refinement gave a little of the clearance back -- and opens up. Or it is
+ * holding room the arrangement set aside for a ring that turns out not to be
+ * drawn, and gives back exactly that much: no more, so a gap that was generous
+ * for reasons of its own stays generous, and a view with nothing hidden does not
+ * move at all.
+ */
 const solveAxis = (
   from: number[],
   demands: Demand[],
@@ -242,21 +274,34 @@ const solveAxis = (
   const owed: Demand[][] = from.map(() => []);
   for (const demand of demands) owed[demand.to].push(demand);
 
-  // one forward pass is enough: every demand points from a lower line to a
-  // higher one, and the lines are settled in ascending order
   const shift = from.map(() => 0);
   for (let index = 1; index < from.length; index++) {
     shift[index] = shift[index - 1];
-    let deficit = 0;
+    const here = from[index] + shift[index];
+
+    // the nearest this line may come to the ones behind it -- measured against
+    // what is drawn, and against what was set aside for it
+    let leastDrawn = -Infinity;
+    let leastReserved = -Infinity;
     for (const demand of owed[index]) {
-      const gap =
-        from[index] + shift[index] - (from[demand.from] + shift[demand.from]);
-      deficit = Math.max(deficit, demand.need - gap);
+      const behind = from[demand.from] + shift[demand.from];
+      leastDrawn = Math.max(leastDrawn, behind + demand.need);
+      leastReserved = Math.max(leastReserved, behind + demand.reserved);
     }
-    // widening by a whole number of grid steps keeps every centre exactly as
-    // on-grid as it was, and leaves `shift` untouched at zero when nothing binds
-    if (deficit > EPSILON)
-      shift[index] += Math.ceil(deficit / params.gridStep) * params.gridStep;
+
+    const spare = Math.max(0, leastReserved - leastDrawn);
+    // lines may close up but never meet: one step apart is the least that keeps
+    // them distinct, which is what `same line` and `different line` rest on
+    const apart = from[index - 1] + shift[index - 1] + params.gridStep;
+    const target = Math.max(leastDrawn, apart, here - spare);
+
+    // ...and it moves by a whole number of grid steps, so every centre stays
+    // exactly as on-grid as it was. Rounding up rather than to nearest, so a
+    // line that gives room back never gives back more than it had spare.
+    const delta = target - here;
+    if (Math.abs(delta) > EPSILON)
+      shift[index] +=
+        Math.ceil(delta / params.gridStep - EPSILON) * params.gridStep;
   }
 
   return { from, to: from.map((line, index) => line + shift[index]) };

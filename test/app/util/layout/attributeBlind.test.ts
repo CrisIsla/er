@@ -193,6 +193,43 @@ describe.each(withoutAggregations)("$name, arranged blind", ({ erDoc }) => {
  * The setting the user actually sees, which is a different question: not what
  * the arrangement knows, but whether hiding the attributes is allowed to close
  * the gaps that were left for them.
+ *
+ * Either way it is the *same arrangement*. Both readings of the ring are taken
+ * from the model, not the view -- what the arranging stage sets aside counts
+ * every attribute an element owns, and only what the spacing pass makes room for
+ * follows what is drawn. Wiring the setting any higher up than that is what made
+ * hiding the attributes produce a different diagram rather than the same one
+ * tighter.
+ */
+describe.each(withoutAggregations)(
+  "$name, with the gaps closed",
+  ({ erDoc }) => {
+    const { nodes, edges } = fromErDoc(erDoc);
+    const shown = layoutOf(nodes, edges as never[], DEFAULT_LAYOUT_PARAMS);
+    const hidden = layoutOf(
+      hideAttributes(nodes),
+      edges as never[],
+      DEFAULT_LAYOUT_PARAMS,
+    );
+
+    it("keeps every element in the order the shown view put it in", () => {
+      expect(disagreements(shown, hidden)).toEqual([]);
+    });
+
+    it("draws it no larger than the shown view", () => {
+      expect(Math.round(extent(hidden).x)).toBeLessThanOrEqual(
+        Math.round(extent(shown).x),
+      );
+      expect(Math.round(extent(hidden).y)).toBeLessThanOrEqual(
+        Math.round(extent(shown).y),
+      );
+    });
+  },
+);
+
+/**
+ * ...and the other setting: every gap held at the size the shown view uses, so
+ * the attributes appear and disappear without anything else moving at all.
  */
 describe.each(withoutAggregations)(
   "$name, with the gaps held open",

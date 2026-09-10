@@ -173,14 +173,19 @@ export type LayoutParams = {
     /**
      * Whether hiding the attributes closes the gaps that were left for them.
      *
-     * On, a diagram with its attributes hidden is drawn as tightly as one that
-     * never had any -- which is what hiding them is usually for. Off, every gap
-     * stays the size the shown view uses, so toggling the attributes reveals and
-     * conceals them without anything else on the canvas moving at all.
+     * On, a gap gives back whatever room was being held for a ring that is not
+     * drawn. Off, every gap stays the size the shown view uses, so toggling the
+     * attributes reveals and conceals them without anything else on the canvas
+     * moving at all.
      *
-     * A preference rather than a quality setting: both answers are right, and
-     * which one is wanted depends on whether the reader is after a compact
-     * picture of the structure or a stable one.
+     * A preference rather than a quality setting, and it reaches no further than
+     * the spacing: either way the arrangement is the one the shown view
+     * produces, because `buildLayoutGraph` reads what the arranging stage sets
+     * aside off every attribute an element owns and only what the spacing pass
+     * makes room for off what is drawn. It did not always -- wired one step
+     * higher, this closed the gaps by telling the *search* there were no
+     * attributes, which on `company` was enough to run the `Manages` diamond's
+     * edge straight through `Dependent_of`.
      */
     closeHiddenGaps: boolean;
   };
