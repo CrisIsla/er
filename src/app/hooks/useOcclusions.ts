@@ -12,7 +12,7 @@
  * centres: see `drawnRoute`.
  */
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Node, ReactFlowState, useReactFlow, useStore } from "reactflow";
 import { drawnRoute } from "../components/ErDiagram/notations/useEdgePath";
 import { getHandlePrefix } from "../util/common";
@@ -60,6 +60,32 @@ const fingerprintOf = (state: ReactFlowState) => {
   return parts.join("|");
 };
 
+/**
+ * What the marks would draw as, to the pixel.
+ *
+ * Dragging rebuilds every mark on every frame, but most of those frames do not
+ * *change* one: move a node around an empty part of the canvas and the answer
+ * is the picture it already was. Comparing what came out lets the result keep
+ * its identity through those frames, and a result that keeps its identity
+ * costs the overlay no reconciliation and the browser no repaint -- which is
+ * the expensive half, since each shape mark is filled with a hatch.
+ *
+ * Rounded to the pixel, because that is the resolution any of this is drawn at:
+ * a slow drag then settles the question once per pixel rather than once per
+ * mouse event.
+ */
+const signatureOf = (occlusions: Occlusion[]) => {
+  const parts: (string | number)[] = [];
+  for (const occlusion of occlusions) {
+    parts.push(occlusion.id);
+    const points =
+      occlusion.kind === "shape" ? occlusion.polygon : occlusion.spans.flat();
+    for (const point of points)
+      parts.push(Math.round(point.x), Math.round(point.y));
+  }
+  return parts.join(",");
+};
+
 /** Nodes React Flow has placed and measured, so there is a shape to speak of. */
 const isDrawn = (node: Node) =>
   !node.hidden &&
@@ -71,6 +97,13 @@ export const useOcclusions = (isOrthogonal: boolean): Occlusion[] => {
   const { settings } = useDiagramSettings();
   const { getNodes, getEdges } = useReactFlow();
   const { highlightOcclusions, edgeAnchor } = settings;
+
+  // the marks as they were last handed out, so an unchanged answer can be
+  // handed out again rather than rebuilt into a new array
+  const previous = useRef<{ signature: string; marks: Occlusion[] }>({
+    signature: "",
+    marks: [],
+  });
 
   // with the setting off the selector costs one constant per store write
   // instead of a string the length of the diagram
@@ -130,7 +163,12 @@ export const useOcclusions = (isOrthogonal: boolean): Occlusion[] => {
       });
     }
 
-    return findOcclusions(shapes, routes);
+    const marks = findOcclusions(shapes, routes);
+    const signature = signatureOf(marks);
+    if (signature === previous.current.signature) return previous.current.marks;
+
+    previous.current = { signature, marks };
+    return marks;
     // `edgeAnchor` and `isOrthogonal` are not in the store, so nothing writes to
     // it when they change and the fingerprint alone would leave stale marks
   }, [

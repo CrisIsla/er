@@ -65,6 +65,18 @@ const MIN_OVERLAP_DEPTH = 0.5;
  */
 const MIN_HIDDEN_SPAN = 4;
 
+/**
+ * How many marks are worth drawing at once.
+ *
+ * Past this the diagram is not a drawing with a fault in it, it is a pile --
+ * which is what an arrangement looks like before anyone has pressed Layout, and
+ * the answer there is "all of it" rather than anything a reader can act on. The
+ * overlay would stop being an annotation and become the picture, and the search
+ * for the rest is the expensive part of a frame. So counting stops here and the
+ * count is shown as "and more".
+ */
+export const MAX_OCCLUSIONS = 24;
+
 export type Shape = {
   id: string;
   /** the outline, as a convex polygon in absolute coordinates */
@@ -189,10 +201,12 @@ export const clipConvex = (subject: Vec[], clip: Vec[]): Vec[] => {
         output.push(crossing());
       }
     }
-    output = dedupe(output);
   }
 
-  return output;
+  // once, at the end. A vertex repeated part way through is harmless -- both
+  // copies fall the same side of every later plane -- and deduping per plane
+  // meant allocating and filtering an array for each side of each shape
+  return dedupe(output);
 };
 
 /**
@@ -204,7 +218,7 @@ export const clipConvex = (subject: Vec[], clip: Vec[]): Vec[] => {
  * is the question a reader is really asking of a shared region -- unlike area,
  * which a long thin sliver can score highly on while being invisible.
  */
-export const minWidth = (polygon: Vec[]): number => {
+export const minWidth = (polygon: Vec[], floor = 0): number => {
   if (polygon.length < 3) return 0;
 
   let narrowest = Infinity;
@@ -214,9 +228,15 @@ export const minWidth = (polygon: Vec[]): number => {
     if (length < PARALLEL_EPSILON) continue;
 
     let furthest = 0;
-    for (const point of polygon)
+    for (const point of polygon) {
       furthest = Math.max(furthest, Math.abs(sideOf(a, b, point)) / length);
+      // this side can no longer be the narrowest, so how far it reaches past
+      // that no longer matters
+      if (furthest >= narrowest) break;
+    }
     narrowest = Math.min(narrowest, furthest);
+    // the answer is already below anything the caller cares about
+    if (narrowest < floor) return narrowest;
   }
 
   return Number.isFinite(narrowest) ? narrowest : 0;
@@ -304,8 +324,11 @@ export const findOcclusions = (
     overlaps.get(a)!.add(b);
   };
 
-  for (const [index, a] of shapes.entries())
-    for (const b of shapes.slice(index + 1)) {
+  outer: for (let i = 0; i < shapes.length; i++) {
+    const a = shapes[i];
+    for (let j = i + 1; j < shapes.length; j++) {
+      if (shapeMarks.length >= MAX_OCCLUSIONS) break outer;
+      const b = shapes[j];
       // a container and what it contains overlap by design. Anything else
       // sitting in an aggregation box is not exempt: it reads as a member
       if (a.containerIds.includes(b.id) || b.containerIds.includes(a.id))
@@ -313,7 +336,7 @@ export const findOcclusions = (
       if (!rectsOverlap(bounds.get(a.id)!, bounds.get(b.id)!)) continue;
 
       const region = clipConvex(a.polygon, b.polygon);
-      if (minWidth(region) < MIN_OVERLAP_DEPTH) continue;
+      if (minWidth(region, MIN_OVERLAP_DEPTH) < MIN_OVERLAP_DEPTH) continue;
 
       const between: [string, string] =
         a.id < b.id ? [a.id, b.id] : [b.id, a.id];
@@ -326,9 +349,11 @@ export const findOcclusions = (
       noteOverlap(a.id, b.id);
       noteOverlap(b.id, a.id);
     }
+  }
 
   const edgeMarks: EdgeOcclusion[] = [];
   for (const route of routes) {
+    if (shapeMarks.length + edgeMarks.length >= MAX_OCCLUSIONS) break;
     if (route.points.length < 2) continue;
     const routeBounds = boundsOf(route.id, route.points);
 
@@ -351,10 +376,10 @@ export const findOcclusions = (
       if (!rectsOverlap(routeBounds, bounds.get(shape.id)!)) continue;
 
       const spans: [Vec, Vec][] = [];
-      for (const [index, point] of route.points.slice(0, -1).entries()) {
+      for (let leg = 0; leg + 1 < route.points.length; leg++) {
         const span = clipSegmentToPolygon(
-          point,
-          route.points[index + 1],
+          route.points[leg],
+          route.points[leg + 1],
           shape.polygon,
         );
         if (span !== null) spans.push(span);

@@ -3,6 +3,7 @@ import {
   Shape,
   clipConvex,
   clipSegmentToPolygon,
+  MAX_OCCLUSIONS,
   findOcclusions,
   minWidth,
   signedArea,
@@ -446,6 +447,29 @@ describe("findOcclusions", () => {
         ]),
       ).toEqual([]);
     });
+  });
+});
+
+describe("crowded diagrams", () => {
+  /**
+   * A diagram nobody has arranged yet overlaps everywhere, and the honest
+   * answer there is "all of it" rather than a mark per pair -- which would bury
+   * the drawing and spend the frame looking for the rest.
+   */
+  it("stops counting once the diagram is a pile", () => {
+    const pile = Array.from({ length: 40 }, (_, i) =>
+      box(`n${i}`, i * 2, i * 2, 200, 200),
+    );
+
+    const marks = findOcclusions(pile, []);
+
+    expect(marks).toHaveLength(MAX_OCCLUSIONS);
+  });
+
+  it("reports the real count while it is still worth reading", () => {
+    const few = [box("a", 0, 0), box("b", 60, 0), box("c", 400, 0)];
+
+    expect(findOcclusions(few, []).length).toBeLessThan(MAX_OCCLUSIONS);
   });
 });
 

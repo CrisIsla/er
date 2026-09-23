@@ -5,7 +5,7 @@ import { ControlButton, Controls, useReactFlow } from "reactflow";
 import { useApplyLayout } from "../../hooks/useLayoutedElements";
 import { nodesOfOcclusion } from "../../hooks/useOcclusions";
 import { colors } from "../../util/colors";
-import { Occlusion } from "../../util/occlusion";
+import { MAX_OCCLUSIONS, Occlusion } from "../../util/occlusion";
 import { MARK_COLOR } from "./OcclusionOverlay";
 
 type ControlPanelProps = {
@@ -83,7 +83,11 @@ export const ControlPanel = ({
             }}
           >
             <MdVisibilityOff />
-            {occlusions.length}
+            {/* the search stops at the cap, so this says "and more" rather
+                than claiming the diagram has exactly that many */}
+            {occlusions.length >= MAX_OCCLUSIONS
+              ? `${MAX_OCCLUSIONS}+`
+              : occlusions.length}
           </span>
         </ControlButton>
       )}

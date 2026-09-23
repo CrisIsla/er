@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { EdgeLabelRenderer, useStore } from "reactflow";
 import { EXPORT_EXCLUDED_CLASS } from "../../util/common";
 import { polygonBounds } from "../../util/nodeOutline";
@@ -174,4 +175,7 @@ const OcclusionOverlay = ({ occlusions }: { occlusions: Occlusion[] }) => {
   );
 };
 
-export default OcclusionOverlay;
+// Memoised against the hook's stable result. Every drag frame re-renders the
+// diagram, and without this each one reconciled and repainted the marks again
+// whether or not any of them had moved.
+export default memo(OcclusionOverlay);
