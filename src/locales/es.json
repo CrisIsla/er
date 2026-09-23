@@ -75,6 +75,7 @@
       "minMaxNotation": "Notación (Mín, máx)",
       "chenNotation": "Notación de Chen",
       "layoutButton": "layout",
+      "occlusionButton": "Ir a la siguiente parte oculta",
       "fitViewButton": "Ajustar zoom",
       "fixErrorsToSync": "Para sincronizar el diagrama corrija los errores",
       "configPanel": {
@@ -102,9 +103,12 @@
         "snapRadius": "Radio de alineación",
         "snapRadiusDisabled": "Active la alineación magnética para ajustar el radio",
 
-        "collision": "Colisión",
+        "overlap": "Solapamiento",
         "collisionEnabled": "Las figuras no se superponen",
-        "collisionHint": "Una figura arrastrada se detiene al encontrarse con otra, y todavía puede deslizarse a lo largo de ella"
+        "collisionHint": "Una figura arrastrada se detiene al encontrarse con otra, y todavía puede deslizarse a lo largo de ella",
+
+        "highlightOcclusions": "Marcar lo que queda tapado",
+        "highlightOcclusionsHint": "Sombrea el área donde una figura se pone sobre otra, y vuelve a dibujar el tramo de línea que desaparece bajo alguna. Las líneas que solo se cruzan no se marcan"
       }
     },
 

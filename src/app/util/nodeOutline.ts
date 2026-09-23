@@ -19,7 +19,7 @@ export type OutlineNode = {
   height?: number | null;
 };
 
-type Vec = { x: number; y: number };
+export type Vec = { x: number; y: number };
 
 const cross = (a: Vec, b: Vec) => a.x * b.y - a.y * b.x;
 
@@ -64,6 +64,80 @@ const outlineOf = (node: OutlineNode): Vec[] | "ellipse" => {
   if (node.type === "relationship") return DIAMOND;
   if (node.type === "isA") return ISA_TRIANGLE;
   return BOX;
+};
+
+/**
+ * How many points an attribute's ellipse is drawn as when it has to be a
+ * polygon.
+ *
+ * The polygon is strictly *inscribed*, so the error only ever goes one way: at
+ * 24 points the worst gap is about 0.2px on a 200x44 attribute, which can miss
+ * a hairline overlap but can never invent one. Sampling uniformly in the angle
+ * also clusters points at the ends of the major axis, which is where the
+ * curvature -- and so the error -- is greatest.
+ */
+const ELLIPSE_SAMPLES = 24;
+
+const ellipseOutline = (samples: number): Vec[] =>
+  Array.from({ length: samples }, (_, index) => {
+    const angle = (Math.PI * 2 * index) / samples;
+    return { x: Math.cos(angle) / 2, y: Math.sin(angle) / 2 };
+  });
+
+/**
+ * The shape a node actually covers, as a convex polygon in absolute
+ * coordinates.
+ *
+ * `outlineHit` answers "how far is the outline in this direction", which is all
+ * an edge endpoint needs. Asking whether two shapes overlap needs the whole
+ * outline at once, and needs it as a polygon rather than as a rectangle: a
+ * diamond covers half of the box that measures it, an ISA triangle 46% of its
+ * own -- and the triangle's apex reaches 6px *below* the box, which no
+ * rectangle drawn from the box can express at all.
+ *
+ * Every ER shape is convex, which is what lets callers clip one against
+ * another. A node React Flow has not measured yet has no outline and comes back
+ * empty.
+ *
+ * All four outlines wind the same way -- positive shoelace area -- so the
+ * inside of the shape is consistently on the left of each edge, walking it in
+ * order. Reversing one would silently invert that test rather than fail, so it
+ * is pinned by a test.
+ */
+export const outlinePolygon = (
+  node: OutlineNode,
+  center: Vec,
+  samples: number = ELLIPSE_SAMPLES,
+): Vec[] => {
+  const width = node.width ?? 0;
+  const height = node.height ?? 0;
+  if (width <= 0 || height <= 0) return [];
+
+  const outline = outlineOf(node);
+  const unit = outline === "ellipse" ? ellipseOutline(samples) : outline;
+
+  return unit.map((point) => ({
+    x: center.x + point.x * width,
+    y: center.y + point.y * height,
+  }));
+};
+
+/**
+ * The smallest axis-aligned box holding a polygon.
+ *
+ * This is what pairs of shapes are prefiltered with, and what the overlay sizes
+ * itself from -- *not* `visualRectOf`, which corrects the relationship diamond
+ * and nothing else, so it would clip an ISA triangle at the apex.
+ */
+export const polygonBounds = (
+  polygon: Vec[],
+): { x: number; y: number; width: number; height: number } => {
+  if (polygon.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+  const xs = polygon.map((point) => point.x);
+  const ys = polygon.map((point) => point.y);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return { x, y, width: Math.max(...xs) - x, height: Math.max(...ys) - y };
 };
 
 export type OutlineHit = {

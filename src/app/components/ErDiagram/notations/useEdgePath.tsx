@@ -9,13 +9,11 @@ import {
   useStore,
 } from "reactflow";
 import { isAttributeNode } from "../../../util/erGraph";
-import { capBurial, outlineHit } from "../../../util/nodeOutline";
+import { Vec, capBurial, outlineHit } from "../../../util/nodeOutline";
 import {
   EdgeAnchor,
   useDiagramSettings,
 } from "../../../hooks/useDiagramSettings";
-
-type Vec = { x: number; y: number };
 
 /**
  * Whether this end of the edge is aimed at the node's centre rather than at a
@@ -255,6 +253,106 @@ const routeBetween = (
         targetX: to.x,
         targetY: to.y,
       })[0];
+
+/**
+ * The points of a path built only of moves, lines and bends.
+ *
+ * Taking the last coordinate pair of each command is enough: `M` and `L` carry
+ * one, and the `Q` that `getSmoothStepPath` emits at a corner carries the
+ * control point first and the point it lands on second. Anything else means a
+ * genuine curve, which has no polyline to report.
+ */
+const pointsOfPath = (path: string): Vec[] => {
+  const points: Vec[] = [];
+
+  for (const command of path.match(/[A-Za-z][^A-Za-z]*/g) ?? []) {
+    if (!["M", "L", "Q"].includes(command[0])) return [];
+    const numbers = (command.match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/g) ?? []).map(
+      Number,
+    );
+    if (numbers.length < 2) return [];
+    points.push({
+      x: numbers[numbers.length - 2],
+      y: numbers[numbers.length - 1],
+    });
+  }
+
+  return points;
+};
+
+/**
+ * The route an edge is drawn along, as a polyline.
+ *
+ * Straight is the two ends, and needs no help. Orthogonal is four or five
+ * axis-aligned legs, and the point list React Flow builds them from is private
+ * -- so the path it returns is parsed back instead of the routing being
+ * reimplemented here, which would leave two things to keep in step. The corners
+ * come back doubled, because `routeBetween` asks for a zero radius and a bend
+ * of no size still emits both the line into the corner and the curve across it.
+ */
+export const routePoints = (
+  isOrthogonal: boolean,
+  from: Vec,
+  to: Vec,
+  sourcePos: Position,
+  targetPos: Position,
+): Vec[] => {
+  if (!isOrthogonal) return [from, to];
+
+  const points = pointsOfPath(
+    routeBetween(true, from, to, sourcePos, targetPos),
+  );
+  return points.filter(
+    (point, index) =>
+      index === 0 ||
+      point.x !== points[index - 1].x ||
+      point.y !== points[index - 1].y,
+  );
+};
+
+/**
+ * Where the edge between two nodes is actually drawn, for anything that needs
+ * to reason about the line rather than render it.
+ *
+ * The endpoints have to come from here rather than be modelled, because the
+ * default anchoring puts them on *handles*: on a wide entity the handle the
+ * line leaves from can sit half a box away from where a centre-to-centre ray
+ * would leave, and role edges deliberately spread across five handles a side,
+ * so two lines the reader sees between the same pair would collapse into one
+ * line drawn nowhere.
+ *
+ * Empty when the geometry cannot be trusted: a node React Flow has not measured
+ * has no handle bounds, and `getHandleCoordsByPosition` answers a handle it
+ * cannot find with the flow origin, which would put a phantom line across the
+ * whole diagram.
+ */
+export const drawnRoute = (
+  source: Node,
+  target: Node,
+  handlePrefix: string,
+  edgeAnchor: EdgeAnchor,
+  isOrthogonal: boolean,
+): Vec[] => {
+  if (!source.positionAbsolute || !target.positionAbsolute) return [];
+
+  const { sx, sy, tx, ty, sourcePos, targetPos } = getErEdgeParams(
+    source,
+    target,
+    handlePrefix,
+    edgeAnchor,
+  );
+
+  if (![sx, sy, tx, ty].every(Number.isFinite)) return [];
+  if ((sx === 0 && sy === 0) || (tx === 0 && ty === 0)) return [];
+
+  return routePoints(
+    isOrthogonal,
+    { x: sx, y: sy },
+    { x: tx, y: ty },
+    sourcePos,
+    targetPos,
+  );
+};
 
 export const useEdgePath = (
   sourceNodeId: string,

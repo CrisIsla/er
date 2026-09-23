@@ -78,6 +78,7 @@
       "minMaxNotation": "(Min, max) notation",
       "chenNotation": "Chen notation",
       "layoutButton": "layout",
+      "occlusionButton": "Go to the next hidden part",
       "fitViewButton": "Fit View",
       "fixErrorsToSync": "Fix errors to sync diagram!",
       "configPanel": {
@@ -105,9 +106,12 @@
         "snapRadius": "Alignment radius",
         "snapRadiusDisabled": "Enable magnetic alignment to adjust the radius",
 
-        "collision": "Collision",
+        "overlap": "Overlap",
         "collisionEnabled": "Shapes cannot overlap",
-        "collisionHint": "A dragged shape stops where it meets another, and can still slide along it"
+        "collisionHint": "A dragged shape stops where it meets another, and can still slide along it",
+
+        "highlightOcclusions": "Mark what is covered up",
+        "highlightOcclusionsHint": "Shades the area where one shape sits on another, and draws back the run of any line that disappears under one. Lines that merely cross are left alone"
       }
     },
 

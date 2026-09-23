@@ -55,6 +55,24 @@ export type DiagramSettings = {
   closeHiddenAttributeGaps: boolean;
   // where edges stop at entities, relationships and ISA triangles
   edgeAnchor: EdgeAnchor;
+  /**
+   * Whether to mark the places where the diagram hides itself.
+   *
+   * Only occlusion: a shape covering another, or a line disappearing under one.
+   * Edges crossing each other are left alone -- an ER graph is usually not
+   * planar, so a diagram that reads perfectly well still has crossings in it,
+   * and marking those would bury the findings that matter.
+   *
+   * Off by default, like the other two settings that change how editing
+   * behaves. The reason is the seed arrangement: layout runs on demand, so a
+   * diagram that has just been typed sits where the generator put it, and there
+   * every attribute is stacked on its sibling. `aggregation` reads as 45
+   * overlaps over 15 shapes like that, and none after one press of Layout. The
+   * marks are not wrong there -- that diagram really is a pile -- but at that
+   * density the annotation becomes the picture, which is the opposite of the
+   * job.
+   */
+  highlightOcclusions: boolean;
 };
 
 export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
@@ -66,6 +84,7 @@ export const DEFAULT_DIAGRAM_SETTINGS: DiagramSettings = {
   layoutAlgorithm: "discrete-search",
   closeHiddenAttributeGaps: true,
   edgeAnchor: "side",
+  highlightOcclusions: false,
 };
 
 export const SNAP_RADIUS_MIN = 2;

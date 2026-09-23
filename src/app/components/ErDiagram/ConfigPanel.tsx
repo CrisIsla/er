@@ -62,7 +62,11 @@ export const ConfigPanel = ({
         </PopoverTrigger>
         <PopoverContent maxW={"max-content"}>
           <PopoverCloseButton />
-          <PopoverBody>
+          <PopoverBody
+            className="nowheel"
+            maxH={"calc(100vh - 9rem)"}
+            overflowY={"auto"}
+          >
             <Stack divider={<StackDivider />} spacing="4">
               <Box>
                 <NotationPicker
@@ -263,20 +267,34 @@ export const ConfigPanel = ({
 
               <Box>
                 <Heading size="xs" pb={2}>
-                  {t("collision")}
+                  {t("overlap")}
                 </Heading>
 
-                <Checkbox
-                  colorScheme="gray"
-                  isChecked={settings.collisionEnabled}
-                  onChange={(e) =>
-                    setSetting("collisionEnabled", e.target.checked)
-                  }
-                >
-                  <Tooltip label={t("collisionHint")}>
-                    {t("collisionEnabled")}
-                  </Tooltip>
-                </Checkbox>
+                <Stack direction="column">
+                  <Checkbox
+                    colorScheme="gray"
+                    isChecked={settings.collisionEnabled}
+                    onChange={(e) =>
+                      setSetting("collisionEnabled", e.target.checked)
+                    }
+                  >
+                    <Tooltip label={t("collisionHint")}>
+                      {t("collisionEnabled")}
+                    </Tooltip>
+                  </Checkbox>
+
+                  <Checkbox
+                    colorScheme="gray"
+                    isChecked={settings.highlightOcclusions}
+                    onChange={(e) =>
+                      setSetting("highlightOcclusions", e.target.checked)
+                    }
+                  >
+                    <Tooltip label={t("highlightOcclusionsHint")}>
+                      {t("highlightOcclusions")}
+                    </Tooltip>
+                  </Checkbox>
+                </Stack>
               </Box>
             </Stack>
           </PopoverBody>

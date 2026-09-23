@@ -19,7 +19,9 @@ import { ConfigPanel } from "./ConfigPanel";
 import { ControlPanel } from "./ControlPanel";
 import EdgeCustomSVGs from "./EdgeCustomSVGs";
 import AlignmentGuides from "./AlignmentGuides";
+import OcclusionOverlay from "./OcclusionOverlay";
 import { useAlignmentGuide } from "../../hooks/useAlignmentGuide";
+import { useOcclusions } from "../../hooks/useOcclusions";
 import { useAttributeVisibility } from "../../hooks/useAttributeVisibility";
 import { AttributeTooltip } from "./AttributeTooltip";
 import { useDiagramToLocalStorage } from "../../hooks/useDiagramToLocalStorage";
@@ -106,6 +108,9 @@ const ErDiagram = ({
   const { onNodeMouseEnter, onNodeMouseLeave, hoveredOwnerId } =
     useAttributeVisibility();
   const { settings } = useDiagramSettings();
+  // the notation owns whether edges are stepped, and the marks have to follow
+  // the route that is actually drawn
+  const occlusions = useOcclusions(notation.isOrthogonal);
 
   /**
    * Whether an attribute should be born hidden.
@@ -404,7 +409,11 @@ const ErDiagram = ({
       </Panel>
       <EdgeCustomSVGs />
       <AlignmentGuides guides={guides} />
-      <ControlPanel onLayoutClick={saveToLocalStorage} />
+      <OcclusionOverlay occlusions={occlusions} />
+      <ControlPanel
+        onLayoutClick={saveToLocalStorage}
+        occlusions={occlusions}
+      />
     </ReactFlow>
   );
 };

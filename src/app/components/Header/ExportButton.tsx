@@ -5,7 +5,12 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { MdDownload } from "react-icons/md";
 import { getRectOfNodes, useReactFlow } from "reactflow";
-import { DownloadFunc, downloadImage, exportToPDF } from "../../util/common";
+import {
+  DownloadFunc,
+  downloadImage,
+  exportToPDF,
+  isExportable,
+} from "../../util/common";
 import { Dropdown } from "./Dropdown";
 import { ExportImageModal } from "./ExportModal";
 
@@ -31,6 +36,9 @@ const ExportButton = () => {
         backgroundColor: transparentBg ? "transparent" : "white",
         width: imageWidth,
         height: imageHeight,
+        // the capture root is an ancestor of the edge-label portal, so the
+        // marks drawn through it would otherwise be in the file
+        filter: isExportable,
       }).then((s) => downloadImage(s, fileExtension));
     };
 

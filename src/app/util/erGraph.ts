@@ -91,6 +91,41 @@ export const buildAttributeParents = (
 };
 
 /**
+ * The aggregation boxes each node sits inside, innermost first.
+ *
+ * `findAggregatedNodeIds` answers "is this inside any aggregation at all",
+ * which is all the layout needs to know. Judging whether two overlapping shapes
+ * are a defect needs to know *which* box: a container and what it holds overlap
+ * by design, while anything else sitting in one does not -- it reads as a
+ * member when it is not.
+ *
+ * Every node gets an entry, so a node with no container is an empty list rather
+ * than a missing one.
+ */
+export const buildContainerMap = (
+  nodes: GraphNode[],
+): Map<string, string[]> => {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const containers = new Map<string, string[]>();
+
+  for (const node of nodes) {
+    const chain: string[] = [];
+    const seen = new Set<string>([node.id]);
+    let parentId = node.parentNode;
+    while (parentId && !seen.has(parentId)) {
+      seen.add(parentId);
+      const parent = byId.get(parentId);
+      if (!parent) break;
+      if (parent.type === "aggregation") chain.push(parent.id);
+      parentId = parent.parentNode;
+    }
+    containers.set(node.id, chain);
+  }
+
+  return containers;
+};
+
+/**
  * Ids of the nodes contained in an aggregation box.
  *
  * Aggregations can nest (an aggregation may participate in a relationship that

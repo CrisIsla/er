@@ -65,6 +65,25 @@ export type DownloadFunc = (
   transparentBg: boolean,
 ) => void;
 
+/**
+ * Marks an element as an annotation rather than part of the diagram.
+ *
+ * Both export paths capture an ancestor of the edge-label portal -- the image
+ * one takes `.react-flow__renderer`, the print one `.react-flow__viewport` --
+ * so anything drawn through that portal is in the exported file unless it says
+ * otherwise. The guides get away with it by only existing during a drag; a mark
+ * that is always on would not.
+ */
+export const EXPORT_EXCLUDED_CLASS = "er-overlay-annotation";
+
+/**
+ * html-to-image's filter, which it runs over *every* node it walks, including
+ * text nodes -- and `Text` has no `classList`, so this has to tolerate its
+ * absence rather than assume an element.
+ */
+export const isExportable = (node: HTMLElement) =>
+  (node as Element).classList?.contains(EXPORT_EXCLUDED_CLASS) !== true;
+
 export const downloadImage = (dataUrl: string, fileExtension: string) => {
   const a = document.createElement("a");
   a.setAttribute("download", `er_diagram.${fileExtension}`);
@@ -77,7 +96,7 @@ export const exportToPDF = async (width: number, height: number) => {
   const flow = document.querySelector(".react-flow__viewport");
   // Convert to SVG
   // @ts-ignore
-  const svgContent = await toSvg(flow!);
+  const svgContent = await toSvg(flow!, { filter: isExportable });
   const svgElement = decodeURIComponent(
     svgContent.replace("data:image/svg+xml;charset=utf-8,", "").trim(),
   );

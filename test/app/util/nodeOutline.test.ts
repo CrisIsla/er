@@ -1,7 +1,10 @@
+import { visualRectOf } from "../../../src/app/util/layout/geometry";
 import {
   capBurial,
   outlineDistance,
   outlineHit,
+  outlinePolygon,
+  polygonBounds,
 } from "../../../src/app/util/nodeOutline";
 
 const RIGHT = 0;
@@ -141,5 +144,91 @@ describe("capBurial", () => {
 
   it("scales with the width of the stroke", () => {
     expect(capBurial(1, DOWN_RIGHT, RIGHT)).toBeCloseTo(0.5);
+  });
+});
+
+describe("outlinePolygon", () => {
+  const CENTRE = { x: 0, y: 0 };
+
+  /**
+   * The clips in util/occlusion.ts read the inside of a shape off the sign of
+   * this, so a reversed constant would not throw -- it would quietly report
+   * that nothing ever overlaps. Every outline has to wind the same way.
+   */
+  const shoelace = (polygon: { x: number; y: number }[]) =>
+    polygon.reduce((total, from, index) => {
+      const to = polygon[(index + 1) % polygon.length];
+      return total + (from.x * to.y - to.x * from.y);
+    }, 0);
+
+  it("winds every shape the same way", () => {
+    const shapes = [
+      { type: "entity", width: 200, height: 40 },
+      { type: "relationship", width: 95, height: 95 },
+      { type: "isA", width: 96, height: 64 },
+      { type: "entity-attribute", width: 200, height: 44 },
+    ];
+
+    for (const shape of shapes)
+      expect(shoelace(outlinePolygon(shape, CENTRE))).toBeGreaterThan(0);
+  });
+
+  it("has nothing to draw for an unmeasured node", () => {
+    expect(outlinePolygon({ type: "entity" }, CENTRE)).toEqual([]);
+  });
+
+  it("inscribes an attribute's ellipse rather than enclosing it", () => {
+    const ellipse = outlinePolygon(
+      { type: "entity-attribute", width: 200, height: 44 },
+      CENTRE,
+    );
+
+    // the sample points land on the ellipse, so every one of them is within it
+    for (const point of ellipse)
+      expect((point.x / 100) ** 2 + (point.y / 22) ** 2).toBeCloseTo(1, 6);
+  });
+});
+
+describe("polygonBounds", () => {
+  const boundsOfNode = (type: string, width: number, height: number) =>
+    polygonBounds(
+      outlinePolygon({ type, width, height }, { x: width / 2, y: height / 2 }),
+    );
+
+  /**
+   * The two encodings of "what this shape covers" have to agree wherever
+   * visualSize has an answer, or the prefilter would discard pairs the polygon
+   * clip would have found.
+   */
+  it("agrees with visualRectOf for the shapes that fill their box", () => {
+    for (const [type, width, height] of [
+      ["entity", 200, 40],
+      ["relationship", 95, 95],
+      ["entity-attribute", 200, 44],
+    ] as const) {
+      const visual = visualRectOf(type, type, { x: 0, y: 0 }, width, height);
+      const bounds = boundsOfNode(type, width, height);
+
+      expect(bounds.x).toBeCloseTo(visual.x, 6);
+      expect(bounds.y).toBeCloseTo(visual.y, 6);
+      expect(bounds.width).toBeCloseTo(visual.width, 6);
+      expect(bounds.height).toBeCloseTo(visual.height, 6);
+    }
+  });
+
+  /**
+   * The ISA triangle is the one shape visualSize does not correct. Its apex
+   * hangs below the node box, so a rectangle taken from the box misses an
+   * overlap there entirely -- and would clip the mark drawn for one.
+   */
+  it("reaches past the box for an ISA triangle, where visualRectOf cannot", () => {
+    const visual = visualRectOf("isA", "isA", { x: 0, y: 0 }, 96, 64);
+    const bounds = boundsOfNode("isA", 96, 64);
+
+    expect(bounds.height).toBeCloseTo(70, 6);
+    expect(bounds.height).toBeGreaterThan(visual.height);
+    expect(bounds.y + bounds.height).toBeCloseTo(70, 6);
+    // and it is narrower than the box, which is the other half of the saving
+    expect(bounds.width).toBeCloseTo(80, 6);
   });
 });
