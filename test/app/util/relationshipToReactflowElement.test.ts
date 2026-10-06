@@ -1,5 +1,6 @@
 import { getERDoc } from "../../../src/ERDoc";
 import { relationshipToReactflowElements } from "../../../src/app/util/erToReactflowElements";
+import { getHandlePrefix } from "../../../src/app/util/common";
 
 const getRelationshipFromERDoc = (erDoc: string, relationshipName: string) => {
   const [er, _] = getERDoc(erDoc);
@@ -125,5 +126,29 @@ describe("Convert a relationship to ReactFlow Nodes and Edges", () => {
         edge.id.includes("relationship-part: Owns$House$Human->Human->Bob"),
       ),
     ).toBe(true);
+  });
+
+  /**
+   * The handle a role edge is bound for rides on the front of its id, and that
+   * is the only thing telling the two roles apart once they are drawn -- both
+   * run between the same pair of shapes. Nothing else in the diagram may start
+   * with a digit, or it would be read as a role and moved off the line.
+   */
+  it("gives each role of a composite participant its own handle", () => {
+    const relationship = getRelationshipFromERDoc(
+      `relation Owns(Human: [Alice, Bob], House 1!)`,
+      "Owns",
+    )!;
+    const [_nodes, edges] = relationshipToReactflowElements(
+      relationship,
+      false,
+      jest.fn(),
+    );
+
+    expect(edges.map((edge) => getHandlePrefix(edge.id)).sort()).toEqual([
+      "",
+      "1",
+      "4",
+    ]);
   });
 });

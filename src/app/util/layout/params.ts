@@ -53,6 +53,24 @@ export type LayoutParams = {
   maxSteps: number;
   /** D_min: smallest empty gap allowed between two elements */
   minSeparation: number;
+  /**
+   * The gap left between a recursive relationship's diamond and the one entity
+   * it hangs off, when nothing has measured the role names.
+   *
+   * Wider than `minSeparation`, because unlike any other gap in the diagram
+   * this one has something drawn *in* it: a recursive relationship reaches its
+   * entity through two or more roles, and every one of those lines, with its
+   * name on it, runs across this gap and nowhere else. At the ordinary minimum
+   * the names overlap the shapes at either end.
+   *
+   * Only the fallback. Given the widths of the names as they are actually
+   * drawn -- which is what the browser does, see util/roleLabel.ts -- the gap
+   * is sized from those instead and this is never consulted. It is what the
+   * server and the tests get, so it is set near what a middling name needs:
+   * "Management" measures 66px at the size these are drawn at, and wants a
+   * minimum's worth of margin at each end.
+   */
+  selfLoopSeparation: number;
   /** gap between an element's edge and the attributes fanned around it */
   attributeGap: number;
   /**
@@ -207,6 +225,7 @@ export const DEFAULT_LAYOUT_PARAMS: LayoutParams = {
   gridStep: 60,
   maxSteps: 8,
   minSeparation: 45,
+  selfLoopSeparation: 110,
   attributeGap: 30,
   aggregationPadding: 40,
   haloFactor: 0.55,

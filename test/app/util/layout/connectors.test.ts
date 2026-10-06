@@ -126,6 +126,7 @@ const diamond = {
   participants: [],
   groupKey: "",
   isSelfLoop: true,
+  widestRoleLabel: 0,
   hierarchy: null,
 };
 
@@ -219,6 +220,169 @@ describe("a recursive relationship's seat", () => {
         Math.round(seat.x - owner.x) === 0 ||
           Math.round(seat.y - owner.y) === 0,
       ).toBe(true);
+    }
+  });
+
+  /**
+   * The gap a recursive relationship leaves is the one gap in the diagram with
+   * something drawn *inside* it: every one of its roles runs across it, with
+   * its name on it, and both ends of every one of those lines is one of these
+   * two shapes. At the ordinary minimum the names overlap the shapes.
+   */
+  it("is held further off than two unrelated elements would be", () => {
+    const { nodes, edges } = fromErDoc(EXAMPLES[0].erDoc);
+    const { positions, sizes } = layoutDiscreteSearch(nodes, edges);
+    const placed = withSizes(
+      nodes.map((node) => ({ ...node, position: positions.get(node.id)! })),
+      sizes,
+    ) as unknown as PositionedNode[];
+    const typeOf = (id: string) =>
+      placed.find((node) => node.id === id)?.type ?? "";
+    const boxes = new Map(
+      toAbsoluteRects(placed, { structuralOnly: false })
+        .map((rect) =>
+          visualRectOf(rect.id, typeOf(rect.id), rect, rect.width, rect.height),
+        )
+        .map((rect) => [rect.id, rect]),
+    );
+
+    const diamond = [...boxes.values()].find(
+      (box) => typeOf(box.id) === "relationship",
+    )!;
+    const entity = [...boxes.values()].find(
+      (box) => typeOf(box.id) === "entity",
+    )!;
+
+    // edge to edge, on whichever axis is keeping them apart
+    const gap = Math.max(
+      Math.abs(diamond.x + diamond.width / 2 - (entity.x + entity.width / 2)) -
+        (diamond.width + entity.width) / 2,
+      Math.abs(
+        diamond.y + diamond.height / 2 - (entity.y + entity.height / 2),
+      ) -
+        (diamond.height + entity.height) / 2,
+    );
+
+    expect(gap).toBeGreaterThan(DEFAULT_LAYOUT_PARAMS.minSeparation);
+    expect(gap).toBeCloseTo(DEFAULT_LAYOUT_PARAMS.selfLoopSeparation, 0);
+  });
+
+  /**
+   * ...and once something has measured the names, from those rather than from
+   * the fixed figure. A long role name would otherwise be drawn straight over
+   * the shapes at either end of the gap it is written in.
+   */
+  it("is sized from the role names once they have been measured", () => {
+    const seatFor = (labelWidth: number | undefined) => {
+      const { nodes, edges } = fromErDoc(EXAMPLES[0].erDoc);
+      const measured = edges.map((edge) =>
+        /^[1-4]relationship-part/.test(edge.id)
+          ? { ...edge, labelWidth }
+          : edge,
+      );
+      const { positions, sizes } = layoutDiscreteSearch(nodes, measured);
+      const placed = withSizes(
+        nodes.map((node) => ({ ...node, position: positions.get(node.id)! })),
+        sizes,
+      ) as unknown as PositionedNode[];
+      const typeOf = (id: string) =>
+        placed.find((node) => node.id === id)?.type ?? "";
+      const boxes = toAbsoluteRects(placed, { structuralOnly: false }).map(
+        (rect) =>
+          visualRectOf(rect.id, typeOf(rect.id), rect, rect.width, rect.height),
+      );
+      const diamond = boxes.find((box) => typeOf(box.id) === "relationship")!;
+      const entity = boxes.find((box) => typeOf(box.id) === "entity")!;
+      return Math.max(
+        Math.abs(
+          diamond.x + diamond.width / 2 - (entity.x + entity.width / 2),
+        ) -
+          (diamond.width + entity.width) / 2,
+        Math.abs(
+          diamond.y + diamond.height / 2 - (entity.y + entity.height / 2),
+        ) -
+          (diamond.height + entity.height) / 2,
+      );
+    };
+
+    // room for the name itself, and a minimum's worth of margin at each end
+    expect(seatFor(120)).toBeCloseTo(
+      120 + 2 * DEFAULT_LAYOUT_PARAMS.minSeparation,
+      0,
+    );
+    // ...and a name measured short asks for less than the blind fallback,
+    // because by then there is nothing left to guess at
+    expect(seatFor(10)).toBeCloseTo(
+      10 + 2 * DEFAULT_LAYOUT_PARAMS.minSeparation,
+      0,
+    );
+    // the fallback is for when nothing measured them at all
+    expect(seatFor(undefined)).toBeCloseTo(
+      DEFAULT_LAYOUT_PARAMS.selfLoopSeparation,
+      0,
+    );
+  });
+
+  /**
+   * ...but it takes that room out of its own entity's, never out of somebody
+   * else's. Seated past another element on the axis it is pushed along, the
+   * diamond has left its entity's column, and it stops being obvious which
+   * entity it hangs off -- which is the one thing its position is there to say.
+   *
+   * It is also what keeps the seat steady: the distance is absolute while
+   * everything around it is spaced for the current view, so a diamond allowed
+   * to overtake does it only in the tighter view, and hiding the attributes
+   * would reorder the diagram (attributeBlind.test.ts).
+   */
+  it.each([
+    ["roles", 0],
+    ["company", 4],
+  ])("does not overtake its entity's neighbours in %s", (_name, index) => {
+    const { nodes, edges } = fromErDoc(EXAMPLES[index].erDoc);
+    const { positions, sizes } = layoutDiscreteSearch(nodes, edges);
+    const placed = withSizes(
+      nodes.map((node) => ({ ...node, position: positions.get(node.id)! })),
+      sizes,
+    ) as unknown as PositionedNode[];
+    const typeOf = (id: string) =>
+      placed.find((node) => node.id === id)?.type ?? "";
+    const centres = new Map(
+      toAbsoluteRects(placed, { structuralOnly: false })
+        .map((rect) =>
+          visualRectOf(rect.id, typeOf(rect.id), rect, rect.width, rect.height),
+        )
+        .map((rect) => [
+          rect.id,
+          { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 },
+        ]),
+    );
+
+    const partners = new Map<string, Set<string>>();
+    for (const edge of edges)
+      for (const [a, b] of [
+        [edge.source, edge.target],
+        [edge.target, edge.source],
+      ])
+        if (typeOf(a) === "relationship" && typeOf(b) === "entity")
+          partners.set(a, (partners.get(a) ?? new Set<string>()).add(b));
+
+    const entities = [...centres].filter(([id]) => typeOf(id) === "entity");
+
+    for (const [relationship, ents] of partners) {
+      if (ents.size !== 1) continue;
+      const ownerId = [...ents][0];
+      const seat = centres.get(relationship)!;
+      const owner = centres.get(ownerId)!;
+
+      const axis = Math.round(seat.y - owner.y) === 0 ? "x" : "y";
+      const sign = Math.sign(seat[axis] - owner[axis]);
+      const reach = (seat[axis] - owner[axis]) * sign;
+
+      for (const [id, centre] of entities) {
+        if (id === ownerId) continue;
+        const ahead = (centre[axis] - owner[axis]) * sign;
+        expect(ahead > 0 && ahead < reach).toBe(false);
+      }
     }
   });
 });

@@ -40,12 +40,28 @@ const BASELINE: Record<
   string,
   { crossings: number; throughNodes: number; area: number; length: number }
 > = {
-  roles: { crossings: 0, throughNodes: 0, area: 23719, length: 568 },
+  roles: { crossings: 0, throughNodes: 0, area: 29894, length: 697 },
   aggregation: { crossings: 1, throughNodes: 0, area: 399735, length: 1965 },
   subclass: { crossings: 0, throughNodes: 0, area: 1110144, length: 3627 },
   bank: { crossings: 1, throughNodes: 0, area: 1269857, length: 5766 },
   company: { crossings: 0, throughNodes: 1, area: 953857, length: 6058 },
 };
+
+/**
+ * `roles` grew by a quarter -- 23719 to 29894, and 568 to 697 of edge -- when a
+ * recursive relationship was given room for the lines that cross it. Its
+ * diamond used to sit the ordinary minimum from its entity, which is the gap
+ * two elements need when there is nothing between them; a recursive
+ * relationship reaches its entity through two or more roles, and every one of
+ * those lines, with its name on it, is drawn in that gap and nowhere else. At
+ * 45px the names overlapped the shapes at both ends.
+ *
+ * It is the whole of the growth on the smallest diagram in the corpus -- one
+ * entity and one diamond, so the seat is most of the bounding box -- and
+ * nothing else moved: `company` is the only other example with a recursive
+ * relationship and came in at the same area, a fiftieth longer. No example
+ * gained a crossing, an overlap or an edge through an element.
+ */
 
 /**
  * `aggregation` grew by a third and `bank` by a twentieth when the refinement

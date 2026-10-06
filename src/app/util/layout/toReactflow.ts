@@ -13,6 +13,7 @@ import { layoutDiscreteSearch } from ".";
 import { measureAttributeShapes } from "../attributeShape";
 import { isAttributeNode } from "../erGraph";
 import { NodeSize, readNodeSize, withNodeSize } from "../nodeSize";
+import { measureRoleLabels } from "../roleLabel";
 import { LayoutInputNode } from "./buildLayoutGraph";
 import { LayoutParams } from "./params";
 
@@ -113,12 +114,18 @@ export const getDiscreteLayoutedElements = async (
   // frame where new nodes are still invisible, instead of freezing on it
   await Promise.resolve();
 
+  // read off the names as they are currently drawn, which is the only place
+  // their width is actually known -- and is already the truncated width for one
+  // that was too long, so the layout makes room for exactly what is on screen
+  const labelWidths = measureRoleLabels();
+
   const { positions, sizes } = layoutDiscreteSearch(
     sizedForLayout(flowNodes).map(toInput),
     flowEdges.map((edge) => ({
       id: edge.id,
       source: edge.source,
       target: edge.target,
+      labelWidth: labelWidths.get(edge.id),
     })),
     params,
   );

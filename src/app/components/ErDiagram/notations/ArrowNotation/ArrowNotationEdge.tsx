@@ -1,4 +1,5 @@
-import { BaseEdge, EdgeLabelRenderer, EdgeProps } from "reactflow";
+import { BaseEdge, EdgeProps } from "reactflow";
+import { RoleLabel } from "../RoleLabel";
 import { useEdgePath } from "../useEdgePath";
 import { getHandlePrefix } from "../../../../util/common";
 
@@ -84,24 +85,13 @@ function ArrowNotationEdge({
           }}
         />
       )}
-      {label !== undefined && (
-        <EdgeLabelRenderer>
-          <div
-            style={{
-              position: "absolute",
-              transform: `translate(-50%, -50%) translate(${roleLabelX}px,${roleLabelY}px)`,
-              background: "#F8FAFC",
-              padding: 1,
-              borderRadius: 5,
-              fontSize: 11,
-              fontWeight: 500,
-            }}
-            className="nodrag nopan"
-          >
-            {label}
-          </div>
-        </EdgeLabelRenderer>
-      )}
+      <RoleLabel
+        edgeId={id}
+        label={label}
+        x={roleLabelX}
+        y={roleLabelY}
+        padding={1}
+      />
     </>
   );
 }

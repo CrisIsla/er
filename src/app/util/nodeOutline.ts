@@ -141,21 +141,74 @@ export const polygonBounds = (
 };
 
 export type OutlineHit = {
-  /** Distance from the centre of the node's box to the outline. */
+  /** Distance from where the ray started to the outline. */
   distance: number;
   /** Direction the outline faces where it was hit, as an angle. */
   normal: number;
 };
 
+/** The centre of a node's own box, which is where a ray usually starts. */
+const CENTRE: Vec = { x: 0, y: 0 };
+
 /**
- * Where the ray leaving the centre of `node`'s box along `angle` meets the
- * shape, and which way the shape faces there. Angles are measured as on the
- * canvas: 0 points right and y grows downwards.
+ * How far the ray from `origin` along `direction` runs before it meets the
+ * ellipse inscribed in a `2*semiX` by `2*semiY` box.
+ *
+ * From the centre this is the closed form the shape's equation gives directly.
+ * From anywhere else it is the positive root of that equation along the ray:
+ * `t^2*a + t*b + c = 0`, where `c` is negative for any origin inside the
+ * ellipse, so the root exists and there is exactly one of it. An origin that
+ * somehow lands outside has no positive root, and is reported as no hit.
+ */
+const ellipseReach = (
+  origin: Vec,
+  direction: Vec,
+  semiX: number,
+  semiY: number,
+): number => {
+  if (origin.x === 0 && origin.y === 0)
+    return 1 / Math.hypot(direction.x / semiX, direction.y / semiY);
+
+  const a =
+    (direction.x * direction.x) / (semiX * semiX) +
+    (direction.y * direction.y) / (semiY * semiY);
+  const b =
+    2 *
+    ((origin.x * direction.x) / (semiX * semiX) +
+      (origin.y * direction.y) / (semiY * semiY));
+  const c =
+    (origin.x * origin.x) / (semiX * semiX) +
+    (origin.y * origin.y) / (semiY * semiY) -
+    1;
+
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0 || a === 0) return 0;
+  const reach = (-b + Math.sqrt(discriminant)) / (2 * a);
+  return reach > 0 ? reach : 0;
+};
+
+/**
+ * Where the ray leaving `origin` -- a point given relative to the centre of
+ * `node`'s box -- along `angle` meets the shape, and which way the shape faces
+ * there. Angles are measured as on the canvas: 0 points right and y grows
+ * downwards.
+ *
+ * `outlineHit` is this from the centre, which is what a line aimed at a shape
+ * needs. An origin off the centre is what several lines between the same pair
+ * of shapes need: moving the origin across the line, rather than turning the
+ * ray, leaves every one of them parallel to the line they would have drawn, so
+ * each still leaves its shape instead of cutting back through it. Turning the
+ * ray does not, because the line drawn between two turned rays no longer runs
+ * along either of them (useEdgePath.tsx).
  *
  * A node React Flow has not measured yet has no outline to speak of, and is
  * reported as a zero distance facing along the ray.
  */
-export const outlineHit = (node: OutlineNode, angle: number): OutlineHit => {
+export const outlineExit = (
+  node: OutlineNode,
+  origin: Vec,
+  angle: number,
+): OutlineHit => {
   const width = node.width ?? 0;
   const height = node.height ?? 0;
   if (width <= 0 || height <= 0) return { distance: 0, normal: angle };
@@ -167,15 +220,16 @@ export const outlineHit = (node: OutlineNode, angle: number): OutlineHit => {
   const semiY = height / 2;
 
   if (outline === "ellipse") {
-    // (t*cos / a)^2 + (t*sin / b)^2 = 1
-    const distance = 1 / Math.hypot(direction.x / semiX, direction.y / semiY);
+    const distance = ellipseReach(origin, direction, semiX, semiY);
+    if (distance === 0) return { distance: 0, normal: angle };
     // the ellipse faces along its gradient at the point that was hit
+    const point = {
+      x: origin.x + distance * direction.x,
+      y: origin.y + distance * direction.y,
+    };
     return {
       distance,
-      normal: Math.atan2(
-        (distance * direction.y) / (semiY * semiY),
-        (distance * direction.x) / (semiX * semiX),
-      ),
+      normal: Math.atan2(point.y / (semiY * semiY), point.x / (semiX * semiX)),
     };
   }
 
@@ -183,10 +237,17 @@ export const outlineHit = (node: OutlineNode, angle: number): OutlineHit => {
   // the smallest positive hit is taken in case a corner is grazed twice
   let nearest = Infinity;
   let facing = angle;
-  for (const [index, from] of outline.entries()) {
-    const to = outline[(index + 1) % outline.length];
-    const start = { x: from.x * width, y: from.y * height };
-    const edge = { x: (to.x - from.x) * width, y: (to.y - from.y) * height };
+  for (const [index, corner] of outline.entries()) {
+    const next = outline[(index + 1) % outline.length];
+    // measured from the origin, so the ray is the one being solved for
+    const start = {
+      x: corner.x * width - origin.x,
+      y: corner.y * height - origin.y,
+    };
+    const edge = {
+      x: (next.x - corner.x) * width,
+      y: (next.y - corner.y) * height,
+    };
 
     const denominator = cross(direction, edge);
     if (Math.abs(denominator) < 1e-9) continue;
@@ -208,6 +269,13 @@ export const outlineHit = (node: OutlineNode, angle: number): OutlineHit => {
     normal: facing,
   };
 };
+
+/**
+ * Where the ray leaving the centre of `node`'s box along `angle` meets the
+ * shape, and which way the shape faces there.
+ */
+export const outlineHit = (node: OutlineNode, angle: number): OutlineHit =>
+  outlineExit(node, CENTRE, angle);
 
 /** Just the distance part of outlineHit(). */
 export const outlineDistance = (node: OutlineNode, angle: number): number =>

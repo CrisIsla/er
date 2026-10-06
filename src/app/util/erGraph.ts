@@ -17,6 +17,12 @@ export type GraphEdge = {
   id: string;
   source: string;
   target: string;
+  /**
+   * How wide this edge's role name is drawn, when it has one and something has
+   * measured it. The layout sizes a recursive relationship's gap from these --
+   * see util/roleLabel.ts.
+   */
+  labelWidth?: number;
 };
 
 export const ATTRIBUTE_NODE_TYPES = [

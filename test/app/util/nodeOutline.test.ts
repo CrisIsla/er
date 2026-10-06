@@ -2,6 +2,7 @@ import { visualRectOf } from "../../../src/app/util/layout/geometry";
 import {
   capBurial,
   outlineDistance,
+  outlineExit,
   outlineHit,
   outlinePolygon,
   polygonBounds,
@@ -120,6 +121,67 @@ describe("outlineHit", () => {
 
     expect(facing).toBeGreaterThan(DOWN_RIGHT);
     expect(facing).toBeLessThan(DOWN);
+  });
+});
+
+/**
+ * Rays that start off the centre of the box, which is what several lines between
+ * the same pair of shapes need: each is moved across the line it would have
+ * drawn, rather than turned, so they stay parallel and each still leaves its own
+ * shape.
+ */
+describe("outlineExit", () => {
+  /**
+   * The ellipse is solved two ways -- a closed form from the centre, the root of
+   * a quadratic from anywhere else -- and only one of them is exercised by the
+   * rest of the diagram, since an attribute is only ever aimed at from its
+   * centre. Starting part of the way along the same ray is the case where the
+   * two have to agree.
+   */
+  it("solves an ellipse the same way wherever the ray starts", () => {
+    const attribute = { type: "entity-attribute", width: 120, height: 40 };
+
+    expect(outlineHit(attribute, RIGHT).distance).toBeCloseTo(60);
+    for (const start of [1e-9, 15, 30, 59])
+      expect(
+        outlineExit(attribute, { x: start, y: 0 }, RIGHT).distance + start,
+      ).toBeCloseTo(60);
+  });
+
+  it("leaves a box through the same side, shorter by the head start", () => {
+    const entity = { type: "entity", width: 200, height: 40 };
+
+    // 30px along the way out, so 70 of the 100 are left
+    expect(outlineExit(entity, { x: 30, y: 0 }, RIGHT).distance).toBeCloseTo(
+      70,
+    );
+    expect(outlineExit(entity, { x: 30, y: 0 }, RIGHT).normal).toBeCloseTo(
+      RIGHT,
+    );
+    // 15px across it changes nothing about how far there is to go
+    expect(outlineExit(entity, { x: 0, y: 15 }, RIGHT).distance).toBeCloseTo(
+      100,
+    );
+  });
+
+  it("leaves an ellipse where the ray actually crosses it", () => {
+    const attribute = { type: "entity-attribute", width: 120, height: 40 };
+
+    // a ray starting on the minor axis and running along the major one meets
+    // the ellipse where x = a * sqrt(1 - (y/b)^2)
+    const reach = outlineExit(attribute, { x: 0, y: 10 }, RIGHT).distance;
+    expect(reach).toBeCloseTo(60 * Math.sqrt(1 - (10 / 20) ** 2));
+
+    // and the point it found is on the curve
+    const point = { x: reach, y: 10 };
+    expect((point.x / 60) ** 2 + (point.y / 20) ** 2).toBeCloseTo(1);
+  });
+
+  it("reports no hit for a node nothing has measured", () => {
+    expect(outlineExit({ type: "entity" }, { x: 5, y: 5 }, RIGHT)).toEqual({
+      distance: 0,
+      normal: RIGHT,
+    });
   });
 });
 

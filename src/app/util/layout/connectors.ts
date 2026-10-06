@@ -39,8 +39,15 @@ import {
  * useEdgePath picks which side of a node an edge leaves from by comparing |dx|
  * against |dy|, so a diagonal placement is a near-tie that flips sides under a
  * pixel of movement. A cardinal offset gives the two role edges two stable,
- * distinct handles.
+ * distinct handles -- and, when the edges are anchored at the shapes' centres
+ * instead, a stable line for them to be spread either side of.
  */
+/**
+ * How much of the room a recursive relationship asks for it gives back at a
+ * time, when the direction it is seated in cannot spare all of it.
+ */
+const SEAT_GIVE_BACK = 10;
+
 const CARDINALS: Vec[] = [
   { x: 1, y: 0 },
   { x: -1, y: 0 },
@@ -283,17 +290,93 @@ export const placeConnectors = (
             .map((placed) => angleOf(ownerCentre, centres.get(placed.id)!)),
         ]);
 
-        /** Where the diamond sits if it hangs off the owner in `direction`. */
-        const seat = (direction: Vec) => {
+        /** Where the diamond sits if it hangs off the owner `gap` away. */
+        const seat = (direction: Vec, gap: number) => {
           const angle = normalizeAngle(Math.atan2(direction.y, direction.x));
           const distance =
             supportRadius(owner.visualWidth, owner.visualHeight, angle) +
-            params.minSeparation +
+            gap +
             supportRadius(connector.visualWidth, connector.visualHeight, angle);
           return {
             x: ownerCentre.x + direction.x * distance,
             y: ownerCentre.y + direction.y * distance,
           };
+        };
+
+        const isClear = (spot: Vec) =>
+          !occupied.some((other) =>
+            rectsOverlap(
+              rectAt(
+                connector.id,
+                spot,
+                connector.visualWidth,
+                connector.visualHeight,
+              ),
+              other,
+            ),
+          );
+
+        /**
+         * Whether a seat this far out has overtaken one of the owner's
+         * neighbours along the way.
+         *
+         * The diamond belongs beside its entity. Seated past something else on
+         * the very axis it is being pushed along, it has left its entity's
+         * column and joined somebody else's -- and it is no longer obvious
+         * which entity it hangs off, which is the one thing its position is
+         * supposed to say.
+         *
+         * It also keeps the placement steady. The seat is an absolute distance
+         * while everything around it is spaced for the current view, so a
+         * diamond allowed to overtake does it only in the tighter view --
+         * hiding the attributes would reorder the diagram, which is the one
+         * thing the spacing pass exists to avoid.
+         */
+        const overtakes = (direction: Vec, gap: number) => {
+          const axis = direction.x !== 0 ? "x" : "y";
+          const sign = direction.x !== 0 ? direction.x : direction.y;
+          const reach = (seat(direction, gap)[axis] - ownerCentre[axis]) * sign;
+          for (const [id, centre] of skeletonCentres) {
+            if (id === ownerId) continue;
+            const ahead = (centre[axis] - ownerCentre[axis]) * sign;
+            if (ahead > 0 && ahead < reach) return true;
+          }
+          return false;
+        };
+
+        // What the roles actually need: the widest of their names, with an
+        // ordinary minimum's worth of margin at each end, since the name is
+        // drawn across the middle of this gap. Falls back to a fixed figure
+        // when nothing has measured them -- on the server, and in tests --
+        // rather than to no room at all.
+        const names = connector.widestRoleLabel;
+        const wanted = Math.max(
+          params.minSeparation,
+          names > 0
+            ? names + 2 * params.minSeparation
+            : params.selfLoopSeparation,
+        );
+        // The margin is negotiable when the direction is crowded; the name
+        // itself is not. Giving back past this would draw it over the shapes at
+        // either end, which is the thing the whole gap is for.
+        const floor = Math.max(params.minSeparation, names);
+
+        /**
+         * As far off as this direction has room for, between what the roles
+         * need and the ordinary minimum.
+         *
+         * This is the one gap in the diagram that has something drawn *inside*
+         * it: a recursive relationship reaches its entity through two or more
+         * roles, and every one of those lines, with its name on it, runs across
+         * this gap and nowhere else -- both of its ends are one of these two
+         * shapes. At the ordinary minimum the names overlap the shapes at
+         * either end.
+         */
+        const roomiest = (direction: Vec) => {
+          for (let gap = wanted; gap > floor; gap -= SEAT_GIVE_BACK)
+            if (!overtakes(direction, gap) && isClear(seat(direction, gap)))
+              return { spot: seat(direction, gap), gap };
+          return { spot: seat(direction, floor), gap: floor };
         };
 
         // Being cardinal is the whole point of this branch, and it survives
@@ -303,16 +386,29 @@ export const placeConnectors = (
         // movement and the two role edges stop having distinct handles. So each
         // cardinal is tried in turn, pushing outwards along that one ray, and
         // only once all four are blocked does it settle for any spot at all.
+        //
+        // The handles are the `side` anchor's mechanism. Anchored at the
+        // centres the roles are spread either side of the line instead, which
+        // does not depend on the side at all -- but a seat that stays put is
+        // still what stops the whole fan swinging around under a drag.
+        // The direction is chosen on clearance alone, as it always was -- how
+        // much room a bearing has is worked out from the spaced positions, and
+        // letting that pick the side would hand the view a say in which side of
+        // its entity the diamond sits on.
         let spot: Vec | null = null;
         for (const direction of rays) {
-          spot = findFreeSpot(connector, seat(direction), occupied, params, [
-            direction,
-          ]);
+          spot = findFreeSpot(
+            connector,
+            roomiest(direction).spot,
+            occupied,
+            params,
+            [direction],
+          );
           if (spot !== null) break;
         }
         spot ??=
-          findFreeSpot(connector, seat(rays[0]), occupied, params) ??
-          seat(rays[0]);
+          findFreeSpot(connector, seat(rays[0], floor), occupied, params) ??
+          seat(rays[0], floor);
 
         centres.set(connector.id, spot);
         occupied.push(

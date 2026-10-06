@@ -36,6 +36,30 @@ describe("roles: a single entity with a recursive relationship", () => {
     expect(labelOf(graph, manages.participants[0])).toBe("entity: Employee");
   });
 
+  /**
+   * A recursive relationship's roles are named in the gap between it and its
+   * entity, and nowhere else, so that gap is sized from the widest of those
+   * names. Nothing measures them away from a browser -- here, and on the
+   * server -- and then the seat falls back to a fixed figure.
+   */
+  it("takes the widest role name drawn on any of its edges", () => {
+    const { nodes, edges } = fromErDoc(roles.erDoc);
+    const measured = edges.map((edge, index) =>
+      /^[1-4]relationship-part/.test(edge.id)
+        ? { ...edge, labelWidth: index % 2 === 0 ? 40 : 96 }
+        : edge,
+    );
+
+    const [manages] = buildLayoutGraph(
+      nodes,
+      measured,
+      DEFAULT_LAYOUT_PARAMS,
+    ).connectors;
+    expect(manages.widestRoleLabel).toBe(96);
+
+    expect(graph.connectors[0].widestRoleLabel).toBe(0);
+  });
+
   it("leaves the lone entity without neighbours, so placement must not rely on anchors", () => {
     expect(graph.neighbours.get(graph.skeleton[0].id)).toEqual([]);
   });

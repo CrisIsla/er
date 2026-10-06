@@ -126,6 +126,16 @@ export const buildLayoutGraph = (
   const attributeParents = buildAttributeParents(nodes, edges);
   const adjacency = buildAdjacency(edges);
 
+  /** The widest role name drawn on any edge touching this connector. */
+  const widestRoleLabelOf = (nodeId: string) =>
+    edges.reduce(
+      (widest, edge) =>
+        edge.source === nodeId || edge.target === nodeId
+          ? Math.max(widest, edge.labelWidth ?? 0)
+          : widest,
+      0,
+    );
+
   /**
    * Entities and aggregation boxes: what is placed on its own account whatever
    * the parameters say.
@@ -287,6 +297,7 @@ export const buildLayoutGraph = (
         // a recursive relationship reaches one entity through several roles
         // (erToReactflowElements.ts:181), so every edge lands on the same id
         isSelfLoop: participants.length === 1,
+        widestRoleLabel: widestRoleLabelOf(node.id),
         hierarchy:
           type === "isA" ? hierarchyOf(node.id, edges, anchored) : null,
       };

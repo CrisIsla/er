@@ -82,6 +82,12 @@ export type ConnectorElement = ElementBase & {
   groupKey: string;
   /** a recursive relationship: every role points back at one entity */
   isSelfLoop: boolean;
+  /**
+   * The widest role name drawn on any of this connector's edges, or 0 when
+   * nothing has measured them. A recursive relationship's roles are named in
+   * the gap between it and its entity, so this is what that gap is sized from.
+   */
+  widestRoleLabel: number;
   /** set for ISA triangles, so a subclass can be nudged below its superclass */
   hierarchy: { parentId: string; childId: string } | null;
 };
