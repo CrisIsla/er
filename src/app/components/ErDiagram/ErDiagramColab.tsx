@@ -35,7 +35,12 @@ import {
 import { useResizeCommit } from "../../hooks/useResizeCommit";
 import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
 import { ErJSON, toErJSONEdges, toErJSONNodes } from "../../hooks/useJSON";
-import { isFiniteSize, readNodeSize, withNodeSize } from "../../util/nodeSize";
+import {
+  isFiniteSize,
+  readNodeSize,
+  withNodeSize,
+  withoutUnobservedSizes,
+} from "../../util/nodeSize";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -417,10 +422,16 @@ const ErDiagram = ({
     debouncedSaveDiagram(toErJSONNodes(getNodes()), toErJSONEdges(getEdges()));
   }, [nodes, edges, debouncedSaveDiagram]);
 
+  // React Flow fills a size a node does not carry in from whichever node last
+  // held its id, and never measures a hidden one -- so a hidden node is handed
+  // over with its size cleared, and neither the store nor what is synced to the
+  // other editors ever holds a leftover
+  const flowNodes = useMemo(() => withoutUnobservedSizes(nodes), [nodes]);
+
   return (
     <ReactFlow
       onInit={handleInit}
-      nodes={nodes}
+      nodes={flowNodes}
       onNodesChange={onNodesChangeWithResize}
       nodeTypes={erNodeTypes}
       edges={edges}

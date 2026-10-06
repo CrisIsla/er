@@ -6,6 +6,7 @@ import DefaultEntity from "../../../src/app/components/ErDiagram/notations/Defau
 import DefaultIsA from "../../../src/app/components/ErDiagram/notations/DefaultIsA";
 import DefaultRelationship from "../../../src/app/components/ErDiagram/notations/DefaultRelationship";
 import DefaultAggregation from "../../../src/app/components/ErDiagram/notations/DefaultAggregation";
+import { ATTRIBUTE_SHAPE_CLASS } from "../../../src/app/util/attributeShape";
 import { DEFAULT_AGGREGATION_SIZE } from "../../../src/app/util/nodeSize";
 
 const render = (component: JSX.Element) =>
@@ -63,6 +64,19 @@ describe("DefaultAttribute", () => {
     const data = { label: "Name", isKey: false, entityIsWeak: false };
     const { getByText } = render(<DefaultAttribute data={data} />);
     expect(getByText("Name")).not.toHaveClass("underline");
+  });
+
+  // the layout sizes attributes off an off-screen copy of this shape
+  // (util/attributeShape.ts), so the two have to stay the same box
+  it("draws the shape the layout measures", () => {
+    const data = { label: "date", isKey: false, entityIsWeak: false };
+    const { getByText } = render(<DefaultAttribute data={data} />);
+    const shape = getByText("date").parentElement!;
+    expect(shape).toHaveAttribute("class", ATTRIBUTE_SHAPE_CLASS);
+    expect(Array.from(shape.children).map((child) => child.tagName)).toEqual([
+      "P",
+      "P",
+    ]);
   });
 });
 

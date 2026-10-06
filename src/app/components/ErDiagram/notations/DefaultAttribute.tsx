@@ -1,13 +1,20 @@
 import { memo } from "react";
+import { ATTRIBUTE_SHAPE_CLASS } from "../../../util/attributeShape";
 import NodeHandles from "./NodeHandles";
 
+/**
+ * An attribute. The layout measures this shape off-screen to know how big an
+ * attribute is drawn, hidden or not (util/attributeShape.ts), so a change to
+ * what sits inside the box -- anything that can change its size -- belongs in
+ * the probe there as well.
+ */
 const DefaultAttribute = ({
   data,
 }: {
   data: { label: string; isKey: boolean; entityIsWeak: boolean };
 }) => (
   <>
-    <div className="min-w-[60px] rounded-[50%] border-2 border-yellow-300 bg-yellow-100 p-2 text-center">
+    <div className={ATTRIBUTE_SHAPE_CLASS}>
       <p
         className={`${data.isKey && "underline underline-offset-4"} ${
           data.entityIsWeak && "decoration-dashed"

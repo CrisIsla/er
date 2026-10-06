@@ -37,8 +37,11 @@ const MIN_SIZES: Record<string, Size> = {
 /**
  * Widths grow with the label, the way a `min-w-[...] p-2` box does. The diamond
  * and the triangle are fixed-size, and the aggregation carries its own style.
+ *
+ * Exported for the tests that stand in for a browser, so that what they measure
+ * an attribute at is exactly what these fixtures size one at.
  */
-const sizeOf = (node: {
+export const sizeOf = (node: {
   type?: string;
   // erId as well as label: LayoutInputNode's data carries only erId, and a type
   // with no property in common with this one would not be assignable at all

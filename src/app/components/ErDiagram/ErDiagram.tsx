@@ -32,7 +32,12 @@ import {
   mergeRebuiltEdges,
   mergeRebuiltNodes,
 } from "../../util/rebuildNodes";
-import { isFiniteSize, readNodeSize, withNodeSize } from "../../util/nodeSize";
+import {
+  isFiniteSize,
+  readNodeSize,
+  withNodeSize,
+  withoutUnobservedSizes,
+} from "../../util/nodeSize";
 import { ErJSON } from "../../hooks/useJSON";
 import { useResizeCommit } from "../../hooks/useResizeCommit";
 import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
@@ -360,11 +365,16 @@ const ErDiagram = ({
     onNodeDragStop(e, node, nodes);
   };
 
+  // React Flow fills a size a node does not carry in from whichever node last
+  // held its id, and never measures a hidden one -- so a hidden node is handed
+  // over with its size cleared, and the store never holds a leftover
+  const flowNodes = useMemo(() => withoutUnobservedSizes(nodes), [nodes]);
+
   return (
     <ReactFlow
       className={hideUntilFit ? "diagram-awaiting-fit" : undefined}
       onInit={handleInit}
-      nodes={nodes}
+      nodes={flowNodes}
       onNodesChange={onNodesChangeWithResize}
       nodeTypes={erNodeTypes}
       edges={edges}

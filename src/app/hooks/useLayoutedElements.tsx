@@ -3,7 +3,10 @@ import { useCallback, useEffect, useRef } from "react";
 import { Edge, Node, useReactFlow } from "reactflow";
 import { AggregationNode, ErNode } from "../types/ErDiagram";
 import { isAttributeNode } from "../util/erGraph";
-import { getDiscreteLayoutedElements } from "../util/layout/toReactflow";
+import {
+  getDiscreteLayoutedElements,
+  sizedForLayout,
+} from "../util/layout/toReactflow";
 import {
   NodeSize,
   isFiniteSize,
@@ -163,11 +166,14 @@ const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
  * any of it -- it is accepted so the two runners stay interchangeable.
  */
 const getLayoutedElements = async (
-  flowNodes: Node[],
+  givenNodes: Node[],
   flowEdges: Edge[],
   _params?: LayoutParams,
   elkOptions: { [key: string]: string } = {},
 ) => {
+  // at the sizes the other layout uses, attributes measured off their labels:
+  // what React Flow holds for a hidden one is not a measurement of it
+  const flowNodes = sizedForLayout(givenNodes);
   const elk = new ELK();
   const layoutOptions = { ...defaultOptions, ...elkOptions };
 

@@ -3,6 +3,8 @@ import {
   isFiniteSize,
   readNodeSize,
   withNodeSize,
+  withoutMeasuredSize,
+  withoutUnobservedSizes,
 } from "../../../src/app/util/nodeSize";
 
 describe("isFiniteSize", () => {
@@ -79,5 +81,83 @@ describe("withNodeSize", () => {
     const before = JSON.stringify(original);
     withNodeSize(original, DEFAULT_AGGREGATION_SIZE);
     expect(JSON.stringify(original)).toBe(before);
+  });
+});
+
+describe("withoutMeasuredSize", () => {
+  it("forgets a size React Flow only measured", () => {
+    const node = withoutMeasuredSize({ id: "0", width: 116, height: 44 });
+    expect(JSON.parse(JSON.stringify(node))).toEqual({ id: "0" });
+  });
+
+  // React Flow fills a missing size in from whichever node held the id before,
+  // so a deleted key would let the leftover straight back in
+  it("clears the size with keys that are there, not by leaving them out", () => {
+    const node = withoutMeasuredSize({ id: "0", width: 116, height: 44 });
+    expect("width" in node && "height" in node).toBe(true);
+    expect(node.width).toBeUndefined();
+    expect(node.height).toBeUndefined();
+  });
+
+  it("keeps a size somebody chose, in both channels", () => {
+    const node = withoutMeasuredSize({
+      width: 512,
+      height: 300,
+      style: { width: 640, height: 480 },
+    });
+    expect(node).toEqual({
+      width: 640,
+      height: 480,
+      style: { width: 640, height: 480 },
+    });
+  });
+
+  it("does not mutate the node it is given", () => {
+    const original = { id: "0", width: 116, height: 44 };
+    withoutMeasuredSize(original);
+    expect(original).toEqual({ id: "0", width: 116, height: 44 });
+  });
+});
+
+describe("withoutUnobservedSizes", () => {
+  // an attribute hidden while wearing a size React Flow carried over by id
+  const hiddenAttribute = {
+    id: "2",
+    type: "entity-attribute",
+    hidden: true,
+    width: 116,
+    height: 44,
+  };
+  const drawnEntity = { id: "0", type: "entity", width: 104, height: 44 };
+
+  it("clears the size of a node React Flow cannot see", () => {
+    const [attribute] = withoutUnobservedSizes([hiddenAttribute]);
+    expect("width" in attribute && "height" in attribute).toBe(true);
+    expect(attribute.width).toBeUndefined();
+    expect(attribute.height).toBeUndefined();
+  });
+
+  // clearing a drawn node whose box then does not change would leave it
+  // unmeasured, and so undrawn, for good
+  it("leaves a drawn node exactly as it was", () => {
+    const [entity] = withoutUnobservedSizes([drawnEntity]);
+    expect(entity).toBe(drawnEntity);
+  });
+
+  it("keeps a size somebody chose, even on a hidden node", () => {
+    const [box] = withoutUnobservedSizes([
+      {
+        hidden: true,
+        width: 300,
+        height: 200,
+        style: { width: 640, height: 480 },
+      },
+    ]);
+    expect(box).toEqual({
+      hidden: true,
+      width: 640,
+      height: 480,
+      style: { width: 640, height: 480 },
+    });
   });
 });

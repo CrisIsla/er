@@ -77,3 +77,42 @@ export const withNodeSize = <T extends StyledNode>(
     height: size.height,
     style: { ...node.style, width: size.width, height: size.height },
   }) as T;
+
+/**
+ * The node without React Flow's measurement of it, keeping a size somebody
+ * chose.
+ *
+ * For a node React Flow cannot measure -- it never observes a hidden one -- the
+ * measured pair is not a measurement but whatever the node last carried, which,
+ * since sizes are carried forward by id, can be another node's (see
+ * `nominalSize` in layout/aggregationBox.ts).
+ *
+ * The keys are set to `undefined` rather than deleted: React Flow fills a
+ * *missing* size in from whichever node held the id before, and only an
+ * explicit `undefined` stops it. JSON drops them either way.
+ */
+export const withoutMeasuredSize = <T extends StyledNode>(node: T): T => {
+  const authored = readNodeSize(node);
+  return authored === null
+    ? ({ ...node, width: undefined, height: undefined } as T)
+    : withNodeSize(node, authored);
+};
+
+/**
+ * The nodes, with no measured size on any node React Flow cannot see.
+ *
+ * Applied where the diagram hands its nodes to React Flow (ErDiagram,
+ * ErDiagramColab), which every route into the store passes through: a rebuild,
+ * a load from localStorage, a peer's update, any hook's setNodes. So the store
+ * never holds a size for a hidden node, and nothing that reads one -- a layout,
+ * a save, a resize -- can be handed a leftover.
+ *
+ * A drawn node is left alone. It is measured the moment it mounts and whenever
+ * its box changes; clearing the size of one whose box then did not change
+ * would leave it unmeasured, and therefore undrawn, for good.
+ */
+export const withoutUnobservedSizes = <
+  T extends StyledNode & { hidden?: boolean },
+>(
+  nodes: T[],
+): T[] => nodes.map((node) => (node.hidden ? withoutMeasuredSize(node) : node));
