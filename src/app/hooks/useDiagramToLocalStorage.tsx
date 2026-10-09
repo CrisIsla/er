@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ReactFlowInstance, useReactFlow } from "reactflow";
+import { Node, ReactFlowInstance, useReactFlow } from "reactflow";
 
 const LOCAL_STORAGE_FLOW_KEY = "er-flow";
 
@@ -34,9 +34,10 @@ export const useDiagramToLocalStorage = () => {
     if (storedFlow) {
       const flow = JSON.parse(storedFlow);
       const { x = 0, y = 0, zoom = 1 } = flow.viewport;
-      setNodes(() => {
-        return flow.nodes || [];
-      });
+      // a selection belongs to the session that made it
+      setNodes(() =>
+        (flow.nodes || []).map(({ selected, ...node }: Node) => node),
+      );
       setEdges(flow.edges || []);
       setViewport({ x, y, zoom });
       return true;

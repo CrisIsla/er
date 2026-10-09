@@ -99,6 +99,29 @@ describe("mergeRebuiltNodes", () => {
     expect(merged[0].position).toEqual({ x: 10, y: 20 });
   });
 
+  it("keeps what was selected selected through the edit", () => {
+    const merged = merge({
+      oldNodes: [
+        node("0", "entity: A", { selected: true }),
+        node("1", "entity: B"),
+        node("2", "entity: Old", { selected: true }),
+      ],
+      newNodes: [
+        node("0", "entity: A"),
+        node("1", "entity: B"),
+        node("2", "entity: New"),
+        node("3", "entity: Added"),
+      ],
+      renaming: true,
+    });
+    expect(merged.map((n) => [n.data.erId, Boolean(n.selected)])).toEqual([
+      ["entity: A", true],
+      ["entity: B", false],
+      ["entity: New", true],
+      ["entity: Added", false],
+    ]);
+  });
+
   it("drops a node the edit removed", () => {
     const merged = merge({
       oldNodes: [node("0", "entity: Gone")],

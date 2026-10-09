@@ -84,6 +84,26 @@ export const EXPORT_EXCLUDED_CLASS = "er-overlay-annotation";
 export const isExportable = (node: HTMLElement) =>
   (node as Element).classList?.contains(EXPORT_EXCLUDED_CLASS) !== true;
 
+/**
+ * Set on the page while the diagram is being captured, for what is only drawn
+ * for the person editing it but cannot be left out by `isExportable`, because
+ * it is a style on a node rather than an element of its own -- the selection
+ * highlight (see globals.css). html-to-image writes every element's computed
+ * style into the file, so the style has to be off while it reads them.
+ */
+export const EXPORTING_CLASS = "er-exporting";
+
+export const capturingForExport = async <T>(
+  capture: () => Promise<T>,
+): Promise<T> => {
+  document.documentElement.classList.add(EXPORTING_CLASS);
+  try {
+    return await capture();
+  } finally {
+    document.documentElement.classList.remove(EXPORTING_CLASS);
+  }
+};
+
 export const downloadImage = (dataUrl: string, fileExtension: string) => {
   const a = document.createElement("a");
   a.setAttribute("download", `er_diagram.${fileExtension}`);
@@ -93,10 +113,11 @@ export const downloadImage = (dataUrl: string, fileExtension: string) => {
 
 export const exportToPDF = async (width: number, height: number) => {
   // Get the DOM element
-  const flow = document.querySelector(".react-flow__viewport");
+  const flow = document.querySelector<HTMLElement>(".react-flow__viewport");
   // Convert to SVG
-  // @ts-ignore
-  const svgContent = await toSvg(flow!, { filter: isExportable });
+  const svgContent = await capturingForExport(() =>
+    toSvg(flow!, { filter: isExportable }),
+  );
   const svgElement = decodeURIComponent(
     svgContent.replace("data:image/svg+xml;charset=utf-8,", "").trim(),
   );

@@ -41,6 +41,7 @@ import {
 import { ErJSON } from "../../hooks/useJSON";
 import { useResizeCommit } from "../../hooks/useResizeCommit";
 import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
+import { useSelectionEndWithoutBox } from "../../hooks/useSelectionEndWithoutBox";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -365,6 +366,8 @@ const ErDiagram = ({
     onNodeDragStop(e, node, nodes);
   };
 
+  const onSelectionEnd = useSelectionEndWithoutBox();
+
   // React Flow fills a size a node does not carry in from whichever node last
   // held its id, and never measures a hidden one -- so a hidden node is handed
   // over with its size cleared, and the store never holds a leftover
@@ -383,8 +386,12 @@ const ErDiagram = ({
       onNodeDrag={onNodeDrag}
       onNodeDragStart={onNodeDragStartHandler}
       onNodeDragStop={onNodeDragStopHandler}
+      onSelectionEnd={onSelectionEnd}
       onNodeMouseEnter={onNodeMouseEnter}
       onNodeMouseLeave={onNodeMouseLeave}
+      // the diagram is drawn from the code: a node deleted here is still in the
+      // code, and comes back with the next edit
+      deleteKeyCode={null}
       proOptions={{ hideAttribution: true }}
     >
       {hoveredOwnerId !== null && <AttributeTooltip nodeId={hoveredOwnerId} />}

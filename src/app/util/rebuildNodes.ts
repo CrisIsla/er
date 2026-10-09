@@ -20,6 +20,7 @@ export type RebuildNode = {
   id: string;
   position: { x: number; y: number };
   hidden?: boolean;
+  selected?: boolean;
   data: { erId?: string };
   width?: number | null;
   height?: number | null;
@@ -165,6 +166,9 @@ export const mergeRebuiltNodes = <T extends RebuildNode>({
           ...newNode,
           position: incoming?.positions.get(newNode.id) ?? oldNode.position,
           hidden: hiddenFor(newNode),
+          // what is selected stays selected through an edit -- in a shared
+          // diagram the edit is often a peer's, made without asking
+          selected: oldNode.selected,
         } as T,
         oldNode,
       );

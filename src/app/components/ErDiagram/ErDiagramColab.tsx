@@ -34,6 +34,7 @@ import {
 } from "../../util/rebuildNodes";
 import { useResizeCommit } from "../../hooks/useResizeCommit";
 import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
+import { useSelectionEndWithoutBox } from "../../hooks/useSelectionEndWithoutBox";
 import { ErJSON, toErJSONEdges, toErJSONNodes } from "../../hooks/useJSON";
 import {
   isFiniteSize,
@@ -41,6 +42,11 @@ import {
   withNodeSize,
   withoutUnobservedSizes,
 } from "../../util/nodeSize";
+import {
+  publishPositions,
+  toSharedNode,
+  withLocalSelection,
+} from "../../util/sharedNodes";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -145,7 +151,7 @@ const ErDiagram = ({
   useEffect(() => {
     const updateNodes = () => {
       const allNodes = Array.from(yNodesMap.values());
-      setNodes(allNodes);
+      setNodes((local) => withLocalSelection(allNodes, local));
     };
     const updateEdges = () => {
       const allEdges = Array.from(yEdgesMap.values());
@@ -168,9 +174,10 @@ const ErDiagram = ({
       const newKeys = new Set(nodes.map((n) => n.id));
 
       nodes.forEach((node) => {
+        const shared = toSharedNode(node);
         const existing = yNodesMap.get(node.id);
-        if (!existing || JSON.stringify(existing) !== JSON.stringify(node)) {
-          yNodesMap.set(node.id, node);
+        if (!existing || JSON.stringify(existing) !== JSON.stringify(shared)) {
+          yNodesMap.set(node.id, shared);
         }
       });
 
@@ -363,17 +370,11 @@ const ErDiagram = ({
   };
 
   const onNodeDragStopHandler: NodeDragHandler = (e, node, nodes) => {
-    ydoc.transact(() => {
-      const existing = yNodesMap.get(node.id);
-      if (existing) {
-        yNodesMap.set(node.id, {
-          ...existing,
-          position: node.position,
-        });
-      }
-    });
+    publishPositions(ydoc, yNodesMap, nodes);
     onNodeDragStop(e, node, nodes);
   };
+
+  const onSelectionEnd = useSelectionEndWithoutBox();
 
   /**
    * Publishing after a resize goes through the whole-node sync rather than a
@@ -440,8 +441,12 @@ const ErDiagram = ({
       onNodeDrag={onNodeDrag}
       onNodeDragStart={onNodeDragStartHandler}
       onNodeDragStop={onNodeDragStopHandler}
+      onSelectionEnd={onSelectionEnd}
       onNodeMouseEnter={onNodeMouseEnter}
       onNodeMouseLeave={onNodeMouseLeave}
+      // the diagram is drawn from the code: a node deleted here is still in the
+      // code, and comes back with the next edit
+      deleteKeyCode={null}
       proOptions={{ hideAttribution: true }}
     >
       {hoveredOwnerId !== null && <AttributeTooltip nodeId={hoveredOwnerId} />}

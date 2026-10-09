@@ -7,6 +7,7 @@ import { MdDownload } from "react-icons/md";
 import { getRectOfNodes, useReactFlow } from "reactflow";
 import {
   DownloadFunc,
+  capturingForExport,
   downloadImage,
   exportToPDF,
   isExportable,
@@ -30,16 +31,19 @@ const ExportButton = () => {
       const nodesBounds = getRectOfNodes(getNodes());
       nodesBounds.height += 100;
       nodesBounds.width += 100;
-      let toDownload = document.querySelector(".react-flow__renderer")!;
-      // @ts-ignore
-      toImg(toDownload, {
-        backgroundColor: transparentBg ? "transparent" : "white",
-        width: imageWidth,
-        height: imageHeight,
-        // the capture root is an ancestor of the edge-label portal, so the
-        // marks drawn through it would otherwise be in the file
-        filter: isExportable,
-      }).then((s) => downloadImage(s, fileExtension));
+      let toDownload = document.querySelector<HTMLElement>(
+        ".react-flow__renderer",
+      )!;
+      capturingForExport(() =>
+        toImg(toDownload, {
+          backgroundColor: transparentBg ? "transparent" : "white",
+          width: imageWidth,
+          height: imageHeight,
+          // the capture root is an ancestor of the edge-label portal, so the
+          // marks drawn through it would otherwise be in the file
+          filter: isExportable,
+        }),
+      ).then((s) => downloadImage(s, fileExtension));
     };
 
   const t = useTranslations("home.header");

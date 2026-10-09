@@ -51,3 +51,30 @@
 .diagram-awaiting-fit .react-flow__viewport {
   opacity: 0;
 }
+
+/* The highlight: a shadow around the elements selected, and a fainter one
+   around the element under the pointer, so pointing at an element never
+   passes for selecting it. Only an element that can be selected gets one, so
+   an aggregation's box does not.
+
+   A glow -- a drop shadow -- rather than a border or an outline because it
+   follows whatever the node draws, a diamond, an oval, a triangle, where those
+   would put a box around it; and soft, because a second crisp line around a
+   shape is notation here (a weak entity, an identifying relationship, a
+   multivalued attribute). In a shadow's own colour, black at a shadow's
+   strength, so it adds no colour to a diagram whose colours all mean
+   something -- and darkest at the edge, so it keeps an outline on the pale
+   shapes.
+
+   Off while the diagram is captured for export (`er-exporting`, set by
+   capturingForExport in util/common.ts): html-to-image writes every element's
+   computed style into the file. */
+:root:not(.er-exporting) .react-flow__node.selectable:not(.selected):hover {
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 0.3))
+    drop-shadow(0 0 5px rgb(0 0 0 / 0.15));
+}
+:root:not(.er-exporting) .react-flow__node.selected {
+  filter: drop-shadow(0 0 2px rgb(0 0 0 / 0.55))
+    drop-shadow(0 0 5px rgb(0 0 0 / 0.35))
+    drop-shadow(0 0 10px rgb(0 0 0 / 0.25));
+}
