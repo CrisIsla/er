@@ -160,13 +160,24 @@ export const useAlignmentGuide = () => {
    */
   const lastFreeRef = useRef<{ x: number; y: number } | null>(null);
 
-  const onNodeDragStart: NodeDragHandler = useCallback((_evt, node) => {
-    draggingRef.current = node.id;
-    lastFreeRef.current = null;
-  }, []);
+  /**
+   * React Flow hands both handlers no node at all when the one pressed is not
+   * itself dragged: a node whose parent is selected moves with the parent --
+   * an attribute of a selected entity, a member of a selected box -- and the
+   * pressed node is left out of the drag (getDragItems). There is then no
+   * dragged node to guide.
+   */
+  const onNodeDragStart: NodeDragHandler = useCallback(
+    (_evt, node: Node | undefined) => {
+      draggingRef.current = node?.id ?? null;
+      lastFreeRef.current = null;
+    },
+    [],
+  );
 
   const onNodeDrag: NodeDragHandler = useCallback(
-    (_evt, node: Node, draggedNodes: Node[]) => {
+    (_evt, node: Node | undefined, draggedNodes: Node[]) => {
+      if (node === undefined) return;
       const allNodes = getNodes();
       // the store lags the pointer by a frame during a drag, so trust the
       // position React Flow just handed us
