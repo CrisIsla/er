@@ -19,6 +19,7 @@ import {
   LayoutAlgorithm,
   useDiagramSettings,
 } from "./useDiagramSettings";
+import { useDiagramHistory } from "./useDiagramHistory";
 
 type LayoutNode = Partial<
   ElkNode &
@@ -82,6 +83,7 @@ type ApplyLayoutOptions = {
 const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
   const { getNodes, setNodes, getEdges, setEdges, fitView } = useReactFlow();
   const { settings } = useDiagramSettings();
+  const history = useDiagramHistory();
   const algorithm = settings.layoutAlgorithm;
 
   // held in a ref so an inline callback can't change applyLayout's identity on
@@ -146,8 +148,12 @@ const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
       style: { ...edge.style },
     }));
 
+    // one undo step, bracketed around the write itself: the layout ran in the
+    // background, and anything the user did meanwhile is a step of its own
+    const gesture = history.begin("layout");
     setNodes(nextNodes);
     setEdges(nextEdges);
+    gesture.commitAt(nextNodes);
     setTimeout(
       () =>
         window.requestAnimationFrame(() => {
@@ -156,7 +162,16 @@ const useApplyLayout = ({ onApplied }: ApplyLayoutOptions = {}) => {
         }),
       0,
     );
-  }, [algorithm, settings, getNodes, getEdges, setNodes, setEdges, fitView]);
+  }, [
+    algorithm,
+    settings,
+    getNodes,
+    getEdges,
+    setNodes,
+    setEdges,
+    fitView,
+    history,
+  ]);
 
   return { applyLayout };
 };

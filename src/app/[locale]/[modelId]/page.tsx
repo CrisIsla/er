@@ -7,6 +7,8 @@ import { erDocWithoutLocation } from "../../util/common";
 import { DiagramChange, ErDocChangeEvent } from "../../types/CodeEditor";
 import { ER } from "../../../ERDoc/types/parser/ER";
 import { useJSON } from "../../hooks/useJSON";
+import { DiagramHistoryProvider } from "../../hooks/useDiagramHistory";
+import { ErNode } from "../../types/ErDiagram";
 import { useMonaco } from "@monaco-editor/react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
@@ -146,7 +148,17 @@ const Page = () => {
   }, [modelId]);
 
   return (
-    <>
+    <DiagramHistoryProvider
+      lastChange={lastChange}
+      shared={
+        ydocReady
+          ? {
+              ydoc: ydocRef.current!,
+              yNodesMap: ydocRef.current!.getMap<ErNode>("nodesMap"),
+            }
+          : null
+      }
+    >
       <div className="flex h-screen w-screen flex-col">
         <div className="flex h-[10%] w-full justify-between border-b border-b-border  bg-[#232730] min-[1340px]:h-[5%]">
           <Header onErDocChange={onErDocChange} />
@@ -167,7 +179,11 @@ const Page = () => {
         </div>
       </div>
       {showJoinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        >
           <div className="w-96 rounded-lg bg-white p-6">
             <h2 className="mb-4 text-xl font-bold">Unirse al diagrama</h2>
             <p className="mb-4">
@@ -201,7 +217,7 @@ const Page = () => {
           </div>
         </div>
       )}
-    </>
+    </DiagramHistoryProvider>
   );
 };
 

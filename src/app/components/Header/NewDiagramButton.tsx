@@ -112,7 +112,11 @@ const NewDiagramButton = ({ onErDocChange }: NewDiagramButtonProps) => {
       </Modal>
 
       {showCustomModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        >
           <div className="w-80 rounded-lg bg-white p-6">
             <h2 className="mb-4 text-xl font-bold text-black">
               Nombre del diagrama

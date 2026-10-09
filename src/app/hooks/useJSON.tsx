@@ -109,6 +109,13 @@ export const useJSON = (onErDocChange: (evt: ErDocChangeEvent) => void) => {
       yText.insert(0, editorText);
     }
 
+    // The stored layout is for a shared document that is starting out, the
+    // way the stored code is. This runs again on every reconnect and on
+    // joining, when the document is already live: its layout is newer than
+    // the stored copy (saved on a 5 s debounce), and landing the copy would
+    // put everyone's latest moves back -- and start the history over.
+    if (ydoc.getMap("nodesMap").size > 0) return;
+
     onErDocChange({
       type: "json",
       positions: {

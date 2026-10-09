@@ -3,6 +3,8 @@ import ReactFlow, {
   Background,
   BackgroundVariant,
   Edge,
+  Node,
+  NodeChange,
   NodeDragHandler,
   OnInit,
   Panel,
@@ -41,6 +43,7 @@ import {
 import { ErJSON } from "../../hooks/useJSON";
 import { useResizeCommit } from "../../hooks/useResizeCommit";
 import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
+import { Gesture, useDiagramHistory } from "../../hooks/useDiagramHistory";
 import { useSelectionEndWithoutBox } from "../../hooks/useSelectionEndWithoutBox";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
@@ -114,6 +117,7 @@ const ErDiagram = ({
   const { onNodeMouseEnter, onNodeMouseLeave, hoveredOwnerId } =
     useAttributeVisibility();
   const { settings } = useDiagramSettings();
+  const history = useDiagramHistory();
   // the notation owns whether edges are stepped, and the marks have to follow
   // the route that is actually drawn
   const occlusions = useOcclusions(notation.isOrthogonal);
@@ -322,6 +326,18 @@ const ErDiagram = ({
     saveAfterFlush,
   );
 
+  // shown to the history with the nodes as they were, so an arrow-key nudge is
+  // recorded from where it started
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  const onNodesChangeRecorded = useCallback(
+    (changes: NodeChange[]) => {
+      history.noticeChanges(changes, nodesRef.current);
+      onNodesChangeWithResize(changes);
+    },
+    [history, onNodesChangeWithResize],
+  );
+
   useAggregationAutoGrow({
     // while a stored layout is still landing it owns the sizes
     enabled: pendingLayout === null,
@@ -356,14 +372,28 @@ const ErDiagram = ({
     [setRfInstance, loadFromLocalStorage],
   );
 
+  // A code edit can rename what the history knows a node by. Keyed on the
+  // rebuild alone: a drag moves nodes, it never renames them.
+  const rebuiltFrom = useRef<Node[]>([]);
+  useEffect(() => {
+    history.noticeRebuild(rebuiltFrom.current, nodes);
+    rebuiltFrom.current = nodes;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prevErDoc]);
+
+  // the drag under way, to end in the history when it is dropped
+  const drag = useRef<Gesture | null>(null);
+
   const onNodeDragStartHandler: NodeDragHandler = (e, node, nodes) => {
     saveToLocalStorage();
+    drag.current = history.begin("pointer", nodes);
     onNodeDragStart(e, node, nodes);
   };
 
   const onNodeDragStopHandler: NodeDragHandler = (e, node, nodes) => {
     saveToLocalStorage();
     onNodeDragStop(e, node, nodes);
+    drag.current?.commit();
   };
 
   const onSelectionEnd = useSelectionEndWithoutBox();
@@ -378,7 +408,7 @@ const ErDiagram = ({
       className={hideUntilFit ? "diagram-awaiting-fit" : undefined}
       onInit={handleInit}
       nodes={flowNodes}
-      onNodesChange={onNodesChangeWithResize}
+      onNodesChange={onNodesChangeRecorded}
       nodeTypes={erNodeTypes}
       edges={edges}
       onEdgesChange={onEdgesChange}

@@ -95,7 +95,11 @@ export const EditorHeader = ({
       </div>
 
       {shareModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        >
           <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
             {copiedMessageVisible && (
               <div className="absolute right-2 top-2 rounded bg-orange-100 px-3 py-1 text-orange-800 shadow">

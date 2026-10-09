@@ -22,6 +22,7 @@ import {
   useStoreApi,
 } from "reactflow";
 import { PositionedNode } from "../util/alignmentCandidates";
+import { buildContainerMap } from "../util/erGraph";
 import {
   ResizeSnapshot,
   resizeFloor,
@@ -33,12 +34,14 @@ import {
   MIN_AGGREGATION_SIZE,
   NodeSize,
 } from "../util/nodeSize";
+import { Gesture, useDiagramHistory } from "./useDiagramHistory";
 
 const sameSize = (a: NodeSize, b: NodeSize) =>
   a.width === b.width && a.height === b.height;
 
 export const useAggregationResize = (containerId: string | null) => {
   const store = useStoreApi();
+  const history = useDiagramHistory();
 
   /**
    * The box to draw at.
@@ -109,6 +112,7 @@ export const useAggregationResize = (containerId: string | null) => {
   const min = frozenMin ?? derivedMin;
 
   const snapshotRef = useRef<ResizeSnapshot | null>(null);
+  const gestureRef = useRef<Gesture | null>(null);
   const lastEmitted = useRef(new Map<string, { x: number; y: number }>());
   const containerIdRef = useRef(containerId);
   containerIdRef.current = containerId;
@@ -150,8 +154,15 @@ export const useAggregationResize = (containerId: string | null) => {
         return;
       }
       const state = store.getState();
+      // one undo step: the box, and everything it moves along with it
+      const nodes = Array.from(state.nodeInternals.values());
+      const containers = buildContainerMap(nodes);
+      gestureRef.current = history.begin("pointer", [
+        { id },
+        ...nodes.filter((node) => containers.get(node.id)?.includes(id)),
+      ]);
       snapshotRef.current = resizeSnapshot(
-        Array.from(state.nodeInternals.values()) as PositionedNode[],
+        nodes as PositionedNode[],
         // attributes are grouped with the element they belong to, and that
         // ownership is only visible in the edges
         state.edges,
@@ -161,7 +172,7 @@ export const useAggregationResize = (containerId: string | null) => {
       lastEmitted.current = new Map();
       setFrozenMin(derivedMinRef.current);
     },
-    [store],
+    [store, history],
   );
 
   const onResize: OnResize = useCallback(
@@ -177,6 +188,8 @@ export const useAggregationResize = (containerId: string | null) => {
       snapshotRef.current = null;
       lastEmitted.current = new Map();
       setFrozenMin(null);
+      gestureRef.current?.commit();
+      gestureRef.current = null;
     },
     [applyScale],
   );

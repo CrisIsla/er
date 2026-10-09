@@ -8,6 +8,7 @@ import { ER } from "../../ERDoc/types/parser/ER";
 import { useSearchParams } from "next/navigation";
 import { useMonaco } from "@monaco-editor/react";
 import { useJSON } from "../hooks/useJSON";
+import { DiagramHistoryProvider } from "../hooks/useDiagramHistory";
 
 const Page = () => {
   const [erDoc, setErDoc] = useState<ER | null>(null);
@@ -72,7 +73,7 @@ const Page = () => {
   }, [searchParams, monaco]);
 
   return (
-    <>
+    <DiagramHistoryProvider lastChange={lastChange}>
       <div className="flex h-screen w-screen flex-col">
         <div className="flex h-[10%] w-full justify-between border-b border-b-border  bg-[#232730] min-[1340px]:h-[5%]">
           <Header onErDocChange={onErDocChange} />
@@ -85,7 +86,7 @@ const Page = () => {
           />
         </div>
       </div>
-    </>
+    </DiagramHistoryProvider>
   );
 };
 

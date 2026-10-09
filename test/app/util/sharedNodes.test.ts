@@ -1,6 +1,8 @@
 import { Node } from "reactflow";
 import * as Y from "yjs";
+import { Layout } from "../../../src/app/util/layoutHistory";
 import {
+  publishLayout,
   publishPositions,
   toSharedNode,
   withLocalSelection,
@@ -144,5 +146,110 @@ describe("publishPositions", () => {
     yNodesMap.observe((event) => (writes += event.keysChanged.size));
     publishPositions(ydoc, yNodesMap, [node("a", 0, 0), node("b", 120, 0)]);
     expect(writes).toBe(1);
+  });
+});
+
+describe("publishLayout", () => {
+  const at = (x: number, y: number, size: Layout["size"] = null): Layout => ({
+    position: { x, y },
+    size,
+    parent: null,
+  });
+  const entity = (id: string, erId: string, x: number, y: number) =>
+    node(id, x, y, { type: "entity", data: { label: erId, erId } });
+
+  it("finds a node by what it is, whichever id it has now", () => {
+    // a code edit since moved entity B from id "1" to id "2"
+    const { ydoc, yNodesMap } = sharedDiagram([
+      entity("0", "entity: Z", 0, 0),
+      entity("1", "entity: A", 0, 0),
+      entity("2", "entity: B", 100, 0),
+    ]);
+    publishLayout(ydoc, yNodesMap, new Map([["entity|entity: B", at(5, 6)]]));
+    expect(yNodesMap.get("2")!.position).toEqual({ x: 5, y: 6 });
+    expect(yNodesMap.get("1")!.position).toEqual({ x: 0, y: 0 });
+  });
+
+  it("writes an authored size into both channels", () => {
+    const { ydoc, yNodesMap } = sharedDiagram([
+      node("0", 0, 0, {
+        type: "aggregation",
+        data: { label: "G", erId: "entity: G" },
+        width: 400,
+        height: 300,
+        style: { width: 400, height: 300 },
+      }),
+    ]);
+    publishLayout(
+      ydoc,
+      yNodesMap,
+      new Map([
+        ["aggregation|entity: G", at(0, 0, { width: 250, height: 200 })],
+      ]),
+    );
+    expect(yNodesMap.get("0")).toMatchObject({
+      width: 250,
+      height: 200,
+      style: { width: 250, height: 200 },
+    });
+  });
+
+  it("publishes every layout in one transaction", () => {
+    const { ydoc, yNodesMap } = sharedDiagram([
+      entity("0", "entity: A", 0, 0),
+      entity("1", "entity: B", 100, 0),
+    ]);
+    let transactions = 0;
+    yNodesMap.observe(() => transactions++);
+    publishLayout(
+      ydoc,
+      yNodesMap,
+      new Map([
+        ["entity|entity: A", at(1, 1)],
+        ["entity|entity: B", at(2, 2)],
+      ]),
+    );
+    expect(transactions).toBe(1);
+  });
+
+  it("writes nothing for a node already laid out that way", () => {
+    const { ydoc, yNodesMap } = sharedDiagram([entity("0", "entity: A", 3, 4)]);
+    let transactions = 0;
+    yNodesMap.observe(() => transactions++);
+    publishLayout(ydoc, yNodesMap, new Map([["entity|entity: A", at(3, 4)]]));
+    expect(transactions).toBe(0);
+  });
+
+  it("given where the nodes started, leaves one somebody has moved since", () => {
+    const { ydoc, yNodesMap } = sharedDiagram([
+      entity("0", "entity: A", 0, 0),
+      entity("1", "entity: B", 300, 300), // a peer moved B from (100, 0)
+    ]);
+    publishLayout(
+      ydoc,
+      yNodesMap,
+      new Map([
+        ["entity|entity: A", at(10, 10)],
+        ["entity|entity: B", at(110, 10)],
+      ]),
+      new Map([
+        ["entity|entity: A", at(0, 0)],
+        ["entity|entity: B", at(100, 0)],
+      ]),
+    );
+    expect(yNodesMap.get("0")!.position).toEqual({ x: 10, y: 10 });
+    expect(yNodesMap.get("1")!.position).toEqual({ x: 300, y: 300 });
+  });
+
+  it("does not publish this editor's selection", () => {
+    const { ydoc, yNodesMap } = sharedDiagram([
+      node("0", 0, 0, {
+        type: "entity",
+        data: { label: "A", erId: "entity: A" },
+        selected: true,
+      }),
+    ]);
+    publishLayout(ydoc, yNodesMap, new Map([["entity|entity: A", at(9, 9)]]));
+    expect(yNodesMap.get("0")).not.toHaveProperty("selected");
   });
 });
