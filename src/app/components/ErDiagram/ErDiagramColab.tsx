@@ -42,6 +42,7 @@ import {
   useDiagramHistory,
 } from "../../hooks/useDiagramHistory";
 import { useSelectionEndWithoutBox } from "../../hooks/useSelectionEndWithoutBox";
+import { useCtrlClickKeepsSelection } from "../../hooks/useCtrlClickKeepsSelection";
 import { ErJSON, toErJSONEdges, toErJSONNodes } from "../../hooks/useJSON";
 import {
   isFiniteSize,
@@ -410,6 +411,7 @@ const ErDiagram = ({
   };
 
   const onSelectionEnd = useSelectionEndWithoutBox();
+  const { onMouseDownCapture, onClickCapture } = useCtrlClickKeepsSelection();
 
   /**
    * Publishing after a resize goes through the whole-node sync rather than a
@@ -493,6 +495,8 @@ const ErDiagram = ({
       onNodeDragStart={onNodeDragStartHandler}
       onNodeDragStop={onNodeDragStopHandler}
       onSelectionEnd={onSelectionEnd}
+      onMouseDownCapture={onMouseDownCapture}
+      onClickCapture={onClickCapture}
       onNodeMouseEnter={onNodeMouseEnter}
       onNodeMouseLeave={onNodeMouseLeave}
       // the diagram is drawn from the code: a node deleted here is still in the

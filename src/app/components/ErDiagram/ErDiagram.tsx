@@ -45,6 +45,7 @@ import { useResizeCommit } from "../../hooks/useResizeCommit";
 import { useAggregationAutoGrow } from "../../hooks/useAggregationAutoGrow";
 import { Gesture, useDiagramHistory } from "../../hooks/useDiagramHistory";
 import { useSelectionEndWithoutBox } from "../../hooks/useSelectionEndWithoutBox";
+import { useCtrlClickKeepsSelection } from "../../hooks/useCtrlClickKeepsSelection";
 import ErNotation from "./notations/DefaultNotation";
 import { useTranslations } from "next-intl";
 import { DiagramChange } from "../../types/CodeEditor";
@@ -397,6 +398,7 @@ const ErDiagram = ({
   };
 
   const onSelectionEnd = useSelectionEndWithoutBox();
+  const { onMouseDownCapture, onClickCapture } = useCtrlClickKeepsSelection();
 
   // React Flow fills a size a node does not carry in from whichever node last
   // held its id, and never measures a hidden one -- so a hidden node is handed
@@ -417,6 +419,8 @@ const ErDiagram = ({
       onNodeDragStart={onNodeDragStartHandler}
       onNodeDragStop={onNodeDragStopHandler}
       onSelectionEnd={onSelectionEnd}
+      onMouseDownCapture={onMouseDownCapture}
+      onClickCapture={onClickCapture}
       onNodeMouseEnter={onNodeMouseEnter}
       onNodeMouseLeave={onNodeMouseLeave}
       // the diagram is drawn from the code: a node deleted here is still in the
