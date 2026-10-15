@@ -1,0 +1,480 @@
+{
+  "erDoc": "entity Tarjeta {\n  número key\n  tipo\n  cupo\n}\n\nentity Cuenta {\n  número key\n  saldo\n  estado\n}\n\nentity Empleador {\n  rut key\n  nombre\n  rubro\n}\n\nentity Analista {\n  rut key\n  nombre\n  oficina\n}\n\nentity Crédito {\n  código key\n  nombre\n  plazo\n  monto\n}\n\nentity Cliente {\n  rut key\n  nombre\n  email\n  renta\n}\n\nentity Fondo {\n  código key\n  tipo\n  serie\n}\n\nrelation Asocia(Cuenta, Tarjeta 1!)\n\nrelation Deposita(Empleador, Cuenta)\n\nrelation Aprueba(Analista, Tarjeta 1)\n\nrelation Abre(Cliente, Cuenta 1)\n\nrelation Otorga(Analista, Cliente, Crédito) {\n  tasa\n}\n\nrelation Evalúa(Analista, Cliente)\n\nrelation Invierte(Cliente, Fondo) {\n  fecha\n}\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 434,
+        "y": 517
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -107.1,
+        "y": 0
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 40,
+        "y": -70
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 95,
+        "y": 60
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": 305,
+        "y": -22
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": -65.7,
+        "y": -50.4
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 15,
+        "y": -70
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": 84.55,
+        "y": -50.4
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 626.25,
+        "y": -22
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 44.65,
+        "y": -69.5
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": 115.05,
+        "y": -23.9
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 95.35,
+        "y": 45
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": -45,
+        "y": 348
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": -61.6,
+        "y": 45
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": -102.1,
+        "y": 0
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": -64.7,
+        "y": -45
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": 130,
+        "y": 523
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": -92.9,
+        "y": -18.1
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": -56.4,
+        "y": 55.2
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": 79.3,
+        "y": 55.2
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": 117.05,
+        "y": -18.1
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 305,
+        "y": 348
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": 120,
+        "y": 47
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": 102.9,
+        "y": -55
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": -19,
+        "y": 84
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": -70,
+        "y": 42
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 630,
+        "y": 348
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": 88,
+        "y": -45
+      }
+    },
+    {
+      "id": "28",
+      "position": {
+        "x": 111.6,
+        "y": 18.1
+      }
+    },
+    {
+      "id": "29",
+      "position": {
+        "x": 49.2,
+        "y": 67.7
+      }
+    },
+    {
+      "id": "30",
+      "position": {
+        "x": 127.5,
+        "y": -47.5
+      }
+    },
+    {
+      "id": "31",
+      "position": {
+        "x": 477.5,
+        "y": 322.5
+      }
+    },
+    {
+      "id": "32",
+      "position": {
+        "x": -47.5,
+        "y": 137.5
+      }
+    },
+    {
+      "id": "33",
+      "position": {
+        "x": 302.5,
+        "y": 137.5
+      }
+    },
+    {
+      "id": "34",
+      "position": {
+        "x": 127.5,
+        "y": 322.5
+      }
+    },
+    {
+      "id": "35",
+      "position": {
+        "x": -82.5,
+        "y": 99.5
+      }
+    },
+    {
+      "id": "36",
+      "position": {
+        "x": 127.5,
+        "y": 137.5
+      }
+    },
+    {
+      "id": "37",
+      "position": {
+        "x": 477.5,
+        "y": -47.5
+      }
+    },
+    {
+      "id": "38",
+      "position": {
+        "x": 92.5,
+        "y": 115.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Tarjeta->número",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Tarjeta->tipo",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Tarjeta->cupo",
+      "source": "0",
+      "target": "3"
+    },
+    {
+      "id": "entity-attr: Cuenta->número",
+      "source": "4",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Cuenta->saldo",
+      "source": "4",
+      "target": "6"
+    },
+    {
+      "id": "entity-attr: Cuenta->estado",
+      "source": "4",
+      "target": "7"
+    },
+    {
+      "id": "entity-attr: Empleador->rut",
+      "source": "8",
+      "target": "9"
+    },
+    {
+      "id": "entity-attr: Empleador->nombre",
+      "source": "8",
+      "target": "10"
+    },
+    {
+      "id": "entity-attr: Empleador->rubro",
+      "source": "8",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Analista->rut",
+      "source": "12",
+      "target": "13"
+    },
+    {
+      "id": "entity-attr: Analista->nombre",
+      "source": "12",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Analista->oficina",
+      "source": "12",
+      "target": "15"
+    },
+    {
+      "id": "entity-attr: Crédito->código",
+      "source": "16",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Crédito->nombre",
+      "source": "16",
+      "target": "18"
+    },
+    {
+      "id": "entity-attr: Crédito->plazo",
+      "source": "16",
+      "target": "19"
+    },
+    {
+      "id": "entity-attr: Crédito->monto",
+      "source": "16",
+      "target": "20"
+    },
+    {
+      "id": "entity-attr: Cliente->rut",
+      "source": "21",
+      "target": "22"
+    },
+    {
+      "id": "entity-attr: Cliente->nombre",
+      "source": "21",
+      "target": "23"
+    },
+    {
+      "id": "entity-attr: Cliente->email",
+      "source": "21",
+      "target": "24"
+    },
+    {
+      "id": "entity-attr: Cliente->renta",
+      "source": "21",
+      "target": "25"
+    },
+    {
+      "id": "entity-attr: Fondo->código",
+      "source": "26",
+      "target": "27"
+    },
+    {
+      "id": "entity-attr: Fondo->tipo",
+      "source": "26",
+      "target": "28"
+    },
+    {
+      "id": "entity-attr: Fondo->serie",
+      "source": "26",
+      "target": "29"
+    },
+    {
+      "id": "relationship-part: Asocia$Cuenta$Tarjeta->Cuenta",
+      "source": "30",
+      "target": "4"
+    },
+    {
+      "id": "relationship-part: Asocia$Cuenta$Tarjeta->Tarjeta",
+      "source": "30",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Deposita$Cuenta$Empleador->Empleador",
+      "source": "31",
+      "target": "8"
+    },
+    {
+      "id": "relationship-part: Deposita$Cuenta$Empleador->Cuenta",
+      "source": "31",
+      "target": "4"
+    },
+    {
+      "id": "relationship-part: Aprueba$Analista$Tarjeta->Analista",
+      "source": "32",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Aprueba$Analista$Tarjeta->Tarjeta",
+      "source": "32",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Abre$Cliente$Cuenta->Cliente",
+      "source": "33",
+      "target": "21"
+    },
+    {
+      "id": "relationship-part: Abre$Cliente$Cuenta->Cuenta",
+      "source": "33",
+      "target": "4"
+    },
+    {
+      "id": "relationship-attr: Otorga$Analista$Cliente$Crédito->tasa",
+      "source": "34",
+      "target": "35"
+    },
+    {
+      "id": "relationship-part: Otorga$Analista$Cliente$Crédito->Analista",
+      "source": "34",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Otorga$Analista$Cliente$Crédito->Cliente",
+      "source": "34",
+      "target": "21"
+    },
+    {
+      "id": "relationship-part: Otorga$Analista$Cliente$Crédito->Crédito",
+      "source": "34",
+      "target": "16"
+    },
+    {
+      "id": "relationship-part: Evalúa$Analista$Cliente->Analista",
+      "source": "36",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Evalúa$Analista$Cliente->Cliente",
+      "source": "36",
+      "target": "21"
+    },
+    {
+      "id": "relationship-attr: Invierte$Cliente$Fondo->fecha",
+      "source": "37",
+      "target": "38"
+    },
+    {
+      "id": "relationship-part: Invierte$Cliente$Fondo->Cliente",
+      "source": "37",
+      "target": "21"
+    },
+    {
+      "id": "relationship-part: Invierte$Cliente$Fondo->Fondo",
+      "source": "37",
+      "target": "26"
+    }
+  ]
+}

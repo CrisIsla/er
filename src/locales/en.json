@@ -72,6 +72,22 @@
       "roles": "Roles"
     },
 
+    "problems": {
+      "_title": "Test problems",
+      "problem-01": "1. Dropped on top",
+      "problem-02": "2. Swap in a tight row",
+      "problem-03": "3. Uneven gaps",
+      "problem-04": "4. Crooked rows and columns",
+      "problem-05": "5. Bunched attributes",
+      "problem-06": "6. Make room",
+      "problem-07": "7. Accidental rearrangement",
+      "problem-08": "8. Oversized box",
+      "problem-09": "9. Aggregation added late",
+      "problem-10": "10. Structure first",
+      "problem-11": "11. Covered before hand-in",
+      "problem-12": "12. Ready to hand in"
+    },
+
     "erDiagram": {
       "notationButton": "Notation",
       "arrowNotation": "Arrow notation",

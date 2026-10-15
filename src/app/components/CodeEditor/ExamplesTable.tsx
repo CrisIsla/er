@@ -10,12 +10,29 @@ import { useRouter } from "next/navigation";
 
 type ExamplesTableProps = {
   onErDocChange: (evt: ErDocChangeEvent) => void;
+  // which files under static/examples to list, and where their titles live
+  names?: string[];
+  namespace?: string;
 };
 
 // TODO: refactor, should request this from server?
 const EXAMPLE_NAMES = ["bank", "company", "subclass", "aggregation", "roles"];
 
-const ExamplesTable = ({ onErDocChange }: ExamplesTableProps) => {
+/**
+ * The problem diagrams of the feature user test: each one a diagram with a
+ * mess for a participant to fix. Listed only outside production -- they are
+ * study material, not examples of the language.
+ */
+export const PROBLEM_NAMES = Array.from(
+  { length: 12 },
+  (_, i) => `problem-${String(i + 1).padStart(2, "0")}`,
+);
+
+const ExamplesTable = ({
+  onErDocChange,
+  names = EXAMPLE_NAMES,
+  namespace = "home.examples",
+}: ExamplesTableProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [cachedExample, setCachedExample] = useState<{
     name: string;
@@ -23,7 +40,7 @@ const ExamplesTable = ({ onErDocChange }: ExamplesTableProps) => {
   } | null>(null);
 
   const { importJSON } = useJSON(onErDocChange);
-  const t = useTranslations("home.examples");
+  const t = useTranslations(namespace);
   const router = useRouter();
 
   const onExampleClickHandler = (exampleName: string) => {
@@ -55,7 +72,7 @@ const ExamplesTable = ({ onErDocChange }: ExamplesTableProps) => {
       {isOpen && (
         <div className="h-full overflow-auto rounded-b-md border-b border-l border-r border-slate-50/[0.16] bg-primary p-2 pb-10">
           <List overflow={"auto"} pb={"5"}>
-            {EXAMPLE_NAMES.map((exampleName) => (
+            {names.map((exampleName) => (
               <Button
                 key={exampleName}
                 colorScheme="blue"

@@ -1,0 +1,323 @@
+{
+  "erDoc": "entity Alumno {\n  rut key\n  email\n}\n\nentity Tutor {\n  rut key\n  area\n}\n\nentity Curso {\n  sigla key\n  cupo\n}\n\nentity Depto {\n  cod key\n  fono\n}\n\nentity Beca {\n  tipo key\n  valor\n}\n\nentity Tesis {\n  id key\n  tema\n}\n\nentity Sala {\n  num key\n  piso\n}\n\nentity Sede {\n  id key\n  zona\n}\n\nrelation Recibe(Alumno N, Beca 1)\nrelation Guia(Tutor 1, Tesis N!)\nrelation Usa(Curso N, Sala 1)\nrelation Tiene(Depto N!, Sede 1!)\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": -49,
+        "y": -22
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -23,
+        "y": -85
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 53,
+        "y": -85
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 123,
+        "y": -22
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": -23,
+        "y": -85
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 53,
+        "y": -85
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 281,
+        "y": -22
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": -23,
+        "y": -85
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 53,
+        "y": -85
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 448,
+        "y": -22
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": -23,
+        "y": -85
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 53,
+        "y": -85
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 41,
+        "y": 228
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": -23,
+        "y": 85
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 53,
+        "y": 85
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 200,
+        "y": 228
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": -23,
+        "y": 85
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": 53,
+        "y": 85
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": 367,
+        "y": 228
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": -23,
+        "y": 85
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": 53,
+        "y": 85
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 521,
+        "y": 228
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": -23,
+        "y": 85
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": 53,
+        "y": 85
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": -6.75,
+        "y": 77.5
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": 156.25,
+        "y": 77.5
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 319.25,
+        "y": 77.5
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": 482.25,
+        "y": 77.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Alumno->rut",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Alumno->email",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Tutor->rut",
+      "source": "3",
+      "target": "4"
+    },
+    {
+      "id": "entity-attr: Tutor->area",
+      "source": "3",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Curso->sigla",
+      "source": "6",
+      "target": "7"
+    },
+    {
+      "id": "entity-attr: Curso->cupo",
+      "source": "6",
+      "target": "8"
+    },
+    {
+      "id": "entity-attr: Depto->cod",
+      "source": "9",
+      "target": "10"
+    },
+    {
+      "id": "entity-attr: Depto->fono",
+      "source": "9",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Beca->tipo",
+      "source": "12",
+      "target": "13"
+    },
+    {
+      "id": "entity-attr: Beca->valor",
+      "source": "12",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Tesis->id",
+      "source": "15",
+      "target": "16"
+    },
+    {
+      "id": "entity-attr: Tesis->tema",
+      "source": "15",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Sala->num",
+      "source": "18",
+      "target": "19"
+    },
+    {
+      "id": "entity-attr: Sala->piso",
+      "source": "18",
+      "target": "20"
+    },
+    {
+      "id": "entity-attr: Sede->id",
+      "source": "21",
+      "target": "22"
+    },
+    {
+      "id": "entity-attr: Sede->zona",
+      "source": "21",
+      "target": "23"
+    },
+    {
+      "id": "relationship-part: Recibe$Alumno$Beca->Alumno",
+      "source": "24",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Recibe$Alumno$Beca->Beca",
+      "source": "24",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Guia$Tesis$Tutor->Tutor",
+      "source": "25",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Guia$Tesis$Tutor->Tesis",
+      "source": "25",
+      "target": "15"
+    },
+    {
+      "id": "relationship-part: Usa$Curso$Sala->Curso",
+      "source": "26",
+      "target": "6"
+    },
+    {
+      "id": "relationship-part: Usa$Curso$Sala->Sala",
+      "source": "26",
+      "target": "18"
+    },
+    {
+      "id": "relationship-part: Tiene$Depto$Sede->Depto",
+      "source": "27",
+      "target": "9"
+    },
+    {
+      "id": "relationship-part: Tiene$Depto$Sede->Sede",
+      "source": "27",
+      "target": "21"
+    }
+  ]
+}

@@ -1,0 +1,612 @@
+{
+  "erDoc": "entity Paciente {\n  rut key\n  nombre\n  fono\n  edad\n}\n\nentity Medico {\n  rut key\n  nombre\n  sueldo\n}\n\nentity Cirujano extends Medico {\n  turno\n}\n\nentity Especialidad {\n  codigo key\n  nombre\n}\n\nentity Farmaco {\n  codigo key\n  nombre\n  lab\n}\n\nentity Examen {\n  codigo key\n  tipo\n  precio\n}\n\nentity Seguro {\n  codigo key\n  nombre\n  plan\n}\n\nentity Pabellon {\n  numero key\n  piso\n}\n\nentity Sala {\n  numero key\n  piso\n}\n\nentity Cama depends on Ubicada {\n  numero pkey\n  tipo\n}\n\nrelation Atiende(Medico, Paciente) {\n  fecha\n}\n\nrelation Tiene(Medico, Especialidad 1!)\n\nrelation Receta(Medico, Paciente, Farmaco) {\n  dosis\n}\n\nrelation Opera(Cirujano, Pabellon) {\n  hora\n}\n\nrelation Rinde(Paciente, Examen) {\n  fecha\n}\n\nrelation Cubre(Seguro 1, Paciente)\n\nrelation Bonifica(Seguro, Examen)\n\nrelation Ocupa(Paciente 1, Cama 1) {\n  desde\n}\n\nrelation Ubicada(Sala, Cama 1!)\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 860,
+        "y": 428
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -60,
+        "y": -85
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 7.85,
+        "y": -105
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 90,
+        "y": -85
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": 475,
+        "y": 0
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 410,
+        "y": 428
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": -60,
+        "y": -85
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": 7.85,
+        "y": -105
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 56.4,
+        "y": -92
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 410,
+        "y": 648
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": 407,
+        "y": 533
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 15,
+        "y": 43
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 39.65,
+        "y": 428
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": 56.75,
+        "y": -100
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 128.25,
+        "y": -72
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 635,
+        "y": 728
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": -68.6,
+        "y": 90
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": 7.85,
+        "y": 105
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": 95,
+        "y": 90
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": 1320,
+        "y": 278
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": 11.4,
+        "y": -90
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 110,
+        "y": -45
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": 118.2,
+        "y": 45
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": 1362.65,
+        "y": 944.57
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": -73.6,
+        "y": 85
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": 9.9,
+        "y": 100
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 100,
+        "y": 80
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": -48.48,
+        "y": 324.54
+      }
+    },
+    {
+      "id": "28",
+      "position": {
+        "x": -37.15,
+        "y": -90
+      }
+    },
+    {
+      "id": "29",
+      "position": {
+        "x": 60,
+        "y": -90
+      }
+    },
+    {
+      "id": "30",
+      "position": {
+        "x": 1270,
+        "y": 808
+      }
+    },
+    {
+      "id": "31",
+      "position": {
+        "x": -92.15,
+        "y": 70
+      }
+    },
+    {
+      "id": "32",
+      "position": {
+        "x": 0,
+        "y": 100
+      }
+    },
+    {
+      "id": "33",
+      "position": {
+        "x": 860,
+        "y": 805
+      }
+    },
+    {
+      "id": "34",
+      "position": {
+        "x": -37.15,
+        "y": 103
+      }
+    },
+    {
+      "id": "35",
+      "position": {
+        "x": 60,
+        "y": 103
+      }
+    },
+    {
+      "id": "36",
+      "position": {
+        "x": 632.5,
+        "y": 297.5
+      }
+    },
+    {
+      "id": "37",
+      "position": {
+        "x": 17.5,
+        "y": -87.5
+      }
+    },
+    {
+      "id": "38",
+      "position": {
+        "x": 227.5,
+        "y": 402.5
+      }
+    },
+    {
+      "id": "39",
+      "position": {
+        "x": 632.5,
+        "y": 507.5
+      }
+    },
+    {
+      "id": "40",
+      "position": {
+        "x": 152.5,
+        "y": 120.5
+      }
+    },
+    {
+      "id": "41",
+      "position": {
+        "x": 227.5,
+        "y": 622.5
+      }
+    },
+    {
+      "id": "42",
+      "position": {
+        "x": 17.5,
+        "y": 113.3
+      }
+    },
+    {
+      "id": "43",
+      "position": {
+        "x": 1102.5,
+        "y": 297.5
+      }
+    },
+    {
+      "id": "44",
+      "position": {
+        "x": 17.5,
+        "y": -87.5
+      }
+    },
+    {
+      "id": "45",
+      "position": {
+        "x": 1102.5,
+        "y": 507.5
+      }
+    },
+    {
+      "id": "46",
+      "position": {
+        "x": 1317.5,
+        "y": 402.5
+      }
+    },
+    {
+      "id": "47",
+      "position": {
+        "x": 857.5,
+        "y": 602.5
+      }
+    },
+    {
+      "id": "48",
+      "position": {
+        "x": 135.7,
+        "y": 70.5
+      }
+    },
+    {
+      "id": "49",
+      "position": {
+        "x": 1062.5,
+        "y": 782.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Paciente->rut",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Paciente->nombre",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Paciente->fono",
+      "source": "0",
+      "target": "3"
+    },
+    {
+      "id": "entity-attr: Paciente->edad",
+      "source": "0",
+      "target": "4"
+    },
+    {
+      "id": "entity-attr: Medico->rut",
+      "source": "5",
+      "target": "6"
+    },
+    {
+      "id": "entity-attr: Medico->nombre",
+      "source": "5",
+      "target": "7"
+    },
+    {
+      "id": "entity-attr: Medico->sueldo",
+      "source": "5",
+      "target": "8"
+    },
+    {
+      "id": "isA: entity: Cirujano|entity: Medico",
+      "source": "10",
+      "target": "9"
+    },
+    {
+      "id": "isA: entity: Medico|entity: Cirujano",
+      "source": "5",
+      "target": "10"
+    },
+    {
+      "id": "entity-attr: Cirujano->turno",
+      "source": "9",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Especialidad->codigo",
+      "source": "12",
+      "target": "13"
+    },
+    {
+      "id": "entity-attr: Especialidad->nombre",
+      "source": "12",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Farmaco->codigo",
+      "source": "15",
+      "target": "16"
+    },
+    {
+      "id": "entity-attr: Farmaco->nombre",
+      "source": "15",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Farmaco->lab",
+      "source": "15",
+      "target": "18"
+    },
+    {
+      "id": "entity-attr: Examen->codigo",
+      "source": "19",
+      "target": "20"
+    },
+    {
+      "id": "entity-attr: Examen->tipo",
+      "source": "19",
+      "target": "21"
+    },
+    {
+      "id": "entity-attr: Examen->precio",
+      "source": "19",
+      "target": "22"
+    },
+    {
+      "id": "entity-attr: Seguro->codigo",
+      "source": "23",
+      "target": "24"
+    },
+    {
+      "id": "entity-attr: Seguro->nombre",
+      "source": "23",
+      "target": "25"
+    },
+    {
+      "id": "entity-attr: Seguro->plan",
+      "source": "23",
+      "target": "26"
+    },
+    {
+      "id": "entity-attr: Pabellon->numero",
+      "source": "27",
+      "target": "28"
+    },
+    {
+      "id": "entity-attr: Pabellon->piso",
+      "source": "27",
+      "target": "29"
+    },
+    {
+      "id": "entity-attr: Sala->numero",
+      "source": "30",
+      "target": "31"
+    },
+    {
+      "id": "entity-attr: Sala->piso",
+      "source": "30",
+      "target": "32"
+    },
+    {
+      "id": "entity-attr: Cama->numero",
+      "source": "33",
+      "target": "34"
+    },
+    {
+      "id": "entity-attr: Cama->tipo",
+      "source": "33",
+      "target": "35"
+    },
+    {
+      "id": "relationship-attr: Atiende$Medico$Paciente->fecha",
+      "source": "36",
+      "target": "37"
+    },
+    {
+      "id": "relationship-part: Atiende$Medico$Paciente->Medico",
+      "source": "36",
+      "target": "5"
+    },
+    {
+      "id": "relationship-part: Atiende$Medico$Paciente->Paciente",
+      "source": "36",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Tiene$Especialidad$Medico->Medico",
+      "source": "38",
+      "target": "5"
+    },
+    {
+      "id": "relationship-part: Tiene$Especialidad$Medico->Especialidad",
+      "source": "38",
+      "target": "12"
+    },
+    {
+      "id": "relationship-attr: Receta$Farmaco$Medico$Paciente->dosis",
+      "source": "39",
+      "target": "40"
+    },
+    {
+      "id": "relationship-part: Receta$Farmaco$Medico$Paciente->Medico",
+      "source": "39",
+      "target": "5"
+    },
+    {
+      "id": "relationship-part: Receta$Farmaco$Medico$Paciente->Paciente",
+      "source": "39",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Receta$Farmaco$Medico$Paciente->Farmaco",
+      "source": "39",
+      "target": "15"
+    },
+    {
+      "id": "relationship-attr: Opera$Cirujano$Pabellon->hora",
+      "source": "41",
+      "target": "42"
+    },
+    {
+      "id": "relationship-part: Opera$Cirujano$Pabellon->Cirujano",
+      "source": "41",
+      "target": "9"
+    },
+    {
+      "id": "relationship-part: Opera$Cirujano$Pabellon->Pabellon",
+      "source": "41",
+      "target": "27"
+    },
+    {
+      "id": "relationship-attr: Rinde$Examen$Paciente->fecha",
+      "source": "43",
+      "target": "44"
+    },
+    {
+      "id": "relationship-part: Rinde$Examen$Paciente->Paciente",
+      "source": "43",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Rinde$Examen$Paciente->Examen",
+      "source": "43",
+      "target": "19"
+    },
+    {
+      "id": "relationship-part: Cubre$Paciente$Seguro->Seguro",
+      "source": "45",
+      "target": "23"
+    },
+    {
+      "id": "relationship-part: Cubre$Paciente$Seguro->Paciente",
+      "source": "45",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Bonifica$Examen$Seguro->Seguro",
+      "source": "46",
+      "target": "23"
+    },
+    {
+      "id": "relationship-part: Bonifica$Examen$Seguro->Examen",
+      "source": "46",
+      "target": "19"
+    },
+    {
+      "id": "relationship-attr: Ocupa$Cama$Paciente->desde",
+      "source": "47",
+      "target": "48"
+    },
+    {
+      "id": "relationship-part: Ocupa$Cama$Paciente->Paciente",
+      "source": "47",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Ocupa$Cama$Paciente->Cama",
+      "source": "47",
+      "target": "33"
+    },
+    {
+      "id": "relationship-part: Ubicada$Cama$Sala->Sala",
+      "source": "49",
+      "target": "30"
+    },
+    {
+      "id": "relationship-part: Ubicada$Cama$Sala->Cama",
+      "source": "49",
+      "target": "33"
+    }
+  ]
+}

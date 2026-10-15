@@ -1,0 +1,374 @@
+{
+  "erDoc": "entity Jugador {\n  rut key\n  edad\n  peso\n}\nentity Equipo {\n  id key\n  color\n  pais\n}\nentity Partido {\n  id key\n  fecha\n  turno\n}\nentity Estadio {\n  id key\n  aforo\n  zona\n}\nentity Ciudad {\n  cod key\n  pais\n  clima\n}\nrelation Integra(Jugador, Equipo 1) {\n  num\n  desde\n}\nrelation Juega(Equipo, Partido) {\n  goles\n  local\n}\nrelation Acoge(Estadio 1, Partido) {\n  hora\n  valor\n}\nrelation Ubica(Estadio, Ciudad 1) {\n  calle\n}\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 380,
+        "y": 178
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -55,
+        "y": -75
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 15,
+        "y": -75
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 85,
+        "y": -75
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": 155,
+        "y": 178
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": -55,
+        "y": -75
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 15,
+        "y": -75
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": 85,
+        "y": -75
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 605,
+        "y": 178
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": -55,
+        "y": -75
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": 15,
+        "y": -75
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 85,
+        "y": -75
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 1055,
+        "y": 178
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": -55,
+        "y": -75
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 15,
+        "y": -75
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 85,
+        "y": -75
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": 830,
+        "y": 178
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": -55,
+        "y": -75
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": 15,
+        "y": -75
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": 85,
+        "y": -75
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": 265,
+        "y": 281.68
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": -17.5,
+        "y": 129.68
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": 52.5,
+        "y": 129.68
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": 490,
+        "y": 281.68
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": -17.5,
+        "y": 129.68
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": 52.5,
+        "y": 129.68
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 715,
+        "y": 281.68
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": -17.5,
+        "y": 129.68
+      }
+    },
+    {
+      "id": "28",
+      "position": {
+        "x": 52.5,
+        "y": 129.68
+      }
+    },
+    {
+      "id": "29",
+      "position": {
+        "x": 940,
+        "y": 281.68
+      }
+    },
+    {
+      "id": "30",
+      "position": {
+        "x": 17.5,
+        "y": 129.68
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Jugador->rut",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Jugador->edad",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Jugador->peso",
+      "source": "0",
+      "target": "3"
+    },
+    {
+      "id": "entity-attr: Equipo->id",
+      "source": "4",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Equipo->color",
+      "source": "4",
+      "target": "6"
+    },
+    {
+      "id": "entity-attr: Equipo->pais",
+      "source": "4",
+      "target": "7"
+    },
+    {
+      "id": "entity-attr: Partido->id",
+      "source": "8",
+      "target": "9"
+    },
+    {
+      "id": "entity-attr: Partido->fecha",
+      "source": "8",
+      "target": "10"
+    },
+    {
+      "id": "entity-attr: Partido->turno",
+      "source": "8",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Estadio->id",
+      "source": "12",
+      "target": "13"
+    },
+    {
+      "id": "entity-attr: Estadio->aforo",
+      "source": "12",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Estadio->zona",
+      "source": "12",
+      "target": "15"
+    },
+    {
+      "id": "entity-attr: Ciudad->cod",
+      "source": "16",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Ciudad->pais",
+      "source": "16",
+      "target": "18"
+    },
+    {
+      "id": "entity-attr: Ciudad->clima",
+      "source": "16",
+      "target": "19"
+    },
+    {
+      "id": "relationship-attr: Integra$Equipo$Jugador->num",
+      "source": "20",
+      "target": "21"
+    },
+    {
+      "id": "relationship-attr: Integra$Equipo$Jugador->desde",
+      "source": "20",
+      "target": "22"
+    },
+    {
+      "id": "relationship-part: Integra$Equipo$Jugador->Jugador",
+      "source": "20",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Integra$Equipo$Jugador->Equipo",
+      "source": "20",
+      "target": "4"
+    },
+    {
+      "id": "relationship-attr: Juega$Equipo$Partido->goles",
+      "source": "23",
+      "target": "24"
+    },
+    {
+      "id": "relationship-attr: Juega$Equipo$Partido->local",
+      "source": "23",
+      "target": "25"
+    },
+    {
+      "id": "relationship-part: Juega$Equipo$Partido->Equipo",
+      "source": "23",
+      "target": "4"
+    },
+    {
+      "id": "relationship-part: Juega$Equipo$Partido->Partido",
+      "source": "23",
+      "target": "8"
+    },
+    {
+      "id": "relationship-attr: Acoge$Estadio$Partido->hora",
+      "source": "26",
+      "target": "27"
+    },
+    {
+      "id": "relationship-attr: Acoge$Estadio$Partido->valor",
+      "source": "26",
+      "target": "28"
+    },
+    {
+      "id": "relationship-part: Acoge$Estadio$Partido->Estadio",
+      "source": "26",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Acoge$Estadio$Partido->Partido",
+      "source": "26",
+      "target": "8"
+    },
+    {
+      "id": "relationship-attr: Ubica$Ciudad$Estadio->calle",
+      "source": "29",
+      "target": "30"
+    },
+    {
+      "id": "relationship-part: Ubica$Ciudad$Estadio->Estadio",
+      "source": "29",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Ubica$Ciudad$Estadio->Ciudad",
+      "source": "29",
+      "target": "16"
+    }
+  ]
+}

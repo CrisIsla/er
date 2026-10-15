@@ -1,0 +1,275 @@
+{
+  "erDoc": "entity Museo {\n  nombre key\n  ciudad\n}\n\nentity Cuadro {\n  código key\n  título\n  año\n}\n\nentity Pintor {\n  id key\n  nombre\n}\n\nentity Tienda {\n  número key\n}\n\nentity Guía {\n  rut key\n}\n\nentity Mecenas {\n  rut key\n}\n\nrelation Pinta(Pintor, Cuadro 1!) {\n  fecha\n}\n\naggregation Obra(Pinta)\n\nrelation Exhibe(Museo, Obra 1)\n\nrelation Tiene(Museo, Tienda 1!)\n\nrelation Emplea(Museo, Guía)\n\nrelation Dona(Mecenas, Museo)",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 765,
+        "y": 538
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": 142.88,
+        "y": -40
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 146.42,
+        "y": 40
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 120,
+        "y": 288
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": 56.42,
+        "y": 373
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 135,
+        "y": 383
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 209,
+        "y": 373
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": 130,
+        "y": 113
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 42,
+        "y": 188
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 42,
+        "y": 113
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": 395,
+        "y": 477
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": -102.13,
+        "y": 0
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 165,
+        "y": 477
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": -85,
+        "y": 0
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 765,
+        "y": 58
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 135,
+        "y": 0
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": 286,
+        "y": 100
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": 303.5,
+        "y": 255
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": 40,
+        "y": 40
+      },
+      "width": 500,
+      "height": 500
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": 602.5,
+        "y": 202.5
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": 602.5,
+        "y": 451.5
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 282.5,
+        "y": 612.5
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": 762.5,
+        "y": 182.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Museo->nombre",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Museo->ciudad",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Cuadro->código",
+      "source": "3",
+      "target": "4"
+    },
+    {
+      "id": "entity-attr: Cuadro->título",
+      "source": "3",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Cuadro->año",
+      "source": "3",
+      "target": "6"
+    },
+    {
+      "id": "entity-attr: Pintor->id",
+      "source": "7",
+      "target": "8"
+    },
+    {
+      "id": "entity-attr: Pintor->nombre",
+      "source": "7",
+      "target": "9"
+    },
+    {
+      "id": "entity-attr: Tienda->número",
+      "source": "10",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Guía->rut",
+      "source": "12",
+      "target": "13"
+    },
+    {
+      "id": "entity-attr: Mecenas->rut",
+      "source": "14",
+      "target": "15"
+    },
+    {
+      "id": "relationship-attr: Pinta$Cuadro$Pintor->fecha",
+      "source": "16",
+      "target": "17"
+    },
+    {
+      "id": "relationship-part: Pinta$Cuadro$Pintor->Pintor",
+      "source": "16",
+      "target": "7"
+    },
+    {
+      "id": "relationship-part: Pinta$Cuadro$Pintor->Cuadro",
+      "source": "16",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Exhibe$Museo$Obra->Museo",
+      "source": "19",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Exhibe$Museo$Obra->Obra",
+      "source": "19",
+      "target": "18"
+    },
+    {
+      "id": "relationship-part: Tiene$Museo$Tienda->Museo",
+      "source": "20",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Tiene$Museo$Tienda->Tienda",
+      "source": "20",
+      "target": "10"
+    },
+    {
+      "id": "relationship-part: Emplea$Guía$Museo->Museo",
+      "source": "21",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Emplea$Guía$Museo->Guía",
+      "source": "21",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Dona$Mecenas$Museo->Mecenas",
+      "source": "22",
+      "target": "14"
+    },
+    {
+      "id": "relationship-part: Dona$Mecenas$Museo->Museo",
+      "source": "22",
+      "target": "0"
+    }
+  ]
+}

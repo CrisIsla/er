@@ -13,7 +13,7 @@ import {
 import { colors } from "../../util/colors";
 import getErrorMessage from "../../util/errorMessages";
 import { EditorHeader } from "./EditorHeader";
-import ExamplesTable from "./ExamplesTable";
+import ExamplesTable, { PROBLEM_NAMES } from "./ExamplesTable";
 import ErrorTable from "./ErrorTable";
 import { fetchExample } from "../../util/common";
 import { useJSON } from "../../hooks/useJSON";
@@ -263,6 +263,19 @@ const CodeEditor = ({
       >
         <ExamplesTable onErDocChange={onErDocChange} />
       </Box>
+      {process.env.NODE_ENV !== "production" && (
+        <Box
+          height={"max-content"}
+          maxHeight={"30%"}
+          backgroundColor={colors.textEditorBackground}
+        >
+          <ExamplesTable
+            onErDocChange={onErDocChange}
+            names={PROBLEM_NAMES}
+            namespace="home.problems"
+          />
+        </Box>
+      )}
     </Box>
   );
 };

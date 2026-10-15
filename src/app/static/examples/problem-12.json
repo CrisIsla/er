@@ -1,0 +1,719 @@
+{
+  "erDoc": "entity Cliente {\n  rut key\n  nombre\n  email\n}\n\nentity Socio extends Cliente {\n  puntos\n}\n\nentity Invitado extends Cliente {}\n\nentity Estudiante extends Cliente {}\n\nentity Senior extends Cliente {}\n\nentity Vip extends Cliente {}\n\nentity Empleado {\n  rut key\n  nombre\n  cargo\n}\n\nentity Turno {\n  codigo key\n  horario\n}\n\nentity Cine {\n  codigo key\n  nombre\n  ciudad\n}\n\nentity Sala {\n  numero key\n  aforo\n}\n\nentity Pelicula {\n  titulo key\n  anio\n  duracion\n}\n\nentity Director {\n  rut key\n  nombre\n  pais\n}\n\nentity Genero {\n  nombre key\n}\n\nentity Producto {\n  codigo key\n  nombre\n  precio\n}\n\nentity Proveedor {\n  rut key\n  nombre\n}\n\nrelation Tiene(Cine 1, Sala N!)\n\nrelation Proyecta(Sala, Pelicula) {\n  horario\n}\n\naggregation Funcion(Proyecta)\n\nrelation Compra(Cliente, Funcion) {\n  asiento\n  precio\n}\n\nrelation Dirige(Director, Pelicula)\n\nrelation Pertenece(Pelicula, Genero)\n\nrelation Vende(Empleado, Producto) {\n  cantidad\n}\n\nrelation Trabaja(Empleado, Cine, Turno) {\n  desde\n}\n\nrelation Provee(Proveedor, Producto)\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 170,
+        "y": 278
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -60,
+        "y": -90
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 7.85,
+        "y": -105
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 90,
+        "y": -90
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": 90,
+        "y": 503
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 87,
+        "y": 388
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 11,
+        "y": 95
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": 250,
+        "y": 503
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 247,
+        "y": 388
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 500,
+        "y": 450
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 500,
+        "y": 600
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": 500,
+        "y": 750
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 704,
+        "y": 978
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": -144,
+        "y": 70
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": -49.15,
+        "y": 90
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": 106,
+        "y": 80
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": 500,
+        "y": 1050
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": -70,
+        "y": 100
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 0,
+        "y": 100
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": 700,
+        "y": 698
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": -83.6,
+        "y": -45
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": -87.15,
+        "y": 50
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": 331.4,
+        "y": 0
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 72,
+        "y": 135
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": 39.85,
+        "y": 45
+      }
+    },
+    {
+      "id": "28",
+      "position": {
+        "x": 127,
+        "y": 45
+      }
+    },
+    {
+      "id": "29",
+      "position": {
+        "x": 447,
+        "y": 135
+      }
+    },
+    {
+      "id": "30",
+      "position": {
+        "x": 402,
+        "y": 45
+      }
+    },
+    {
+      "id": "31",
+      "position": {
+        "x": 392,
+        "y": 230
+      }
+    },
+    {
+      "id": "32",
+      "position": {
+        "x": 526.3,
+        "y": 230
+      }
+    },
+    {
+      "id": "33",
+      "position": {
+        "x": 1200,
+        "y": 698
+      }
+    },
+    {
+      "id": "34",
+      "position": {
+        "x": -65,
+        "y": 95
+      }
+    },
+    {
+      "id": "35",
+      "position": {
+        "x": 7.85,
+        "y": 110
+      }
+    },
+    {
+      "id": "36",
+      "position": {
+        "x": 95,
+        "y": 95
+      }
+    },
+    {
+      "id": "37",
+      "position": {
+        "x": 1265,
+        "y": 278
+      }
+    },
+    {
+      "id": "38",
+      "position": {
+        "x": 7.85,
+        "y": 95
+      }
+    },
+    {
+      "id": "39",
+      "position": {
+        "x": 1065,
+        "y": 1138
+      }
+    },
+    {
+      "id": "40",
+      "position": {
+        "x": -68.6,
+        "y": 90
+      }
+    },
+    {
+      "id": "41",
+      "position": {
+        "x": 7.85,
+        "y": 105
+      }
+    },
+    {
+      "id": "42",
+      "position": {
+        "x": 93.2,
+        "y": 90
+      }
+    },
+    {
+      "id": "43",
+      "position": {
+        "x": 1005.3,
+        "y": 1048.7
+      }
+    },
+    {
+      "id": "44",
+      "position": {
+        "x": 56.9,
+        "y": -85
+      }
+    },
+    {
+      "id": "45",
+      "position": {
+        "x": 134.75,
+        "y": -75
+      }
+    },
+    {
+      "id": "46",
+      "position": {
+        "x": 697.5,
+        "y": 512.5
+      }
+    },
+    {
+      "id": "47",
+      "position": {
+        "x": 229.5,
+        "y": 109.5
+      }
+    },
+    {
+      "id": "48",
+      "position": {
+        "x": 242.1,
+        "y": 240
+      }
+    },
+    {
+      "id": "49",
+      "position": {
+        "x": 628,
+        "y": 143
+      },
+      "width": 747,
+      "height": 324
+    },
+    {
+      "id": "50",
+      "position": {
+        "x": 412.5,
+        "y": 252.5
+      }
+    },
+    {
+      "id": "51",
+      "position": {
+        "x": -28.3,
+        "y": -79.5
+      }
+    },
+    {
+      "id": "52",
+      "position": {
+        "x": 57.7,
+        "y": -79.5
+      }
+    },
+    {
+      "id": "53",
+      "position": {
+        "x": 1017.5,
+        "y": 672.5
+      }
+    },
+    {
+      "id": "54",
+      "position": {
+        "x": 1142.5,
+        "y": -7.5
+      }
+    },
+    {
+      "id": "55",
+      "position": {
+        "x": 882.5,
+        "y": 952.5
+      }
+    },
+    {
+      "id": "56",
+      "position": {
+        "x": 15.25,
+        "y": 137.5
+      }
+    },
+    {
+      "id": "57",
+      "position": {
+        "x": 700,
+        "y": 900
+      }
+    },
+    {
+      "id": "58",
+      "position": {
+        "x": -70,
+        "y": 150
+      }
+    },
+    {
+      "id": "59",
+      "position": {
+        "x": 1242.5,
+        "y": 1112.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Cliente->rut",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Cliente->nombre",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Cliente->email",
+      "source": "0",
+      "target": "3"
+    },
+    {
+      "id": "isA: entity: Socio|entity: Cliente",
+      "source": "5",
+      "target": "4"
+    },
+    {
+      "id": "isA: entity: Cliente|entity: Socio",
+      "source": "0",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Socio->puntos",
+      "source": "4",
+      "target": "6"
+    },
+    {
+      "id": "isA: entity: Invitado|entity: Cliente",
+      "source": "8",
+      "target": "7"
+    },
+    {
+      "id": "isA: entity: Cliente|entity: Invitado",
+      "source": "0",
+      "target": "8"
+    },
+    {
+      "id": "isA: entity: Estudiante|entity: Cliente",
+      "source": "10",
+      "target": "9"
+    },
+    {
+      "id": "isA: entity: Cliente|entity: Estudiante",
+      "source": "0",
+      "target": "10"
+    },
+    {
+      "id": "isA: entity: Senior|entity: Cliente",
+      "source": "12",
+      "target": "11"
+    },
+    {
+      "id": "isA: entity: Cliente|entity: Senior",
+      "source": "0",
+      "target": "12"
+    },
+    {
+      "id": "isA: entity: Vip|entity: Cliente",
+      "source": "14",
+      "target": "13"
+    },
+    {
+      "id": "isA: entity: Cliente|entity: Vip",
+      "source": "0",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Empleado->rut",
+      "source": "15",
+      "target": "16"
+    },
+    {
+      "id": "entity-attr: Empleado->nombre",
+      "source": "15",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Empleado->cargo",
+      "source": "15",
+      "target": "18"
+    },
+    {
+      "id": "entity-attr: Turno->codigo",
+      "source": "19",
+      "target": "20"
+    },
+    {
+      "id": "entity-attr: Turno->horario",
+      "source": "19",
+      "target": "21"
+    },
+    {
+      "id": "entity-attr: Cine->codigo",
+      "source": "22",
+      "target": "23"
+    },
+    {
+      "id": "entity-attr: Cine->nombre",
+      "source": "22",
+      "target": "24"
+    },
+    {
+      "id": "entity-attr: Cine->ciudad",
+      "source": "22",
+      "target": "25"
+    },
+    {
+      "id": "entity-attr: Sala->numero",
+      "source": "26",
+      "target": "27"
+    },
+    {
+      "id": "entity-attr: Sala->aforo",
+      "source": "26",
+      "target": "28"
+    },
+    {
+      "id": "entity-attr: Pelicula->titulo",
+      "source": "29",
+      "target": "30"
+    },
+    {
+      "id": "entity-attr: Pelicula->anio",
+      "source": "29",
+      "target": "31"
+    },
+    {
+      "id": "entity-attr: Pelicula->duracion",
+      "source": "29",
+      "target": "32"
+    },
+    {
+      "id": "entity-attr: Director->rut",
+      "source": "33",
+      "target": "34"
+    },
+    {
+      "id": "entity-attr: Director->nombre",
+      "source": "33",
+      "target": "35"
+    },
+    {
+      "id": "entity-attr: Director->pais",
+      "source": "33",
+      "target": "36"
+    },
+    {
+      "id": "entity-attr: Genero->nombre",
+      "source": "37",
+      "target": "38"
+    },
+    {
+      "id": "entity-attr: Producto->codigo",
+      "source": "39",
+      "target": "40"
+    },
+    {
+      "id": "entity-attr: Producto->nombre",
+      "source": "39",
+      "target": "41"
+    },
+    {
+      "id": "entity-attr: Producto->precio",
+      "source": "39",
+      "target": "42"
+    },
+    {
+      "id": "entity-attr: Proveedor->rut",
+      "source": "43",
+      "target": "44"
+    },
+    {
+      "id": "entity-attr: Proveedor->nombre",
+      "source": "43",
+      "target": "45"
+    },
+    {
+      "id": "relationship-part: Tiene$Cine$Sala->Cine",
+      "source": "46",
+      "target": "22"
+    },
+    {
+      "id": "relationship-part: Tiene$Cine$Sala->Sala",
+      "source": "46",
+      "target": "26"
+    },
+    {
+      "id": "relationship-attr: Proyecta$Pelicula$Sala->horario",
+      "source": "47",
+      "target": "48"
+    },
+    {
+      "id": "relationship-part: Proyecta$Pelicula$Sala->Sala",
+      "source": "47",
+      "target": "26"
+    },
+    {
+      "id": "relationship-part: Proyecta$Pelicula$Sala->Pelicula",
+      "source": "47",
+      "target": "29"
+    },
+    {
+      "id": "relationship-attr: Compra$Cliente$Funcion->asiento",
+      "source": "50",
+      "target": "51"
+    },
+    {
+      "id": "relationship-attr: Compra$Cliente$Funcion->precio",
+      "source": "50",
+      "target": "52"
+    },
+    {
+      "id": "relationship-part: Compra$Cliente$Funcion->Cliente",
+      "source": "50",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Compra$Cliente$Funcion->Funcion",
+      "source": "50",
+      "target": "49"
+    },
+    {
+      "id": "relationship-part: Dirige$Director$Pelicula->Director",
+      "source": "53",
+      "target": "33"
+    },
+    {
+      "id": "relationship-part: Dirige$Director$Pelicula->Pelicula",
+      "source": "53",
+      "target": "29"
+    },
+    {
+      "id": "relationship-part: Pertenece$Genero$Pelicula->Pelicula",
+      "source": "54",
+      "target": "29"
+    },
+    {
+      "id": "relationship-part: Pertenece$Genero$Pelicula->Genero",
+      "source": "54",
+      "target": "37"
+    },
+    {
+      "id": "relationship-attr: Vende$Empleado$Producto->cantidad",
+      "source": "55",
+      "target": "56"
+    },
+    {
+      "id": "relationship-part: Vende$Empleado$Producto->Empleado",
+      "source": "55",
+      "target": "15"
+    },
+    {
+      "id": "relationship-part: Vende$Empleado$Producto->Producto",
+      "source": "55",
+      "target": "39"
+    },
+    {
+      "id": "relationship-attr: Trabaja$Cine$Empleado$Turno->desde",
+      "source": "57",
+      "target": "58"
+    },
+    {
+      "id": "relationship-part: Trabaja$Cine$Empleado$Turno->Empleado",
+      "source": "57",
+      "target": "15"
+    },
+    {
+      "id": "relationship-part: Trabaja$Cine$Empleado$Turno->Cine",
+      "source": "57",
+      "target": "22"
+    },
+    {
+      "id": "relationship-part: Trabaja$Cine$Empleado$Turno->Turno",
+      "source": "57",
+      "target": "19"
+    },
+    {
+      "id": "relationship-part: Provee$Producto$Proveedor->Proveedor",
+      "source": "59",
+      "target": "43"
+    },
+    {
+      "id": "relationship-part: Provee$Producto$Proveedor->Producto",
+      "source": "59",
+      "target": "39"
+    }
+  ]
+}

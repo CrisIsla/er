@@ -1,0 +1,369 @@
+{
+  "erDoc": "entity Maleta {\n  id key\n  peso\n}\n\nentity Pasaje {\n  nro key\n  valor\n}\n\nentity Agente {\n  rut key\n  email\n}\n\nentity Linea {\n  cod key\n  pais\n}\n\nentity Piloto {\n  rut key\n  horas\n}\n\nentity Vuelo {\n  nro key\n  fecha\n  hora\n}\n\nentity Hangar {\n  num key\n  area\n}\n\nentity Avion {\n  id key\n  tipo\n}\n\nrelation Lleva(Maleta N, Pasaje 1!)\nrelation Vende(Agente 1, Pasaje N)\nrelation Emplea(Linea 1, Piloto N!)\nrelation Pilota(Piloto N, Vuelo M)\nrelation Guarda(Hangar 1, Avion N)\nrelation Usa(Vuelo N, Avion 1!)\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": -45,
+        "y": -22
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -23,
+        "y": -75
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 53,
+        "y": -75
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 421,
+        "y": -29
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": -23,
+        "y": 75
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 53,
+        "y": 75
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 653,
+        "y": -312
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": -85,
+        "y": 0
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 115,
+        "y": 0
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": -45,
+        "y": 178
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": -23,
+        "y": -75
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 53,
+        "y": -75
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 415,
+        "y": 182
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": -23,
+        "y": 75
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 53,
+        "y": 75
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 1195,
+        "y": 387
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": -55,
+        "y": 72
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": 15,
+        "y": 88
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": 85,
+        "y": 72
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": -53,
+        "y": 378
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": -23,
+        "y": -75
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 53,
+        "y": -75
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": 415,
+        "y": 378
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": -23,
+        "y": 75
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": 53,
+        "y": 75
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": 182.5,
+        "y": -47.5
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 642.5,
+        "y": -47.5
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": 182.5,
+        "y": 152.5
+      }
+    },
+    {
+      "id": "28",
+      "position": {
+        "x": 642.5,
+        "y": 152.5
+      }
+    },
+    {
+      "id": "29",
+      "position": {
+        "x": 182.5,
+        "y": 358.5
+      }
+    },
+    {
+      "id": "30",
+      "position": {
+        "x": 649.5,
+        "y": 352.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Maleta->id",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Maleta->peso",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Pasaje->nro",
+      "source": "3",
+      "target": "4"
+    },
+    {
+      "id": "entity-attr: Pasaje->valor",
+      "source": "3",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Agente->rut",
+      "source": "6",
+      "target": "7"
+    },
+    {
+      "id": "entity-attr: Agente->email",
+      "source": "6",
+      "target": "8"
+    },
+    {
+      "id": "entity-attr: Linea->cod",
+      "source": "9",
+      "target": "10"
+    },
+    {
+      "id": "entity-attr: Linea->pais",
+      "source": "9",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Piloto->rut",
+      "source": "12",
+      "target": "13"
+    },
+    {
+      "id": "entity-attr: Piloto->horas",
+      "source": "12",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Vuelo->nro",
+      "source": "15",
+      "target": "16"
+    },
+    {
+      "id": "entity-attr: Vuelo->fecha",
+      "source": "15",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Vuelo->hora",
+      "source": "15",
+      "target": "18"
+    },
+    {
+      "id": "entity-attr: Hangar->num",
+      "source": "19",
+      "target": "20"
+    },
+    {
+      "id": "entity-attr: Hangar->area",
+      "source": "19",
+      "target": "21"
+    },
+    {
+      "id": "entity-attr: Avion->id",
+      "source": "22",
+      "target": "23"
+    },
+    {
+      "id": "entity-attr: Avion->tipo",
+      "source": "22",
+      "target": "24"
+    },
+    {
+      "id": "relationship-part: Lleva$Maleta$Pasaje->Maleta",
+      "source": "25",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Lleva$Maleta$Pasaje->Pasaje",
+      "source": "25",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Vende$Agente$Pasaje->Agente",
+      "source": "26",
+      "target": "6"
+    },
+    {
+      "id": "relationship-part: Vende$Agente$Pasaje->Pasaje",
+      "source": "26",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Emplea$Linea$Piloto->Linea",
+      "source": "27",
+      "target": "9"
+    },
+    {
+      "id": "relationship-part: Emplea$Linea$Piloto->Piloto",
+      "source": "27",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Pilota$Piloto$Vuelo->Piloto",
+      "source": "28",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Pilota$Piloto$Vuelo->Vuelo",
+      "source": "28",
+      "target": "15"
+    },
+    {
+      "id": "relationship-part: Guarda$Avion$Hangar->Hangar",
+      "source": "29",
+      "target": "19"
+    },
+    {
+      "id": "relationship-part: Guarda$Avion$Hangar->Avion",
+      "source": "29",
+      "target": "22"
+    },
+    {
+      "id": "relationship-part: Usa$Avion$Vuelo->Vuelo",
+      "source": "30",
+      "target": "15"
+    },
+    {
+      "id": "relationship-part: Usa$Avion$Vuelo->Avion",
+      "source": "30",
+      "target": "22"
+    }
+  ]
+}

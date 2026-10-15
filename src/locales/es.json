@@ -69,6 +69,22 @@
       "roles": "Roles"
     },
 
+    "problems": {
+      "_title": "Problemas de prueba",
+      "problem-01": "1. Agregados encima",
+      "problem-02": "2. Intercambio en fila apretada",
+      "problem-03": "3. Espacios desiguales",
+      "problem-04": "4. Filas y columnas chuecas",
+      "problem-05": "5. Atributos amontonados",
+      "problem-06": "6. Hacer espacio",
+      "problem-07": "7. Reordenamiento accidental",
+      "problem-08": "8. Caja demasiado grande",
+      "problem-09": "9. Agregación tardía",
+      "problem-10": "10. Primero la estructura",
+      "problem-11": "11. Tapado antes de entregar",
+      "problem-12": "12. Listo para entregar"
+    },
+
     "erDiagram": {
       "notationButton": "Notación",
       "arrowNotation": "Notación de flechas",

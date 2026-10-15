@@ -1,0 +1,389 @@
+{
+  "erDoc": "entity Empleado {\n    rut key\n    nombre\n}\n\nentity Departamento {\n    numero key\n    nombre\n    sede\n}\n\nrelation Supervisa(Departamento: [Supervisor, Supervisado 1!])\n\nrelation Trabaja(Empleado N, Departamento 1!)\n\nentity Proyecto {\n    codigo key\n    nombre\n}\n\nrelation Controla(Departamento, Proyecto 1!)\n\nrelation Participa(Empleado M, Proyecto N) {\n    horas\n}\n\nentity Pieza {\n    numero key\n    nombre\n}\n\nentity Tornillo extends Pieza {\n    cabeza\n}\n\nentity Proveedor {\n    rut key\n    nombre\n}\n\nrelation Suministra(Proyecto M, Pieza N!, Proveedor P!) {\n    cantidad\n}\n\nentity Carga depends on Tiene_carga {\n    nombre pkey\n    genero\n}\n\nrelation Tiene_carga(Empleado, Carga 1!)\n\nrelation Asesora(Proveedor N, Proyecto M)\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 1075.47,
+        "y": 1705.5
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -73.97,
+        "y": 90.0
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 98.9,
+        "y": 90.0
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 1150.81,
+        "y": 1275.5
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": -58.43,
+        "y": -82.0
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 35.57,
+        "y": -102.0
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 132.69,
+        "y": -82.0
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": 738.5,
+        "y": 1275.5
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 107.42,
+        "y": -48.0
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 103.88,
+        "y": 48.0
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": 672.5,
+        "y": 1675.5
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": -118.12,
+        "y": 30.0
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 136.88,
+        "y": 30.0
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": 672.5,
+        "y": 1915.5
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 669.5,
+        "y": 1785.5
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 138.21,
+        "y": 0.0
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": 604.59,
+        "y": 1275.5
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": -88.09,
+        "y": -50.0
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": -95.21,
+        "y": 50.0
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": 1506.5,
+        "y": 1702.5
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": -32.12,
+        "y": 103.0
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 110.09,
+        "y": 103.0
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": 1379.0,
+        "y": 1250.0
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": 1164.0,
+        "y": 1460.0
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": 949.0,
+        "y": 1250.0
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": 904.0,
+        "y": 1520.0
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 17.49,
+        "y": 138.5
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": 670.0,
+        "y": 1450.0
+      }
+    },
+    {
+      "id": "28",
+      "position": {
+        "x": -133.75,
+        "y": 25.5
+      }
+    },
+    {
+      "id": "29",
+      "position": {
+        "x": 1294.0,
+        "y": 1680.0
+      }
+    },
+    {
+      "id": "30",
+      "position": {
+        "x": 700,
+        "y": 900
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Empleado->rut",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Empleado->nombre",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Departamento->numero",
+      "source": "3",
+      "target": "4"
+    },
+    {
+      "id": "entity-attr: Departamento->nombre",
+      "source": "3",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Departamento->sede",
+      "source": "3",
+      "target": "6"
+    },
+    {
+      "id": "entity-attr: Proyecto->codigo",
+      "source": "7",
+      "target": "8"
+    },
+    {
+      "id": "entity-attr: Proyecto->nombre",
+      "source": "7",
+      "target": "9"
+    },
+    {
+      "id": "entity-attr: Pieza->numero",
+      "source": "10",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Pieza->nombre",
+      "source": "10",
+      "target": "12"
+    },
+    {
+      "id": "isA: entity: Tornillo|entity: Pieza",
+      "source": "14",
+      "target": "13"
+    },
+    {
+      "id": "isA: entity: Pieza|entity: Tornillo",
+      "source": "10",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Tornillo->cabeza",
+      "source": "13",
+      "target": "15"
+    },
+    {
+      "id": "entity-attr: Proveedor->rut",
+      "source": "16",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Proveedor->nombre",
+      "source": "16",
+      "target": "18"
+    },
+    {
+      "id": "entity-attr: Carga->nombre",
+      "source": "19",
+      "target": "20"
+    },
+    {
+      "id": "entity-attr: Carga->genero",
+      "source": "19",
+      "target": "21"
+    },
+    {
+      "id": "1relationship-part: Supervisa$Departamento->Departamento->Supervisor",
+      "source": "22",
+      "target": "3"
+    },
+    {
+      "id": "4relationship-part: Supervisa$Departamento->Departamento->Supervisado",
+      "source": "22",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Trabaja$Departamento$Empleado->Empleado",
+      "source": "23",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Trabaja$Departamento$Empleado->Departamento",
+      "source": "23",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Controla$Departamento$Proyecto->Departamento",
+      "source": "24",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Controla$Departamento$Proyecto->Proyecto",
+      "source": "24",
+      "target": "7"
+    },
+    {
+      "id": "relationship-attr: Participa$Empleado$Proyecto->horas",
+      "source": "25",
+      "target": "26"
+    },
+    {
+      "id": "relationship-part: Participa$Empleado$Proyecto->Empleado",
+      "source": "25",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Participa$Empleado$Proyecto->Proyecto",
+      "source": "25",
+      "target": "7"
+    },
+    {
+      "id": "relationship-attr: Suministra$Pieza$Proveedor$Proyecto->cantidad",
+      "source": "27",
+      "target": "28"
+    },
+    {
+      "id": "relationship-part: Suministra$Pieza$Proveedor$Proyecto->Proyecto",
+      "source": "27",
+      "target": "7"
+    },
+    {
+      "id": "relationship-part: Suministra$Pieza$Proveedor$Proyecto->Pieza",
+      "source": "27",
+      "target": "10"
+    },
+    {
+      "id": "relationship-part: Suministra$Pieza$Proveedor$Proyecto->Proveedor",
+      "source": "27",
+      "target": "16"
+    },
+    {
+      "id": "relationship-part: Tiene_carga$Carga$Empleado->Empleado",
+      "source": "29",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Tiene_carga$Carga$Empleado->Carga",
+      "source": "29",
+      "target": "19"
+    },
+    {
+      "id": "relationship-part: Asesora$Proveedor$Proyecto->Proveedor",
+      "source": "30",
+      "target": "16"
+    },
+    {
+      "id": "relationship-part: Asesora$Proveedor$Proyecto->Proyecto",
+      "source": "30",
+      "target": "7"
+    }
+  ]
+}

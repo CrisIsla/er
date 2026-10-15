@@ -1,0 +1,155 @@
+{
+  "erDoc": "entity Biblioteca {\n  nombre key\n  dirección\n}\n\nentity Libro {\n  isbn key\n  título\n}\n\nentity Autor {\n  nombre key\n  idioma\n}\n\nrelation Escribe(Autor, Libro 1!) {\n  fecha\n}\n\naggregation Libro_de_Autor(Escribe)\n\nrelation Contiene(Biblioteca, Libro_de_Autor 1)\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 32.37,
+        "y": 447.21
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": 7.46,
+        "y": 62.36
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 3.33,
+        "y": -67.08
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 400.57,
+        "y": 457.75
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": -23.55,
+        "y": -83.86
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 53.56,
+        "y": -83.25
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 718.57,
+        "y": 458.48
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": -27.75,
+        "y": -69.11
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 10.64,
+        "y": 62.02
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 546.8,
+        "y": 432.64
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": 17.3,
+        "y": -80.28
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 500,
+        "y": 450
+      },
+      "width": 849,
+      "height": 588
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 700,
+        "y": 150
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Biblioteca->nombre",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Biblioteca->dirección",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Libro->isbn",
+      "source": "3",
+      "target": "4"
+    },
+    {
+      "id": "entity-attr: Libro->título",
+      "source": "3",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Autor->nombre",
+      "source": "6",
+      "target": "7"
+    },
+    {
+      "id": "entity-attr: Autor->idioma",
+      "source": "6",
+      "target": "8"
+    },
+    {
+      "id": "relationship-attr: Escribe$Autor$Libro->fecha",
+      "source": "9",
+      "target": "10"
+    },
+    {
+      "id": "relationship-part: Escribe$Autor$Libro->Autor",
+      "source": "9",
+      "target": "6"
+    },
+    {
+      "id": "relationship-part: Escribe$Autor$Libro->Libro",
+      "source": "9",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Contiene$Biblioteca$Libro_de_Autor->Biblioteca",
+      "source": "12",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Contiene$Biblioteca$Libro_de_Autor->Libro_de_Autor",
+      "source": "12",
+      "target": "11"
+    }
+  ]
+}
