@@ -7,6 +7,7 @@ import {
   endOf,
   absoluteRectOf,
   findActiveCandidates,
+  movedByDrag,
   startOf,
   toAbsoluteRects,
 } from "../util/alignmentCandidates";
@@ -89,15 +90,13 @@ const toGuideLines = (
     ];
   }
 
-  // spacing: draw the existing gap between the two refs, and the matching gap
-  // between the nearer ref and where the dragged node would land
+  // spacing: draw the two gaps it claims are equal
   const ordered = [...refs].sort((a, b) => startOf(a, axis) - startOf(b, axis));
   const [first, second] = ordered;
   if (!second) return [];
 
   const draggedAfter = startOf(ghost, axis) >= endOf(second, axis);
-  const newGapFrom = draggedAfter ? endOf(second, axis) : endOf(ghost, axis);
-  const newGapTo = draggedAfter ? startOf(ghost, axis) : startOf(first, axis);
+  const draggedBefore = endOf(ghost, axis) <= startOf(first, axis);
 
   // draw both gap markers on a shared line through the middle of the run
   const centerCross =
@@ -133,9 +132,20 @@ const toGuideLines = (
         };
   };
 
+  // centred between the refs: the gap on either side of it
+  if (!draggedAfter && !draggedBefore)
+    return [
+      seg(endOf(first, axis), startOf(ghost, axis), "first"),
+      seg(endOf(ghost, axis), startOf(second, axis), "second"),
+    ];
+
+  // past either end of them: their own gap, and the matching one between the
+  // nearer ref and where the dragged node would land
   return [
     seg(endOf(first, axis), startOf(second, axis), "existing"),
-    seg(newGapFrom, newGapTo, "new"),
+    draggedAfter
+      ? seg(endOf(second, axis), startOf(ghost, axis), "new")
+      : seg(endOf(ghost, axis), startOf(first, axis), "new"),
   ];
 };
 
@@ -195,11 +205,19 @@ export const useAlignmentGuide = () => {
       const draggedRect = absoluteRectOf(live, node.id);
       if (!draggedRect) return;
 
+      // Whatever the drag carries along -- the rest of a selection, the members
+      // of a dragged box -- keeps its place relative to the node, so it says
+      // nothing about where to drop it. Left in, a selection would guide the
+      // node against itself all drag long, from where the store last had it.
+      const moved = movedByDrag(live, [
+        node.id,
+        ...(draggedNodes ?? []).map((n) => n.id),
+      ]);
       // aligning an entity against attribute ovals is noise; aligning an
       // attribute against its siblings is not
       const others = toAbsoluteRects(live, {
         structuralOnly: draggedIsStructural,
-      }).filter((rect) => rect.id !== node.id);
+      }).filter((rect) => !moved.has(rect.id));
       if (others.length === 0) {
         setGuides((prev) => (prev.length ? [] : prev));
         return;

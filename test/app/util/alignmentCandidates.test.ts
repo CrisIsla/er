@@ -6,6 +6,7 @@ import {
   findActiveCandidates,
   getAlignCandidates,
   getSpacingCandidates,
+  movedByDrag,
   toAbsoluteRects,
 } from "../../../src/app/util/alignmentCandidates";
 
@@ -235,6 +236,95 @@ describe("getSpacingCandidates", () => {
       gap: 30,
     });
   });
+
+  it("proposes the point midway between two rects", () => {
+    // 180px between a and c: room for the 100-wide dragged rect, 40 either side
+    const candidates = getSpacingCandidates(rect("d", 600, 0), [
+      rect("a", 0, 0),
+      rect("c", 280, 0),
+    ]);
+    // a ends at 100, + 40 => dragged left edge 140, centre 190
+    expect(candidates).toContainEqual({
+      axis: "x",
+      value: 190,
+      kind: "spacing",
+      refIds: ["a", "c"],
+      gap: 40,
+    });
+  });
+
+  it("proposes no midpoint where the dragged rect does not fit", () => {
+    // 80px between a and c, less than the dragged rect is wide
+    const candidates = getSpacingCandidates(rect("d", 600, 0), [
+      rect("a", 0, 0),
+      rect("c", 180, 0),
+    ]);
+    expect(
+      candidates.filter((c) => c.axis === "x" && c.value > 0 && c.value < 280),
+    ).toHaveLength(0);
+  });
+
+  /**
+   * The bug this pins: a run was continued whatever stood in the way, so
+   * dragging a node past c drew -- and snapped it to -- a 200px gap from b
+   * with c sitting in the middle of it.
+   */
+  it("does not continue a run through a rect in the way", () => {
+    // a and b 200 apart, then c 40 past b
+    const candidates = getSpacingCandidates(rect("d", 600, 0), [
+      rect("a", 0, 0),
+      rect("b", 300, 0),
+      rect("c", 440, 0),
+    ]);
+    // b ends at 400, + 200 => dragged centre 650, with c across the gap
+    expect(candidates).not.toContainEqual(
+      expect.objectContaining({ axis: "x", value: 650 }),
+    );
+    // continuing b and c is fine: c ends at 540, + 40 => centre 630
+    expect(candidates).toContainEqual(
+      expect.objectContaining({ axis: "x", value: 630, refIds: ["b", "c"] }),
+    );
+  });
+
+  it("does not continue a run backwards through a rect in the way", () => {
+    // a 40 before b, then c 200 past b
+    const candidates = getSpacingCandidates(rect("d", -400, 0), [
+      rect("a", 0, 0),
+      rect("b", 140, 0),
+      rect("c", 440, 0),
+    ]);
+    // b starts at 140, - 200 => dragged centre -110, with a across the gap
+    expect(candidates).not.toContainEqual(
+      expect.objectContaining({ axis: "x", value: -110 }),
+    );
+  });
+
+  it("ignores a pair with a rect reaching into its gap", () => {
+    // w overlaps f and reaches into the gap between f and s
+    const candidates = getSpacingCandidates(rect("d", 600, 0), [
+      rect("w", 0, 0, 180),
+      rect("f", 50, 0),
+      rect("s", 300, 0),
+    ]);
+    expect(candidates.filter((c) => c.refIds.includes("s"))).toHaveLength(0);
+  });
+
+  it("measures inside an aggregation's box, which spans the gaps", () => {
+    // two members 40 apart, in a box spanning the whole row
+    const candidates = getSpacingCandidates(rect("d", 330, 50), [
+      rect("box", 0, 0, 700, 200),
+      rect("m1", 50, 50),
+      rect("m2", 190, 50),
+    ]);
+    // m2 ends at 290, + 40 => dragged centre 380
+    expect(candidates).toContainEqual({
+      axis: "x",
+      value: 380,
+      kind: "spacing",
+      refIds: ["m1", "m2"],
+      gap: 40,
+    });
+  });
 });
 
 describe("findActiveCandidates", () => {
@@ -288,6 +378,59 @@ describe("findActiveCandidates", () => {
     });
     expect(withSpacing.some((c) => c.kind === "spacing")).toBe(true);
     expect(withoutSpacing.some((c) => c.kind === "spacing")).toBe(false);
+  });
+
+  // the bug this pins: a node between two others never had a spacing guide,
+  // however evenly it sat -- only runs past their ends were proposed
+  it("finds a node centred between two others", () => {
+    const active = findActiveCandidates(
+      rect("d", 140, 0),
+      [rect("a", 0, 0), rect("c", 280, 0)],
+      6,
+    );
+    expect(active).toContainEqual({
+      axis: "x",
+      value: 190,
+      kind: "spacing",
+      refIds: ["a", "c"],
+      gap: 40,
+    });
+  });
+
+  it("prefers the gaps either side of the dragged node to a run reaching it", () => {
+    // an evenly spaced row with d third: it continues a-b, and sits midway
+    // between b and c
+    const active = findActiveCandidates(
+      rect("d", 280, 0),
+      [rect("a", 0, 0), rect("b", 140, 0), rect("c", 420, 0)],
+      6,
+    );
+    expect(active.find((c) => c.axis === "x")).toMatchObject({
+      kind: "spacing",
+      refIds: ["b", "c"],
+      gap: 40,
+    });
+  });
+});
+
+describe("movedByDrag", () => {
+  const diagram = [
+    node("box", 400, 100, { type: "aggregation", width: 350, height: 550 }),
+    node("member", 138, 228, { parentNode: "box" }),
+    node("attr", 10, 10, { type: "entity-attribute", parentNode: "member" }),
+    node("outside", 20, 300),
+  ];
+
+  it("takes along everything inside a dragged node", () => {
+    expect(movedByDrag(diagram, ["box"])).toEqual(
+      new Set(["box", "member", "attr"]),
+    );
+  });
+
+  it("leaves the container of a dragged node where it is", () => {
+    expect(movedByDrag(diagram, ["member"])).toEqual(
+      new Set(["member", "attr"]),
+    );
   });
 });
 

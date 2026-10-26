@@ -123,6 +123,33 @@ export const absoluteRectOf = (
     (rect) => rect.id === id,
   );
 
+/**
+ * Every node a drag of `draggedIds` moves: those nodes and everything inside
+ * them, since React Flow carries a child along with its parent -- an attribute
+ * with its entity, a member with its aggregation.
+ */
+export const movedByDrag = (
+  nodes: PositionedNode[],
+  draggedIds: string[],
+): Set<string> => {
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const dragged = new Set(draggedIds);
+  const moved = new Set(draggedIds);
+  for (const node of nodes) {
+    let parentId = node.parentNode;
+    const seen = new Set<string>([node.id]);
+    while (parentId && !seen.has(parentId)) {
+      if (dragged.has(parentId)) {
+        moved.add(node.id);
+        break;
+      }
+      seen.add(parentId);
+      parentId = byId.get(parentId)?.parentNode;
+    }
+  }
+  return moved;
+};
+
 /** Centre-line alignment: the dragged rect shares a centre with another rect. */
 export const getAlignCandidates = (
   dragged: Rect,
@@ -146,17 +173,24 @@ export const getAlignCandidates = (
 
 /**
  * Equal-spacing: given two rects already separated by a gap on `axis`, propose
- * positions where the dragged rect continues the run with the same gap --
- * either after the second or before the first.
+ * positions where the dragged rect's gaps match -- centred between the two,
+ * splitting their gap evenly, or continuing the run with the same gap, either
+ * after the second or before the first.
  *
  * Only pairs that overlap on the perpendicular axis are considered, so a node
- * far above doesn't produce a horizontal spacing guide.
+ * far above doesn't produce a horizontal spacing guide. And only gaps with
+ * nothing in them: a rect sitting in one splits it in two, so measuring across
+ * it would claim a spacing nobody can see.
  */
 export const getSpacingCandidates = (
   dragged: Rect,
   others: Rect[],
 ): Candidate[] => {
-  const candidates: Candidate[] = [];
+  // Kept ahead of the runs. Every slot of an evenly spaced row is both, and at
+  // the same distance findActiveCandidates keeps whichever comes first -- this
+  // way the guide measures the dragged rect's own two gaps.
+  const centred: Candidate[] = [];
+  const runs: Candidate[] = [];
 
   for (const axis of ["x", "y"] as const) {
     // only rects sharing a row (axis "x") or column (axis "y") with the dragged one
@@ -164,33 +198,60 @@ export const getSpacingCandidates = (
       .filter((other) => overlapsOnCrossAxis(dragged, other, axis))
       .sort((a, b) => startOf(a, axis) - startOf(b, axis));
 
+    // Nothing in the row may have an edge inside the stretch. A rect spanning
+    // all of it is no obstacle: that is an aggregation's box, around the
+    // members being spaced.
+    const isClear = (from: number, to: number) =>
+      inLine.every((rect) => {
+        const start = startOf(rect, axis);
+        const end = endOf(rect, axis);
+        return (start < from || start >= to) && (end <= from || end > to);
+      });
+
+    const size = sizeOf(dragged, axis);
+    const half = size / 2;
+
     for (let i = 0; i < inLine.length - 1; i++) {
       const first = inLine[i];
       const second = inLine[i + 1];
       const gap = startOf(second, axis) - endOf(first, axis);
       if (gap <= 0) continue; // overlapping or touching: no meaningful spacing
+      if (!isClear(endOf(first, axis), startOf(second, axis))) continue;
+      const refIds = [first.id, second.id];
 
-      const half = sizeOf(dragged, axis) / 2;
+      // centred between the two, if it fits
+      const share = (gap - size) / 2;
+      if (share > 0)
+        centred.push({
+          axis,
+          value: endOf(first, axis) + share + half,
+          kind: "spacing",
+          refIds,
+          gap: share,
+        });
+
       // continue the run after `second`
-      candidates.push({
-        axis,
-        value: endOf(second, axis) + gap + half,
-        kind: "spacing",
-        refIds: [first.id, second.id],
-        gap,
-      });
+      if (isClear(endOf(second, axis), endOf(second, axis) + gap))
+        runs.push({
+          axis,
+          value: endOf(second, axis) + gap + half,
+          kind: "spacing",
+          refIds,
+          gap,
+        });
       // ...or before `first`
-      candidates.push({
-        axis,
-        value: startOf(first, axis) - gap - half,
-        kind: "spacing",
-        refIds: [first.id, second.id],
-        gap,
-      });
+      if (isClear(startOf(first, axis) - gap, startOf(first, axis)))
+        runs.push({
+          axis,
+          value: startOf(first, axis) - gap - half,
+          kind: "spacing",
+          refIds,
+          gap,
+        });
     }
   }
 
-  return candidates;
+  return [...centred, ...runs];
 };
 
 export const getCandidates = (
