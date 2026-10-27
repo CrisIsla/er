@@ -445,3 +445,31 @@ describe("distanceTo", () => {
     ).toBe(20);
   });
 });
+
+describe("movedByDrag, deeper", () => {
+  const diagram = [
+    node("box", 400, 100, { type: "aggregation" }),
+    node("member", 138, 228, { type: "relationship", parentNode: "box" }),
+    node("attr", 10, 10, { type: "attribute", parentNode: "member" }),
+    node("outside", 20, 300),
+    node("outsideAttr", 5, 5, { type: "attribute", parentNode: "outside" }),
+  ];
+
+  it("takes in everything nested inside the given nodes, however deep", () => {
+    expect(movedByDrag(diagram, ["box"])).toEqual(
+      new Set(["box", "member", "attr"]),
+    );
+  });
+
+  it("leaves the other nodes and their contents out", () => {
+    expect(movedByDrag(diagram, ["member"])).toEqual(
+      new Set(["member", "attr"]),
+    );
+  });
+
+  it("is just the ids given when nothing is nested in them", () => {
+    expect(movedByDrag(diagram, ["attr", "outsideAttr"])).toEqual(
+      new Set(["attr", "outsideAttr"]),
+    );
+  });
+});

@@ -151,7 +151,9 @@ const toGuideLines = (
 
 /**
  * Computes alignment and equal-spacing guides while a node is dragged, and --
- * when magnetic alignment is on -- pulls the node onto them.
+ * when magnetic alignment is on -- pulls the node onto them. When a selection
+ * is dragged, the node under the pointer is the one guided, and the rest of
+ * the selection follows it.
  *
  * Guides are returned as plain geometry for an overlay to draw, rather than
  * being synthesised as React Flow edges the way they used to be, which forced
@@ -188,12 +190,18 @@ export const useAlignmentGuide = () => {
   const onNodeDrag: NodeDragHandler = useCallback(
     (_evt, node: Node | undefined, draggedNodes: Node[]) => {
       if (node === undefined) return;
+      // what the pointer carries: the node under it, and the rest of the
+      // selection when there is one (React Flow lists the node among them)
+      const dragged = new Map(
+        [node, ...(draggedNodes ?? [])].map((n) => [n.id, n]),
+      );
       const allNodes = getNodes();
       // the store lags the pointer by a frame during a drag, so trust the
-      // position React Flow just handed us
-      const live = allNodes.map((n) =>
-        n.id === node.id ? { ...n, position: node.position } : n,
-      );
+      // positions React Flow just handed us
+      const live = allNodes.map((n) => {
+        const moved = dragged.get(n.id);
+        return moved === undefined ? n : { ...n, position: moved.position };
+      });
 
       const draggedIsStructural = STRUCTURAL_TYPES.includes(node.type ?? "");
       // Resolved against the whole list, and filtered afterwards. A node inside
@@ -209,10 +217,7 @@ export const useAlignmentGuide = () => {
       // of a dragged box -- keeps its place relative to the node, so it says
       // nothing about where to drop it. Left in, a selection would guide the
       // node against itself all drag long, from where the store last had it.
-      const moved = movedByDrag(live, [
-        node.id,
-        ...(draggedNodes ?? []).map((n) => n.id),
-      ]);
+      const moved = movedByDrag(live, [...dragged.keys()]);
       // aligning an entity against attribute ovals is noise; aligning an
       // attribute against its siblings is not
       const others = toAbsoluteRects(live, {
@@ -231,9 +236,6 @@ export const useAlignmentGuide = () => {
         includeSpacing: settings.spacingGuidesEnabled,
       });
 
-      // Both corrections below are skipped for multi-node drags: moving only
-      // the node under the cursor would tear a selection apart.
-      const isMultiDrag = (draggedNodes?.length ?? 1) > 1;
       // `draggedRect` is absolute; `node.position` is relative to the parent
       // for child nodes, so carry the difference across
       const offsetX = draggedRect.x - node.position.x;
@@ -242,7 +244,10 @@ export const useAlignmentGuide = () => {
       let corrected = { x: draggedRect.x, y: draggedRect.y };
 
       // Magnetic alignment: pull the node onto the candidates it is close to.
-      if (settings.snapEnabled && active.length > 0 && !isMultiDrag) {
+      // In a group it is the node under the pointer that snaps, and the rest
+      // of the selection takes the same shift (below): the group lands where
+      // that node does, and is never torn apart.
+      if (settings.snapEnabled && active.length > 0) {
         for (const candidate of active) {
           if (candidate.axis === "x")
             corrected.x = candidate.value - draggedRect.width / 2;
@@ -251,7 +256,11 @@ export const useAlignmentGuide = () => {
       }
 
       // Collision: keep the shape out of the ones it does not belong to. After
-      // the snap, so a magnet can never pull a shape into an overlap.
+      // the snap, so a magnet can never pull a shape into an overlap. Not for
+      // a group: only the shape under the pointer is measured, so stopping it
+      // at a wall would say nothing about what the rest of the selection runs
+      // into.
+      const isMultiDrag = dragged.size > 1;
       if (settings.collisionEnabled && !isMultiDrag) {
         // measured by what each shape covers on screen, so a diamond collides
         // where it is drawn rather than at the box React Flow measured
@@ -278,14 +287,31 @@ export const useAlignmentGuide = () => {
       }
 
       const next = { x: corrected.x - offsetX, y: corrected.y - offsetY };
-      if (next.x !== node.position.x || next.y !== node.position.y) {
-        // React Flow re-derives the position from the pointer on the next
+      const shift = {
+        x: next.x - node.position.x,
+        y: next.y - node.position.y,
+      };
+      if (shift.x !== 0 || shift.y !== 0) {
+        // React Flow re-derives the positions from the pointer on the next
         // move, so a snap reads as a magnet rather than a lock: drag far enough
         // and the node breaks free on its own. Collision re-applies every
         // frame, so it reads as a wall instead. Nodes with extent "parent"
         // (aggregation members) still get clamped to the box by React Flow.
+        // Every node the pointer carries takes the shift, from the position
+        // React Flow just gave it -- the store's is a frame behind.
         setNodes((nodes) =>
-          nodes.map((n) => (n.id === node.id ? { ...n, position: next } : n)),
+          nodes.map((n) => {
+            const moved = dragged.get(n.id);
+            return moved === undefined
+              ? n
+              : {
+                  ...n,
+                  position: {
+                    x: moved.position.x + shift.x,
+                    y: moved.position.y + shift.y,
+                  },
+                };
+          }),
         );
       }
 
