@@ -6,6 +6,14 @@ import { cookies } from "next/headers";
 const LOCALES = ["en", "es"];
 const DEFAULT_LOCALE = "en";
 
+/** next-intl's cookie that remembers the locale, with the attributes it gives it. */
+const LOCALE_COOKIE = "NEXT_LOCALE";
+const LOCALE_COOKIE_OPTIONS = {
+  path: "/",
+  sameSite: "strict" as const,
+  maxAge: 31536000, // 1 year
+};
+
 const intlMiddleware = createMiddleware({
   locales: LOCALES,
   defaultLocale: DEFAULT_LOCALE,
@@ -20,6 +28,11 @@ const intlMiddleware = createMiddleware({
  * the browser gives up with ERR_TOO_MANY_REDIRECTS. That is the URL you get by
  * bookmarking or reloading an example, so it has to work.
  *
+ * The redirect also records the locale in next-intl's cookie. Switching to
+ * English is a visit to /en/..., which lands here before next-intl sees it;
+ * left alone, the cookie kept saying Spanish, and the unprefixed path it was
+ * sent to was then redirected straight back to /es/....
+ *
  * Matching is on whole segments, so a path like /english is left alone.
  */
 const redirectAwayFromDefaultLocale = (req: NextRequest) => {
@@ -30,7 +43,9 @@ const redirectAwayFromDefaultLocale = (req: NextRequest) => {
   const url = req.nextUrl.clone();
   // clone() keeps the search params, which is the whole point
   url.pathname = pathname.slice(prefix.length) || "/";
-  return NextResponse.redirect(url);
+  const response = NextResponse.redirect(url);
+  response.cookies.set(LOCALE_COOKIE, DEFAULT_LOCALE, LOCALE_COOKIE_OPTIONS);
+  return response;
 };
 
 const protectedRoutes = [
