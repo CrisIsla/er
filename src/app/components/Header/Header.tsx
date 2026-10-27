@@ -9,7 +9,7 @@ import NewDiagramButton from "./NewDiagramButton";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { ErDocChangeEvent } from "../../types/CodeEditor";
 import AboutButton from "./AboutButton";
-import { KeyboardHelpButton } from "../KeyboardHelp";
+import { KeyboardHelpIcon } from "../KeyboardHelp";
 import { FaUser } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
@@ -99,15 +99,12 @@ export const Header = ({ onErDocChange }: HeaderProps) => {
         </HeaderElement>
 
         <HeaderElement className="border-r-[1px]">
-          <KeyboardHelpButton className="flex items-center" />
-        </HeaderElement>
-
-        <HeaderElement className="border-r-[1px]">
           <LocaleSwitcher />
         </HeaderElement>
       </div>
 
       <div className="ml-auto mr-0 flex h-full items-center">
+        <KeyboardHelpIcon className="mr-5 flex items-center text-slate-400 hover:text-slate-300" />
         <AboutButton />
         <GitHubButton />
         <button

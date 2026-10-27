@@ -56,11 +56,33 @@ export const ShortcutTable = () => {
   );
 };
 
-/** A button that opens the table in a dialog. */
-export const KeyboardHelpButton = ({ className }: { className?: string }) => {
+/** The table in a dialog. */
+export const KeyboardHelpDialog = ({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) => {
+  const t = useTranslations("home.keyboard");
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} isCentered size="xl">
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>{t("title")}</ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb={6}>
+          <ShortcutTable />
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
+};
+
+/** A keyboard icon that opens the dialog; sits with the other icons top right. */
+export const KeyboardHelpIcon = ({ className }: { className?: string }) => {
   const t = useTranslations("home.keyboard");
   const { isOpen, onOpen, onClose } = useDisclosure();
-
   return (
     <>
       <button
@@ -68,20 +90,11 @@ export const KeyboardHelpButton = ({ className }: { className?: string }) => {
         className={className}
         onClick={onOpen}
         title={t("title")}
+        aria-label={t("title")}
       >
-        <MdKeyboard size={20} /> <span className="pl-2">{t("button")}</span>
+        <MdKeyboard size={25} />
       </button>
-
-      <Modal isOpen={isOpen} onClose={onClose} isCentered size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{t("title")}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <ShortcutTable />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      <KeyboardHelpDialog isOpen={isOpen} onClose={onClose} />
     </>
   );
 };

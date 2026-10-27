@@ -2,7 +2,6 @@
   "home": {
     "keyboard": {
       "title": "Keyboard and mouse shortcuts",
-      "button": "Shortcuts",
       "drag_keys": "Drag a shape",
       "drag_does": "Move it",
       "boxSelect_keys": "Shift + drag on the background",

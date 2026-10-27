@@ -2,7 +2,6 @@
   "home": {
     "keyboard": {
       "title": "Atajos de teclado y mouse",
-      "button": "Atajos",
       "drag_keys": "Arrastrar una figura",
       "drag_does": "Moverla",
       "boxSelect_keys": "Shift + arrastrar sobre el fondo",
