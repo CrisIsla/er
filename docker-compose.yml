@@ -2,9 +2,12 @@
 #
 #   docker compose up -d --build
 #
-# The playground is then at http://<host>:3000. The database keeps its data in
-# the `mongo-data` volume across restarts and rebuilds. JWT_SECRET signs the
-# accounts' sessions: put a real one in a .env file next to this file.
+# The playground is then at http://<host>:3000 and the study at
+# http://<host>:3000/es/study. The database keeps its data in the `mongo-data`
+# volume across restarts and rebuilds. JWT_SECRET signs the accounts'
+# sessions, and STUDY_KEY is the secret that reads the study's sessions back
+# from http://<host>:3000/api/study?key=<STUDY_KEY>: put both in a .env file
+# next to this file.
 services:
   web:
     build: .
@@ -13,6 +16,7 @@ services:
     environment:
       MONGO_URI: mongodb://mongo:27017
       JWT_SECRET: ${JWT_SECRET:-change-me}
+      STUDY_KEY: ${STUDY_KEY:?set STUDY_KEY, the secret that reads the study's sessions back}
     depends_on:
       - mongo
     restart: unless-stopped

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "../../../../lib/mongodb";
 import { StudySession } from "../../../../models/model";
 
+// read on every request: the key and the database are checked each time
+export const dynamic = "force-dynamic";
+
 /**
  * Stores a participant's study session, whole, after every step.
  *
@@ -51,6 +54,36 @@ export async function POST(req: Request) {
     console.error("Error saving the study session:", error);
     return NextResponse.json(
       { error: "Could not save the session" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * Every stored session, as a JSON array, for whoever runs the study:
+ * GET /api/study?key=<STUDY_KEY>. Without STUDY_KEY in the environment the
+ * route does not exist, so a public deployment never serves the data by
+ * accident.
+ */
+export async function GET(req: Request) {
+  const key = process.env.STUDY_KEY;
+  const given = new URL(req.url).searchParams.get("key");
+  if (!key || given !== key) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (!process.env.MONGO_URI) {
+    return NextResponse.json({ error: "No database" }, { status: 503 });
+  }
+  try {
+    await connectToDatabase();
+    const sessions = await StudySession.find({}, { data: 1, _id: 0 })
+      .sort({ updatedAt: 1 })
+      .lean();
+    return NextResponse.json(sessions.map((session) => session.data));
+  } catch (error) {
+    console.error("Error reading the study sessions:", error);
+    return NextResponse.json(
+      { error: "Could not read the sessions" },
       { status: 500 },
     );
   }
