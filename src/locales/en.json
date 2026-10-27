@@ -1,5 +1,33 @@
 {
   "home": {
+    "keyboard": {
+      "title": "Keyboard and mouse shortcuts",
+      "button": "Shortcuts",
+      "drag_keys": "Drag a shape",
+      "drag_does": "Move it",
+      "boxSelect_keys": "Shift + drag on the background",
+      "boxSelect_does": "Select several shapes",
+      "addToSelection_keys": "{mod} + click a shape",
+      "addToSelection_does": "Add it to the selection or remove it",
+      "dragSelection_keys": "Drag a selected shape",
+      "dragSelection_does": "Move the whole selection",
+      "arrows_keys": "Arrow keys",
+      "arrows_does": "Move the selection 1 px",
+      "shiftArrows_keys": "Shift + arrow keys",
+      "shiftArrows_does": "Move the selection 4 px",
+      "undo_keys": "{mod} + Z",
+      "undo_does": "Undo",
+      "redo_keys": "{mod} + Shift + Z",
+      "redo_does": "Redo",
+      "wheel_keys": "Mouse wheel",
+      "wheel_does": "Zoom in or out",
+      "pan_keys": "Drag the background",
+      "pan_does": "Pan the view",
+      "deselect_keys": "Click the background",
+      "deselect_does": "Clear the selection",
+      "resize_keys": "Drag a box's blue dots",
+      "resize_does": "Resize it"
+    },
     "title": "Hello world!",
 
     "errorsTable": {

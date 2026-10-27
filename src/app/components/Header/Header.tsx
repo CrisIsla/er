@@ -9,6 +9,7 @@ import NewDiagramButton from "./NewDiagramButton";
 import LocaleSwitcher from "./LocaleSwitcher";
 import { ErDocChangeEvent } from "../../types/CodeEditor";
 import AboutButton from "./AboutButton";
+import { KeyboardHelpButton } from "../KeyboardHelp";
 import { FaUser } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 
@@ -95,6 +96,10 @@ export const Header = ({ onErDocChange }: HeaderProps) => {
           <a className="flex items-center" href="/docs" target="_blank">
             <BiSolidBook /> <span className="pl-2">{t("documentation")}</span>
           </a>
+        </HeaderElement>
+
+        <HeaderElement className="border-r-[1px]">
+          <KeyboardHelpButton className="flex items-center" />
         </HeaderElement>
 
         <HeaderElement className="border-r-[1px]">

@@ -1,5 +1,33 @@
 {
   "home": {
+    "keyboard": {
+      "title": "Atajos de teclado y mouse",
+      "button": "Atajos",
+      "drag_keys": "Arrastrar una figura",
+      "drag_does": "Moverla",
+      "boxSelect_keys": "Shift + arrastrar sobre el fondo",
+      "boxSelect_does": "Seleccionar varias figuras",
+      "addToSelection_keys": "{mod} + clic en una figura",
+      "addToSelection_does": "Agregarla a la selección o quitarla",
+      "dragSelection_keys": "Arrastrar una figura seleccionada",
+      "dragSelection_does": "Mover toda la selección",
+      "arrows_keys": "Flechas",
+      "arrows_does": "Mover la selección 1 px",
+      "shiftArrows_keys": "Shift + flechas",
+      "shiftArrows_does": "Mover la selección 4 px",
+      "undo_keys": "{mod} + Z",
+      "undo_does": "Deshacer",
+      "redo_keys": "{mod} + Shift + Z",
+      "redo_does": "Rehacer",
+      "wheel_keys": "Rueda del mouse",
+      "wheel_does": "Acercar o alejar",
+      "pan_keys": "Arrastrar el fondo",
+      "pan_does": "Desplazar la vista",
+      "deselect_keys": "Clic en el fondo",
+      "deselect_does": "Quitar la selección",
+      "resize_keys": "Arrastrar los puntos azules de un recuadro",
+      "resize_does": "Cambiar su tamaño"
+    },
     "errorsTable": {
       "errors": "Errores"
     },
