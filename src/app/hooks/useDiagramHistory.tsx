@@ -119,6 +119,7 @@ export const DiagramHistoryProvider = ({
   children,
   lastChange,
   shared = null,
+  keyboard = true,
 }: {
   children: ReactNode;
   /**
@@ -127,6 +128,8 @@ export const DiagramHistoryProvider = ({
    */
   lastChange: DiagramChange | null;
   shared?: SharedNodes | null;
+  /** Whether Ctrl+Z and Ctrl+Shift+Z are listened for; off in a study task that measures without them. */
+  keyboard?: boolean;
 }) => {
   const { getNodes, setNodes } = useReactFlow();
   const saveFlow = useSaveFlow();
@@ -310,6 +313,7 @@ export const DiagramHistoryProvider = ({
   );
 
   useEffect(() => {
+    if (!keyboard) return;
     const isMac = isMacPlatform();
     const onKeyDown = (event: KeyboardEvent) => {
       const action = historyShortcut(event, isMac);
@@ -321,7 +325,7 @@ export const DiagramHistoryProvider = ({
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [travel]);
+  }, [travel, keyboard]);
 
   // A drag or a resize ends on React Flow's word, which a gesture can lose: a
   // touch drag whose node unmounts mid-gesture never hears its touchend. Left

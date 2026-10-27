@@ -30,7 +30,29 @@ const ModelSchema = new Schema<IModel>({
   participants: [{ type: Schema.Types.ObjectId, ref: "User" }],
 });
 
+/**
+ * One participant's run of the user study (src/app/[locale]/study): the
+ * questionnaire answers, each task's resulting layout and time, as the study
+ * page sends them after every step. Keyed by the participant id the page
+ * makes up, so a step re-sent after a failed save lands on the same record.
+ */
+interface IStudySession extends Document {
+  participantId: string;
+  data: Record<string, any>;
+}
+
+const StudySessionSchema = new Schema<IStudySession>(
+  {
+    participantId: { type: String, required: true, unique: true },
+    data: { type: Schema.Types.Mixed, required: true },
+  },
+  { timestamps: true },
+);
+
 const User = models.User || mongoose.model<IUser>("User", UserSchema);
 const Model = models.Model || mongoose.model<IModel>("Model", ModelSchema);
+const StudySession =
+  models.StudySession ||
+  mongoose.model<IStudySession>("StudySession", StudySessionSchema);
 
-export { User, Model };
+export { User, Model, StudySession };

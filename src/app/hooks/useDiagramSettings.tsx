@@ -98,11 +98,19 @@ type DiagramSettingsContextProps = {
     key: K,
     value: DiagramSettings[K],
   ) => void;
+  /**
+   * Shows the diagram under these settings instead of the stored ones, until
+   * cleared with null. For a study task, whose settings are a condition of
+   * the experiment: the participant's stored preferences must not leak in,
+   * and the task must not overwrite them.
+   */
+  setOverride: (settings: DiagramSettings | null) => void;
 };
 
 const DiagramSettingsContext = createContext<DiagramSettingsContextProps>({
   settings: DEFAULT_DIAGRAM_SETTINGS,
   setSetting: () => {},
+  setOverride: () => {},
 });
 
 /**
@@ -145,6 +153,7 @@ export const DiagramSettingsProvider = ({
     DEFAULT_DIAGRAM_SETTINGS,
   );
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [override, setOverride] = useState<DiagramSettings | null>(null);
 
   // localStorage isn't available while rendering on the server, so we start
   // from the defaults and load once on the client
@@ -170,8 +179,8 @@ export const DiagramSettingsProvider = ({
   // memoized: this is read from the drag handlers, so a new object
   // every render would rerender every consumer mid-drag
   const value = useMemo(
-    () => ({ settings, setSetting }),
-    [settings, setSetting],
+    () => ({ settings: override ?? settings, setSetting, setOverride }),
+    [settings, override, setSetting],
   );
 
   return (

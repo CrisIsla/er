@@ -35,6 +35,7 @@
 
     "header": {
       "documentation": "Documentation",
+      "study": "User tests",
       "import": "Save/load File",
       "saveLoad": {
         "invalidFile": "Invalid file type",

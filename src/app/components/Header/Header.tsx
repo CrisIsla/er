@@ -2,7 +2,7 @@ import { useLocale, useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { useMemo, memo } from "react";
 import { BiSolidBook } from "react-icons/bi";
-import { MdDownload } from "react-icons/md";
+import { MdDownload, MdScience } from "react-icons/md";
 import AutoLayoutButton from "./AutoLayoutButton";
 import SaveLoadFileButton from "./SaveLoadFileButton";
 import NewDiagramButton from "./NewDiagramButton";
@@ -97,6 +97,19 @@ export const Header = ({ onErDocChange }: HeaderProps) => {
             <BiSolidBook /> <span className="pl-2">{t("documentation")}</span>
           </a>
         </HeaderElement>
+
+        {/* study material: not for the public site */}
+        {process.env.NODE_ENV !== "production" && (
+          <HeaderElement className="border-r-[1px]">
+            <button
+              type="button"
+              className="flex items-center"
+              onClick={() => router.push("/es/study")}
+            >
+              <MdScience /> <span className="pl-2">{t("study")}</span>
+            </button>
+          </HeaderElement>
+        )}
 
         <HeaderElement className="border-r-[1px]">
           <LocaleSwitcher />

@@ -33,6 +33,7 @@
 
     "header": {
       "documentation": "Documentación",
+      "study": "Pruebas de usuario",
       "import": "Guardar/Cargar Archivo",
       "saveLoad": {
         "invalidFile": "Tipo de archivo no válido",
@@ -189,6 +190,145 @@
         "share": "Compartir",
         "toggleTheme": "Cambiar tema"
       }
+    }
+  },
+  "study": {
+    "title": "Estudio de usabilidad",
+    "step": "Paso {n} de {total}",
+    "continue": "Continuar",
+    "start": "Comenzar",
+    "done": "Listo",
+    "back": "Volver",
+    "required": "Responde todas las preguntas para continuar.",
+    "loading": "Cargando el diagrama…",
+    "loadFailed": "No se pudo cargar el diagrama. Avisa a la persona que dirige la sesión.",
+    "intro": {
+      "title": "Antes de empezar",
+      "p1": "Estamos evaluando herramientas para ordenar y revisar diagramas entidad-relación en ERdoc Playground.",
+      "p2": "Primero te haremos unas preguntas breves sobre ti. Después harás dos tareas sobre un diagrama ya hecho, usando solo el mouse o el trackpad, y tras cada tarea responderás un cuestionario corto sobre lo que usaste.",
+      "p3": "Dura unos 20 minutos. No se registra tu nombre: se guardan tus respuestas, los diagramas tal como los dejes y el tiempo que tardes.",
+      "p4": "Puedes preguntar o detenerte en cualquier momento."
+    },
+    "background": {
+      "title": "Sobre ti",
+      "programme": "¿Qué estudias?",
+      "programme_placeholder": "Elige una carrera",
+      "programme_planComun": "Plan común (Ingeniería y Ciencias)",
+      "programme_astronomia": "Astronomía",
+      "programme_fisica": "Física",
+      "programme_geofisica": "Geofísica",
+      "programme_geologia": "Geología",
+      "programme_civil": "Ingeniería Civil",
+      "programme_minas": "Ingeniería Civil de Minas",
+      "programme_electrica": "Ingeniería Civil Eléctrica",
+      "programme_biotecnologia": "Ingeniería Civil en Biotecnología",
+      "programme_computacion": "Ingeniería Civil en Computación",
+      "programme_industrial": "Ingeniería Civil Industrial",
+      "programme_matematica": "Ingeniería Civil Matemática",
+      "programme_mecanica": "Ingeniería Civil Mecánica",
+      "programme_quimica": "Ingeniería Civil Química",
+      "programme_other": "Otra",
+      "programmeOther": "¿Cuál?",
+      "year": "¿En qué año vas?",
+      "year_placeholder": "Elige un año",
+      "year_last": "7 o más",
+      "dbCourse": "¿Has cursado el curso Bases de Datos (CC3201)?",
+      "dbCourse_yes": "Sí",
+      "dbCourse_inProgress": "Lo estoy cursando",
+      "dbCourse_no": "No",
+      "erExperience": "¿Qué tanto conoces los diagramas entidad-relación?",
+      "erExperience_low": "No sé qué son",
+      "erExperience_high": "Los conozco a la perfección",
+      "tools": "¿Qué herramientas has usado para dibujar diagramas entidad-relación?",
+      "tools_paper": "Papel y lápiz",
+      "tools_drawio": "draw.io",
+      "tools_erdoc": "ERDoc Playground",
+      "tools_other": "Otros",
+      "tools_otherPlaceholder": "¿Cuáles?",
+      "erdocFamiliarity": "¿Qué tan familiarizadx estás con ERDoc Playground?",
+      "erdocFamiliarity_low": "No sé lo que es",
+      "erdocFamiliarity_high": "Sé utilizarlo muy bien"
+    },
+    "help": {
+      "title": "Atajos",
+      "again": "Durante la tarea puedes volver a ver esta lista con el botón ⌨ de arriba a la derecha."
+    },
+    "task": {
+      "heading": "Tarea {n} de {total}",
+      "confirmTitle": "¿Terminaste la tarea?",
+      "confirmBody": "Al continuar se guardará el diagrama tal como está y no podrás volver a esta tarea.",
+      "confirm": "Sí, continuar"
+    },
+    "sus": {
+      "title": "Cuestionario {n} de {total}",
+      "intro": "Marca cuánto estás de acuerdo con cada afirmación sobre {subject}.",
+      "scale_1": "Totalmente en desacuerdo",
+      "scale_5": "Totalmente de acuerdo",
+      "comment": "Comentarios (opcional)",
+      "comment_placeholder": "Algo que quieras agregar sobre lo que acabas de usar"
+    },
+    "tests": {
+      "overlaps": {
+        "title": "Nada encima de nada",
+        "instruction": "Algunas figuras y partes de líneas quedaron debajo de otras figuras y no se ven bien. Arréglalo para que todo se vea y presiona «Listo» cuando termines. Que dos líneas se crucen no es un problema.",
+        "subject": "las marcas rojas que señalan partes tapadas y el botón para ir a la siguiente",
+        "sus": {
+          "s1": "Creo que me gustaría usar estas marcas con frecuencia.",
+          "s2": "Encontré estas marcas innecesariamente complejas.",
+          "s3": "Pensé que estas marcas eran fáciles de usar.",
+          "s4": "Creo que necesitaría el apoyo de una persona técnica para poder usar estas marcas.",
+          "s5": "Encontré que las marcas y el botón funcionaban bien en conjunto.",
+          "s6": "Pensé que estas marcas se comportaban de forma inconsistente.",
+          "s7": "Imagino que la mayoría de las personas aprendería a usar estas marcas muy rápidamente.",
+          "s8": "Encontré estas marcas muy engorrosas de usar.",
+          "s9": "Me sentí con confianza usando estas marcas.",
+          "s10": "Necesité aprender muchas cosas antes de poder empezar a usar estas marcas."
+        }
+      },
+      "spacing": {
+        "title": "Ordenar el diagrama",
+        "instruction": "Este diagrama quedó desordenado. Déjalo prolijo: filas y columnas rectas, espacios parejos y el recuadro punteado ajustado a lo que contiene. Presiona «Listo» cuando termines.",
+        "subject": "las guías de espaciado y el imán",
+        "sus": {
+          "s1": "Creo que me gustaría usar estas guías con frecuencia.",
+          "s2": "Encontré estas guías innecesariamente complejas.",
+          "s3": "Pensé que estas guías eran fáciles de usar.",
+          "s4": "Creo que necesitaría el apoyo de una persona técnica para poder usar estas guías.",
+          "s5": "Encontré que las guías y el imán funcionaban bien en conjunto.",
+          "s6": "Pensé que estas guías se comportaban de forma inconsistente.",
+          "s7": "Imagino que la mayoría de las personas aprendería a usar estas guías muy rápidamente.",
+          "s8": "Encontré estas guías muy engorrosas de usar.",
+          "s9": "Me sentí con confianza usando estas guías.",
+          "s10": "Necesité aprender muchas cosas antes de poder empezar a usar estas guías."
+        }
+      },
+      "groups": {
+        "title": "Juntar las partes",
+        "instruction": "Las partes de este diagrama quedaron muy separadas. Júntalas para que quede un solo diagrama prolijo, con filas y columnas rectas y espacios parejos. Presiona «Listo» cuando termines.",
+        "subject": "la selección de varias figuras a la vez",
+        "sus": {
+          "s1": "Creo que me gustaría usar esta herramienta con frecuencia.",
+          "s2": "Encontré esta herramienta innecesariamente compleja.",
+          "s3": "Pensé que esta herramienta era fácil de usar.",
+          "s4": "Creo que necesitaría el apoyo de una persona técnica para poder usar esta herramienta.",
+          "s5": "Encontré que las distintas formas de seleccionar funcionaban bien en conjunto.",
+          "s6": "Pensé que esta herramienta se comportaba de forma inconsistente.",
+          "s7": "Imagino que la mayoría de las personas aprendería a usar esta herramienta muy rápidamente.",
+          "s8": "Encontré esta herramienta muy engorrosa de usar.",
+          "s9": "Me sentí con confianza usando esta herramienta.",
+          "s10": "Necesité aprender muchas cosas antes de poder empezar a usar esta herramienta."
+        }
+      }
+    },
+    "end": {
+      "title": "¡Gracias!",
+      "body": "Terminaste el estudio.",
+      "savedServer": "Tus resultados quedaron guardados.",
+      "savedLocal": "No se pudo guardar en el servidor. Los resultados quedaron en este navegador: descárgalos con el botón.",
+      "download": "Descargar resultados (JSON)",
+      "newSession": "Nueva sesión",
+      "newSessionHint": "Borra esta sesión de este navegador para la siguiente persona.",
+      "backToApp": "Volver a ERdoc Playground"
     }
   }
 }

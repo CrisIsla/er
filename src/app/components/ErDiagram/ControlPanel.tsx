@@ -11,11 +11,14 @@ import { MARK_COLOR } from "./OcclusionOverlay";
 type ControlPanelProps = {
   onLayoutClick: () => void;
   occlusions?: Occlusion[];
+  /** false in a study task, where arranging by hand is the point */
+  showLayoutButton?: boolean;
 };
 
 export const ControlPanel = ({
   onLayoutClick,
   occlusions = [],
+  showLayoutButton = true,
 }: ControlPanelProps) => {
   const t = useTranslations("home.erDiagram");
   const { applyLayout } = useApplyLayout({ onApplied: onLayoutClick });
@@ -43,19 +46,21 @@ export const ControlPanel = ({
 
   return (
     <Controls showInteractive={false}>
-      <ControlButton
-        style={{
-          backgroundColor: "#fff",
-        }}
-        title={t("layoutButton")}
-        onClick={handleLayoutClick}
-      >
-        <MdCleaningServices
+      {showLayoutButton && (
+        <ControlButton
           style={{
-            color: colors.textEditorBackground,
+            backgroundColor: "#fff",
           }}
-        />
-      </ControlButton>
+          title={t("layoutButton")}
+          onClick={handleLayoutClick}
+        >
+          <MdCleaningServices
+            style={{
+              color: colors.textEditorBackground,
+            }}
+          />
+        </ControlButton>
+      )}
 
       {/* nothing to say when nothing is hidden, so the button is not there */}
       {occlusions.length > 0 && (

@@ -59,16 +59,31 @@ type ErDiagramProps = {
   setEdgesOrthogonal: (isOrthogonal: boolean) => void;
   onNotationChange: (newNotationType: NotationTypes) => void;
   erEdgeNotation: ErNotation["edgeMarkers"];
+  /**
+   * A study task: no settings panel and no layout button, and the layout is
+   * neither loaded from nor saved to the playground's localStorage.
+   */
+  study?: boolean;
+  /**
+   * Whether the keyboard and the modifier keys work: box selection with
+   * Shift, Ctrl+click, the arrow keys. Off in a study task that measures
+   * something else, so that only the mouse moves the diagram there.
+   */
+  shortcuts?: boolean;
 };
 
 const NotationSelectorErDiagramWrapper = ({
   erDoc,
   erDocHasError,
   lastChange,
+  study = false,
+  shortcuts = true,
 }: {
   erDoc: ER;
   lastChange: DiagramChange | null;
   erDocHasError: boolean;
+  study?: boolean;
+  shortcuts?: boolean;
 }) => {
   const [edgesOrthogonal, setEdgesOrthogonal] = useState<boolean>(false);
   const [notationType, setNotationType] = useState<NotationTypes>("arrow");
@@ -87,6 +102,8 @@ const NotationSelectorErDiagramWrapper = ({
       notationType={notationType}
       onNotationChange={(newNotationType) => setNotationType(newNotationType)}
       setEdgesOrthogonal={setEdgesOrthogonal}
+      study={study}
+      shortcuts={shortcuts}
     />
   );
 };
@@ -99,6 +116,8 @@ const ErDiagram = ({
   lastChange,
   onNotationChange,
   setEdgesOrthogonal,
+  study = false,
+  shortcuts = true,
 }: ErDiagramProps) => {
   const t = useTranslations("home.erDiagram");
   const erNodeTypes = useMemo(() => notation.nodeTypes, [notation]);
@@ -115,6 +134,16 @@ const ErDiagram = ({
     useAlignmentGuide();
   const { saveToLocalStorage, loadFromLocalStorage, setRfInstance } =
     useDiagramToLocalStorage();
+  /**
+   * Whether this is the playground's own diagram, kept in localStorage between
+   * visits. A study task is not: its layout is handed to the study when the
+   * participant is done, and it must neither load the playground's diagram
+   * nor write over it.
+   */
+  const persist = !study;
+  const persistLayout = useCallback(() => {
+    if (persist) saveToLocalStorage();
+  }, [persist, saveToLocalStorage]);
   const { onNodeMouseEnter, onNodeMouseLeave, hoveredOwnerId } =
     useAttributeVisibility();
   const { settings } = useDiagramSettings();
@@ -246,7 +275,7 @@ const ErDiagram = ({
           }),
         10,
       );
-      setTimeout(saveToLocalStorage, 100);
+      setTimeout(persistLayout, 100);
       return;
     }
 
@@ -269,7 +298,7 @@ const ErDiagram = ({
     erDocHasError,
     nodes,
     setNodes,
-    saveToLocalStorage,
+    persistLayout,
     fitView,
   ]);
 
@@ -310,7 +339,7 @@ const ErDiagram = ({
     );
     // not while a stored layout is still landing: this would snapshot the
     // diagram mid-flight, and the settling effect saves it properly anyway
-    if (!hasPendingLayout.current) setTimeout(saveToLocalStorage, 100);
+    if (!hasPendingLayout.current) setTimeout(persistLayout, 100);
   }
 
   /**
@@ -319,7 +348,7 @@ const ErDiagram = ({
    * `saveToLocalStorage` reads the diagram back out of it.
    */
   const saveAfterFlush = () =>
-    setTimeout(() => window.requestAnimationFrame(saveToLocalStorage), 0);
+    setTimeout(() => window.requestAnimationFrame(persistLayout), 0);
 
   // a resize is the one edit that used to leave no trace anywhere
   const onNodesChangeWithResize = useResizeCommit(
@@ -368,9 +397,9 @@ const ErDiagram = ({
       // on mount, load from local storage -- unless an example is already on its
       // way in, whose positions would otherwise be overwritten by the last
       // session's diagram
-      if (!hasPendingLayout.current) loadFromLocalStorage();
+      if (persist && !hasPendingLayout.current) loadFromLocalStorage();
     },
-    [setRfInstance, loadFromLocalStorage],
+    [setRfInstance, loadFromLocalStorage, persist],
   );
 
   // A code edit can rename what the history knows a node by. Keyed on the
@@ -386,13 +415,13 @@ const ErDiagram = ({
   const drag = useRef<Gesture | null>(null);
 
   const onNodeDragStartHandler: NodeDragHandler = (e, node, nodes) => {
-    saveToLocalStorage();
+    persistLayout();
     drag.current = history.begin("pointer", nodes);
     onNodeDragStart(e, node, nodes);
   };
 
   const onNodeDragStopHandler: NodeDragHandler = (e, node, nodes) => {
-    saveToLocalStorage();
+    persistLayout();
     onNodeDragStop(e, node, nodes);
     drag.current?.commit();
   };
@@ -419,13 +448,21 @@ const ErDiagram = ({
       onNodeDragStart={onNodeDragStartHandler}
       onNodeDragStop={onNodeDragStopHandler}
       onSelectionEnd={onSelectionEnd}
-      onMouseDownCapture={onMouseDownCapture}
-      onClickCapture={onClickCapture}
+      // the Ctrl+click handlers set React Flow's multi-selection themselves,
+      // so without shortcuts they stay off along with the keys
+      onMouseDownCapture={shortcuts ? onMouseDownCapture : undefined}
+      onClickCapture={shortcuts ? onClickCapture : undefined}
+      selectionKeyCode={shortcuts ? "Shift" : null}
+      multiSelectionKeyCode={shortcuts ? undefined : null}
+      disableKeyboardA11y={!shortcuts}
       onNodeMouseEnter={onNodeMouseEnter}
       onNodeMouseLeave={onNodeMouseLeave}
       // the diagram is drawn from the code: a node deleted here is still in the
       // code, and comes back with the next edit
       deleteKeyCode={null}
+      // far enough out to take in a diagram whose parts have been scattered
+      // (the study's third task); React Flow's own floor of 0.5 cannot
+      minZoom={0.2}
       proOptions={{ hideAttribution: true }}
     >
       {hoveredOwnerId !== null && <AttributeTooltip nodeId={hoveredOwnerId} />}
@@ -451,19 +488,22 @@ const ErDiagram = ({
         )}
       </Panel>
 
-      <Panel position="top-right">
-        <ConfigPanel
-          notationType={notationType}
-          setEdgesOrthogonal={setEdgesOrthogonal}
-          onNotationChange={onNotationChange}
-        />
-      </Panel>
+      {!study && (
+        <Panel position="top-right">
+          <ConfigPanel
+            notationType={notationType}
+            setEdgesOrthogonal={setEdgesOrthogonal}
+            onNotationChange={onNotationChange}
+          />
+        </Panel>
+      )}
       <EdgeCustomSVGs />
       <AlignmentGuides guides={guides} />
       <OcclusionOverlay occlusions={occlusions} />
       <ControlPanel
-        onLayoutClick={saveToLocalStorage}
+        onLayoutClick={persistLayout}
         occlusions={occlusions}
+        showLayoutButton={!study}
       />
     </ReactFlow>
   );
