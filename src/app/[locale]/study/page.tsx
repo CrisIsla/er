@@ -7,7 +7,9 @@ import { StudyEnd } from "../../components/Study/StudyEnd";
 import { StudyFrame } from "../../components/Study/StudyFrame";
 import { StudyHelp } from "../../components/Study/StudyHelp";
 import { StudyIntro } from "../../components/Study/StudyIntro";
+import { StudyPairs } from "../../components/Study/StudyPairs";
 import { StudyTask, TaskOutcome } from "../../components/Study/StudyTask";
+import { StudyTasksIntro } from "../../components/Study/StudyTasksIntro";
 import { SusForm } from "../../components/Study/SusForm";
 import {
   STUDY_PHASES,
@@ -83,6 +85,16 @@ const StudyPage = () => {
         </StudyFrame>
       );
 
+    case "pairs":
+      return (
+        <StudyFrame step={step} total={total} fill>
+          <StudyPairs
+            participantId={session.participantId}
+            onDone={(pairs) => advance((s) => ({ ...s, pairs }))}
+          />
+        </StudyFrame>
+      );
+
     case "background":
       return (
         <StudyFrame step={step} total={total}>
@@ -94,6 +106,13 @@ const StudyPage = () => {
               }))
             }
           />
+        </StudyFrame>
+      );
+
+    case "tasksIntro":
+      return (
+        <StudyFrame step={step} total={total}>
+          <StudyTasksIntro onStart={() => advance((s) => s)} />
         </StudyFrame>
       );
 

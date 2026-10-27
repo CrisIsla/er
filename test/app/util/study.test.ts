@@ -1,7 +1,10 @@
 import {
+  PAIR_IMAGES,
+  STUDY_PAIRS,
   STUDY_PHASES,
   STUDY_TESTS,
   SUS_ITEMS,
+  pairSides,
   susScore,
 } from "../../../src/app/util/study";
 
@@ -25,6 +28,9 @@ describe("the study's phases", () => {
   it("runs each task before its own SUS, between the intro and the end", () => {
     expect(STUDY_PHASES[0]).toEqual({ kind: "intro" });
     expect(STUDY_PHASES[1]).toEqual({ kind: "background" });
+    expect(STUDY_PHASES[2]).toEqual({ kind: "pairs" });
+    expect(STUDY_PHASES[3]).toEqual({ kind: "tasksIntro" });
+    expect(STUDY_PHASES[4]).toEqual({ kind: "task", test: 0 });
     const tasks = STUDY_PHASES.filter((phase) => phase.kind === "task");
     const sus = STUDY_PHASES.filter((phase) => phase.kind === "sus");
     expect(tasks.map((phase) => phase.kind === "task" && phase.test)).toEqual(
@@ -51,5 +57,24 @@ describe("the study's phases", () => {
     expect(
       STUDY_TESTS.filter((test) => test.shortcuts).map((test) => test.id),
     ).toEqual(["groups"]);
+  });
+});
+
+describe("the pairs", () => {
+  it("each show two versions of one diagram, with a screenshot for every version", () => {
+    for (const pair of STUDY_PAIRS) {
+      const [a, b] = pair.versions;
+      expect(a).not.toBe(b);
+      expect(a.split("_")[0]).toBe(b.split("_")[0]);
+      expect(PAIR_IMAGES[a]).toMatch(/^[0-9a-f]{6}$/);
+      expect(PAIR_IMAGES[b]).toMatch(/^[0-9a-f]{6}$/);
+    }
+  });
+
+  it("draw the sides once per participant", () => {
+    const sides = pairSides("P-TEST-0001");
+    expect(sides).toHaveLength(STUDY_PAIRS.length);
+    expect(pairSides("P-TEST-0001")).toEqual(sides);
+    expect(pairSides("P-TEST-0002")).not.toEqual(sides);
   });
 });

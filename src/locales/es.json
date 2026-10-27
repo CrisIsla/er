@@ -205,9 +205,19 @@
     "intro": {
       "title": "Antes de empezar",
       "p1": "Estamos evaluando herramientas para ordenar y revisar diagramas entidad-relación en ERdoc Playground.",
-      "p2": "Primero te haremos unas preguntas breves sobre ti. Después harás dos tareas sobre un diagrama ya hecho, usando solo el mouse o el trackpad, y tras cada tarea responderás un cuestionario corto sobre lo que usaste.",
-      "p3": "Dura unos 20 minutos. No se registra tu nombre: se guardan tus respuestas, los diagramas tal como los dejes y el tiempo que tardes.",
+      "p2": "Primero te haremos unas preguntas breves sobre ti. Después elegirás, entre dos versiones de un mismo diagrama, la que más te gusta, y luego harás tres tareas sobre diagramas ya hechos, usando solo el mouse o el trackpad; tras cada tarea responderás un cuestionario corto sobre lo que usaste.",
+      "p3": "Dura unos 25 minutos. No se registra tu nombre: se guardan tus elecciones, tus respuestas, los diagramas tal como los dejes y el tiempo que tardes.",
       "p4": "Puedes preguntar o detenerte en cualquier momento."
+    },
+    "pairs": {
+      "title": "¿Cuál te gusta más?",
+      "intro1": "Verás dos versiones de un mismo diagrama entidad-relación, una al lado de la otra. Las dos muestran el mismo modelo; solo cambia cómo está dibujado.",
+      "intro2": "Haz clic en la que más te guste y presiona «Continuar». Aquí no hay respuestas correctas: nos interesa tu opinión.",
+      "counter": "Par {n} de {total}",
+      "prompt": "¿Cuál de los dos te gusta más?",
+      "this": "Este",
+      "keys": "Un doble clic en una versión la elige y continúa. También puedes elegir con las flechas ← y →.",
+      "hint_conexion-fig2": "Es el mismo diagrama: fíjate en cómo llegan las líneas a las figuras."
     },
     "background": {
       "title": "Sobre ti",
@@ -248,6 +258,12 @@
       "erdocFamiliarity": "¿Qué tan familiarizadx estás con ERDoc Playground?",
       "erdocFamiliarity_low": "No sé lo que es",
       "erdocFamiliarity_high": "Sé utilizarlo muy bien"
+    },
+    "tasksIntro": {
+      "title": "Ahora, las tareas",
+      "p1": "A continuación resolverás tres tareas sobre diagramas ya hechos, usando solo el mouse o el trackpad. En cada una, la instrucción está arriba del diagrama.",
+      "p2": "Cuando termines una tarea, presiona «Listo»: el diagrama se guardará tal como esté y pasarás a un cuestionario corto sobre lo que usaste.",
+      "p3": "No hay tiempo límite ni respuestas correctas. Si algo no queda claro, pregunta."
     },
     "help": {
       "title": "Atajos",
