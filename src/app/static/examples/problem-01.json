@@ -1,0 +1,612 @@
+{
+  "erDoc": "entity Alumno {\n  rut key\n  nombre\n  fono\n  edad\n}\n\nentity Docente {\n  rut key\n  nombre\n  sueldo\n}\n\nentity Tutor extends Docente {\n  turno\n}\n\nentity Curso {\n  codigo key\n  nivel\n}\n\nentity Libro {\n  codigo key\n  titulo\n  autor\n}\n\nentity Prueba {\n  codigo key\n  tipo\n  nota\n}\n\nentity Taller {\n  codigo key\n  nombre\n  cupo\n}\n\nentity Sala {\n  numero key\n  piso\n}\n\nentity Aula {\n  numero key\n  piso\n}\n\nentity Pupitre depends on Ubicado {\n  numero pkey\n  fila\n}\n\nrelation Dicta(Docente, Curso) {\n  horas\n}\n\nrelation Cursa(Alumno, Curso 1!)\n\nrelation Presta(Docente, Alumno, Libro) {\n  fecha\n}\n\nrelation Dirige(Tutor, Taller) {\n  hora\n}\n\nrelation Rinde(Alumno, Prueba) {\n  fecha\n}\n\nrelation Asiste(Alumno, Taller)\n\nrelation Usa(Taller, Sala)\n\nrelation Ocupa(Alumno 1, Pupitre 1) {\n  desde\n}\n\nrelation Ubicado(Aula, Pupitre 1!)\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 855,
+        "y": 378
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -135,
+        "y": -85
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": -59,
+        "y": -85
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 85,
+        "y": -85
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": 218,
+        "y": -47
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 1355,
+        "y": 878
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 155,
+        "y": -60
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": 151,
+        "y": 0
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 151,
+        "y": 60
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 1355,
+        "y": 1128
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": 1352,
+        "y": 993
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 155,
+        "y": 0
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 1355,
+        "y": 378
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": 151,
+        "y": 0
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 15,
+        "y": -250
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 1115,
+        "y": 1128
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": -69,
+        "y": 85
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": 11,
+        "y": 85
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": 95,
+        "y": 85
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": 105,
+        "y": 378
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": -69,
+        "y": -85
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 15,
+        "y": -85
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": 95,
+        "y": -85
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": 855,
+        "y": 878
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": 141,
+        "y": -75
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": 141,
+        "y": 0
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 189,
+        "y": 0
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": 355,
+        "y": 378
+      }
+    },
+    {
+      "id": "28",
+      "position": {
+        "x": -29,
+        "y": -85
+      }
+    },
+    {
+      "id": "29",
+      "position": {
+        "x": 55,
+        "y": -85
+      }
+    },
+    {
+      "id": "30",
+      "position": {
+        "x": 1443,
+        "y": 128
+      }
+    },
+    {
+      "id": "31",
+      "position": {
+        "x": -9,
+        "y": -85
+      }
+    },
+    {
+      "id": "32",
+      "position": {
+        "x": 75,
+        "y": -85
+      }
+    },
+    {
+      "id": "33",
+      "position": {
+        "x": 1105,
+        "y": 128
+      }
+    },
+    {
+      "id": "34",
+      "position": {
+        "x": -29,
+        "y": -85
+      }
+    },
+    {
+      "id": "35",
+      "position": {
+        "x": 55,
+        "y": -85
+      }
+    },
+    {
+      "id": "36",
+      "position": {
+        "x": 1352.5,
+        "y": 602.5
+      }
+    },
+    {
+      "id": "37",
+      "position": {
+        "x": 147.5,
+        "y": 25.5
+      }
+    },
+    {
+      "id": "38",
+      "position": {
+        "x": 1102.5,
+        "y": 352.5
+      }
+    },
+    {
+      "id": "39",
+      "position": {
+        "x": 1102.5,
+        "y": 602.5
+      }
+    },
+    {
+      "id": "40",
+      "position": {
+        "x": 127.5,
+        "y": -54.5
+      }
+    },
+    {
+      "id": "41",
+      "position": {
+        "x": 852.5,
+        "y": 1102.5
+      }
+    },
+    {
+      "id": "42",
+      "position": {
+        "x": -102.5,
+        "y": 25.5
+      }
+    },
+    {
+      "id": "43",
+      "position": {
+        "x": 602.5,
+        "y": 352.5
+      }
+    },
+    {
+      "id": "44",
+      "position": {
+        "x": 17.5,
+        "y": 145.5
+      }
+    },
+    {
+      "id": "45",
+      "position": {
+        "x": 852.5,
+        "y": 602.5
+      }
+    },
+    {
+      "id": "46",
+      "position": {
+        "x": 602.5,
+        "y": 852.5
+      }
+    },
+    {
+      "id": "47",
+      "position": {
+        "x": 852.5,
+        "y": 102.5
+      }
+    },
+    {
+      "id": "48",
+      "position": {
+        "x": -102.5,
+        "y": 25.5
+      }
+    },
+    {
+      "id": "49",
+      "position": {
+        "x": 1352.5,
+        "y": 102.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Alumno->rut",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Alumno->nombre",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Alumno->fono",
+      "source": "0",
+      "target": "3"
+    },
+    {
+      "id": "entity-attr: Alumno->edad",
+      "source": "0",
+      "target": "4"
+    },
+    {
+      "id": "entity-attr: Docente->rut",
+      "source": "5",
+      "target": "6"
+    },
+    {
+      "id": "entity-attr: Docente->nombre",
+      "source": "5",
+      "target": "7"
+    },
+    {
+      "id": "entity-attr: Docente->sueldo",
+      "source": "5",
+      "target": "8"
+    },
+    {
+      "id": "isA: entity: Tutor|entity: Docente",
+      "source": "10",
+      "target": "9"
+    },
+    {
+      "id": "isA: entity: Docente|entity: Tutor",
+      "source": "5",
+      "target": "10"
+    },
+    {
+      "id": "entity-attr: Tutor->turno",
+      "source": "9",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Curso->codigo",
+      "source": "12",
+      "target": "13"
+    },
+    {
+      "id": "entity-attr: Curso->nivel",
+      "source": "12",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Libro->codigo",
+      "source": "15",
+      "target": "16"
+    },
+    {
+      "id": "entity-attr: Libro->titulo",
+      "source": "15",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Libro->autor",
+      "source": "15",
+      "target": "18"
+    },
+    {
+      "id": "entity-attr: Prueba->codigo",
+      "source": "19",
+      "target": "20"
+    },
+    {
+      "id": "entity-attr: Prueba->tipo",
+      "source": "19",
+      "target": "21"
+    },
+    {
+      "id": "entity-attr: Prueba->nota",
+      "source": "19",
+      "target": "22"
+    },
+    {
+      "id": "entity-attr: Taller->codigo",
+      "source": "23",
+      "target": "24"
+    },
+    {
+      "id": "entity-attr: Taller->nombre",
+      "source": "23",
+      "target": "25"
+    },
+    {
+      "id": "entity-attr: Taller->cupo",
+      "source": "23",
+      "target": "26"
+    },
+    {
+      "id": "entity-attr: Sala->numero",
+      "source": "27",
+      "target": "28"
+    },
+    {
+      "id": "entity-attr: Sala->piso",
+      "source": "27",
+      "target": "29"
+    },
+    {
+      "id": "entity-attr: Aula->numero",
+      "source": "30",
+      "target": "31"
+    },
+    {
+      "id": "entity-attr: Aula->piso",
+      "source": "30",
+      "target": "32"
+    },
+    {
+      "id": "entity-attr: Pupitre->numero",
+      "source": "33",
+      "target": "34"
+    },
+    {
+      "id": "entity-attr: Pupitre->fila",
+      "source": "33",
+      "target": "35"
+    },
+    {
+      "id": "relationship-attr: Dicta$Curso$Docente->horas",
+      "source": "36",
+      "target": "37"
+    },
+    {
+      "id": "relationship-part: Dicta$Curso$Docente->Docente",
+      "source": "36",
+      "target": "5"
+    },
+    {
+      "id": "relationship-part: Dicta$Curso$Docente->Curso",
+      "source": "36",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Cursa$Alumno$Curso->Alumno",
+      "source": "38",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Cursa$Alumno$Curso->Curso",
+      "source": "38",
+      "target": "12"
+    },
+    {
+      "id": "relationship-attr: Presta$Alumno$Docente$Libro->fecha",
+      "source": "39",
+      "target": "40"
+    },
+    {
+      "id": "relationship-part: Presta$Alumno$Docente$Libro->Docente",
+      "source": "39",
+      "target": "5"
+    },
+    {
+      "id": "relationship-part: Presta$Alumno$Docente$Libro->Alumno",
+      "source": "39",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Presta$Alumno$Docente$Libro->Libro",
+      "source": "39",
+      "target": "15"
+    },
+    {
+      "id": "relationship-attr: Dirige$Taller$Tutor->hora",
+      "source": "41",
+      "target": "42"
+    },
+    {
+      "id": "relationship-part: Dirige$Taller$Tutor->Tutor",
+      "source": "41",
+      "target": "9"
+    },
+    {
+      "id": "relationship-part: Dirige$Taller$Tutor->Taller",
+      "source": "41",
+      "target": "23"
+    },
+    {
+      "id": "relationship-attr: Rinde$Alumno$Prueba->fecha",
+      "source": "43",
+      "target": "44"
+    },
+    {
+      "id": "relationship-part: Rinde$Alumno$Prueba->Alumno",
+      "source": "43",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Rinde$Alumno$Prueba->Prueba",
+      "source": "43",
+      "target": "19"
+    },
+    {
+      "id": "relationship-part: Asiste$Alumno$Taller->Alumno",
+      "source": "45",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Asiste$Alumno$Taller->Taller",
+      "source": "45",
+      "target": "23"
+    },
+    {
+      "id": "relationship-part: Usa$Sala$Taller->Taller",
+      "source": "46",
+      "target": "23"
+    },
+    {
+      "id": "relationship-part: Usa$Sala$Taller->Sala",
+      "source": "46",
+      "target": "27"
+    },
+    {
+      "id": "relationship-attr: Ocupa$Alumno$Pupitre->desde",
+      "source": "47",
+      "target": "48"
+    },
+    {
+      "id": "relationship-part: Ocupa$Alumno$Pupitre->Alumno",
+      "source": "47",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Ocupa$Alumno$Pupitre->Pupitre",
+      "source": "47",
+      "target": "33"
+    },
+    {
+      "id": "relationship-part: Ubicado$Aula$Pupitre->Aula",
+      "source": "49",
+      "target": "30"
+    },
+    {
+      "id": "relationship-part: Ubicado$Aula$Pupitre->Pupitre",
+      "source": "49",
+      "target": "33"
+    }
+  ]
+}

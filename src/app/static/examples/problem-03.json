@@ -1,0 +1,398 @@
+{
+  "erDoc": "entity Mesero {\n  rut key\n  nombre\n}\n\nentity Mesa {\n  numero key\n  puestos\n}\n\nentity Cliente {\n  rut key\n  nombre\n}\n\nentity Pedido {\n  numero key\n  hora\n}\n\nentity Proveedor {\n  rut key\n  nombre\n}\n\nentity Ingrediente {\n  codigo key\n  nombre\n}\n\nentity Plato {\n  codigo key\n  precio\n}\n\nentity Chef {\n  rut key\n  nombre\n}\n\nrelation Atiende(Mesero, Mesa)\n\nrelation Reserva(Cliente, Mesa) {\n  fecha\n}\n\nrelation Hace(Cliente, Pedido 1!)\n\nrelation Incluye(Pedido, Plato) {\n  cantidad\n}\n\nrelation Lleva(Plato, Ingrediente)\n\nrelation Provee(Proveedor, Ingrediente)\n\nrelation Prepara(Chef, Plato)\n",
+  "nodes": [
+    {
+      "id": "0",
+      "position": {
+        "x": 105,
+        "y": 178
+      }
+    },
+    {
+      "id": "1",
+      "position": {
+        "x": -30,
+        "y": -85
+      }
+    },
+    {
+      "id": "2",
+      "position": {
+        "x": 56,
+        "y": -85
+      }
+    },
+    {
+      "id": "3",
+      "position": {
+        "x": 565,
+        "y": 178
+      }
+    },
+    {
+      "id": "4",
+      "position": {
+        "x": -34,
+        "y": -85
+      }
+    },
+    {
+      "id": "5",
+      "position": {
+        "x": 52,
+        "y": -85
+      }
+    },
+    {
+      "id": "6",
+      "position": {
+        "x": 2025,
+        "y": 228
+      }
+    },
+    {
+      "id": "7",
+      "position": {
+        "x": -30,
+        "y": -85
+      }
+    },
+    {
+      "id": "8",
+      "position": {
+        "x": 56,
+        "y": -85
+      }
+    },
+    {
+      "id": "9",
+      "position": {
+        "x": 2485,
+        "y": 228
+      }
+    },
+    {
+      "id": "10",
+      "position": {
+        "x": -34,
+        "y": -85
+      }
+    },
+    {
+      "id": "11",
+      "position": {
+        "x": 60,
+        "y": -85
+      }
+    },
+    {
+      "id": "12",
+      "position": {
+        "x": 614,
+        "y": 1538
+      }
+    },
+    {
+      "id": "13",
+      "position": {
+        "x": -29,
+        "y": 85
+      }
+    },
+    {
+      "id": "14",
+      "position": {
+        "x": 57,
+        "y": 85
+      }
+    },
+    {
+      "id": "15",
+      "position": {
+        "x": 1066,
+        "y": 1538
+      }
+    },
+    {
+      "id": "16",
+      "position": {
+        "x": -25,
+        "y": 85
+      }
+    },
+    {
+      "id": "17",
+      "position": {
+        "x": 65,
+        "y": 85
+      }
+    },
+    {
+      "id": "18",
+      "position": {
+        "x": 2385,
+        "y": 1438
+      }
+    },
+    {
+      "id": "19",
+      "position": {
+        "x": 151,
+        "y": -40
+      }
+    },
+    {
+      "id": "20",
+      "position": {
+        "x": 151,
+        "y": 40
+      }
+    },
+    {
+      "id": "21",
+      "position": {
+        "x": 2385,
+        "y": 1898
+      }
+    },
+    {
+      "id": "22",
+      "position": {
+        "x": -30,
+        "y": 85
+      }
+    },
+    {
+      "id": "23",
+      "position": {
+        "x": 56,
+        "y": 85
+      }
+    },
+    {
+      "id": "24",
+      "position": {
+        "x": 332.5,
+        "y": 152.5
+      }
+    },
+    {
+      "id": "25",
+      "position": {
+        "x": 792.5,
+        "y": 152.5
+      }
+    },
+    {
+      "id": "26",
+      "position": {
+        "x": 17.5,
+        "y": 140.5
+      }
+    },
+    {
+      "id": "27",
+      "position": {
+        "x": 2252.5,
+        "y": 202.5
+      }
+    },
+    {
+      "id": "28",
+      "position": {
+        "x": 2482.5,
+        "y": 432.5
+      }
+    },
+    {
+      "id": "29",
+      "position": {
+        "x": 135.5,
+        "y": 25.5
+      }
+    },
+    {
+      "id": "30",
+      "position": {
+        "x": 2152.5,
+        "y": 1412.5
+      }
+    },
+    {
+      "id": "31",
+      "position": {
+        "x": 842.5,
+        "y": 1512.5
+      }
+    },
+    {
+      "id": "32",
+      "position": {
+        "x": 2382.5,
+        "y": 1642.5
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "entity-attr: Mesero->rut",
+      "source": "0",
+      "target": "1"
+    },
+    {
+      "id": "entity-attr: Mesero->nombre",
+      "source": "0",
+      "target": "2"
+    },
+    {
+      "id": "entity-attr: Mesa->numero",
+      "source": "3",
+      "target": "4"
+    },
+    {
+      "id": "entity-attr: Mesa->puestos",
+      "source": "3",
+      "target": "5"
+    },
+    {
+      "id": "entity-attr: Cliente->rut",
+      "source": "6",
+      "target": "7"
+    },
+    {
+      "id": "entity-attr: Cliente->nombre",
+      "source": "6",
+      "target": "8"
+    },
+    {
+      "id": "entity-attr: Pedido->numero",
+      "source": "9",
+      "target": "10"
+    },
+    {
+      "id": "entity-attr: Pedido->hora",
+      "source": "9",
+      "target": "11"
+    },
+    {
+      "id": "entity-attr: Proveedor->rut",
+      "source": "12",
+      "target": "13"
+    },
+    {
+      "id": "entity-attr: Proveedor->nombre",
+      "source": "12",
+      "target": "14"
+    },
+    {
+      "id": "entity-attr: Ingrediente->codigo",
+      "source": "15",
+      "target": "16"
+    },
+    {
+      "id": "entity-attr: Ingrediente->nombre",
+      "source": "15",
+      "target": "17"
+    },
+    {
+      "id": "entity-attr: Plato->codigo",
+      "source": "18",
+      "target": "19"
+    },
+    {
+      "id": "entity-attr: Plato->precio",
+      "source": "18",
+      "target": "20"
+    },
+    {
+      "id": "entity-attr: Chef->rut",
+      "source": "21",
+      "target": "22"
+    },
+    {
+      "id": "entity-attr: Chef->nombre",
+      "source": "21",
+      "target": "23"
+    },
+    {
+      "id": "relationship-part: Atiende$Mesa$Mesero->Mesero",
+      "source": "24",
+      "target": "0"
+    },
+    {
+      "id": "relationship-part: Atiende$Mesa$Mesero->Mesa",
+      "source": "24",
+      "target": "3"
+    },
+    {
+      "id": "relationship-attr: Reserva$Cliente$Mesa->fecha",
+      "source": "25",
+      "target": "26"
+    },
+    {
+      "id": "relationship-part: Reserva$Cliente$Mesa->Cliente",
+      "source": "25",
+      "target": "6"
+    },
+    {
+      "id": "relationship-part: Reserva$Cliente$Mesa->Mesa",
+      "source": "25",
+      "target": "3"
+    },
+    {
+      "id": "relationship-part: Hace$Cliente$Pedido->Cliente",
+      "source": "27",
+      "target": "6"
+    },
+    {
+      "id": "relationship-part: Hace$Cliente$Pedido->Pedido",
+      "source": "27",
+      "target": "9"
+    },
+    {
+      "id": "relationship-attr: Incluye$Pedido$Plato->cantidad",
+      "source": "28",
+      "target": "29"
+    },
+    {
+      "id": "relationship-part: Incluye$Pedido$Plato->Pedido",
+      "source": "28",
+      "target": "9"
+    },
+    {
+      "id": "relationship-part: Incluye$Pedido$Plato->Plato",
+      "source": "28",
+      "target": "18"
+    },
+    {
+      "id": "relationship-part: Lleva$Ingrediente$Plato->Plato",
+      "source": "30",
+      "target": "18"
+    },
+    {
+      "id": "relationship-part: Lleva$Ingrediente$Plato->Ingrediente",
+      "source": "30",
+      "target": "15"
+    },
+    {
+      "id": "relationship-part: Provee$Ingrediente$Proveedor->Proveedor",
+      "source": "31",
+      "target": "12"
+    },
+    {
+      "id": "relationship-part: Provee$Ingrediente$Proveedor->Ingrediente",
+      "source": "31",
+      "target": "15"
+    },
+    {
+      "id": "relationship-part: Prepara$Chef$Plato->Chef",
+      "source": "32",
+      "target": "21"
+    },
+    {
+      "id": "relationship-part: Prepara$Chef$Plato->Plato",
+      "source": "32",
+      "target": "18"
+    }
+  ]
+}
