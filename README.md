@@ -70,8 +70,13 @@ npm run start
 ### With Docker
 
 1. [Install Docker](https://docs.docker.com/get-docker/) on your machine.
-2. Build the container: `docker build -t er-docker .`.
-3. Run the container: `docker run -p 3000:3000 er-docker`.
+2. Put a `JWT_SECRET` in a `.env` file (it signs the accounts' sessions).
+3. Start the app and its database: `docker compose up -d --build`.
+
+The playground is then at `http://localhost:3000`. The database keeps its data
+in the `mongo-data` volume. To run the app's image on its own, without the
+database, `docker build -t er-docker .` and `docker run -p 3000:3000 er-docker`
+still work; the accounts need `MONGO_URI` then.
 
 ### Deploy to remote server with pm2
 

@@ -1,0 +1,27 @@
+# The app with its database:
+#
+#   docker compose up -d --build
+#
+# The playground is then at http://<host>:3000. The database keeps its data in
+# the `mongo-data` volume across restarts and rebuilds. JWT_SECRET signs the
+# accounts' sessions: put a real one in a .env file next to this file.
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo-data:

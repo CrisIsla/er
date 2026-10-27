@@ -24,6 +24,8 @@ const withNextra = require("nextra")({
 });
 
 module.exports = withNextra({
-  // if using Docker, need to use standalone
-  // output: "standalone",
+  // The Docker image runs the self-contained build (.next/standalone); a
+  // plain `next start`, as pm2 runs it, does not want that output, so it is
+  // only produced when the Dockerfile asks for it.
+  output: process.env.DOCKER_BUILD ? "standalone" : undefined,
 });

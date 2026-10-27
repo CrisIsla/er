@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -20,6 +20,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# the self-contained build the runner stage copies (see next.config.js)
+ENV DOCKER_BUILD=1
 RUN npm run build:next
 
 # Production image, copy all the files and run next
