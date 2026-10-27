@@ -1,14 +1,15 @@
 import { useCallback, useRef, useState } from "react";
 import { Node, NodeDragHandler, useReactFlow } from "reactflow";
 import {
-  Candidate,
-  Rect,
-  STRUCTURAL_TYPES,
-  endOf,
   absoluteRectOf,
+  Candidate,
+  centerOf,
+  endOf,
   findActiveCandidates,
   movedByDrag,
+  Rect,
   startOf,
+  STRUCTURAL_TYPES,
   toAbsoluteRects,
 } from "../util/alignmentCandidates";
 import { obstaclesFor, slideOutOfCollisions } from "../util/collision";
@@ -33,11 +34,6 @@ export type GuideLine = {
   labelY?: number;
 };
 
-const boundsOf = (rects: Rect[], axis: "x" | "y") => ({
-  min: Math.min(...rects.map((r) => startOf(r, axis))),
-  max: Math.max(...rects.map((r) => endOf(r, axis))),
-});
-
 /** Where the dragged rect would sit if it took this candidate. */
 const draggedAtCandidate = (dragged: Rect, candidate: Candidate): Rect =>
   candidate.axis === "x"
@@ -47,9 +43,11 @@ const draggedAtCandidate = (dragged: Rect, candidate: Candidate): Rect =>
 /**
  * Turns an active candidate into drawable lines.
  *
- * Alignment renders as a single line through the shared centres. Spacing
+ * Alignment renders as a single line through the shared centres, from the
+ * dragged shape's centre to the farthest centre it is aligned with. Spacing
  * renders as the two equal gaps it is claiming, each labelled with its size,
- * which is what makes the guide readable -- a bare line would not tell the
+ * drawn on the centre line of the shapes the dragged one is compared with --
+ * which is what makes the guide readable: a bare line would not tell the
  * user *why* the position is special.
  */
 const toGuideLines = (
@@ -67,7 +65,10 @@ const toGuideLines = (
   const ghost = draggedAtCandidate(dragged, candidate);
 
   if (candidate.kind === "align") {
-    const { min, max } = boundsOf([ghost, ...refs], cross);
+    // centre to centre: the dragged shape's and the ones it lines up with
+    const centres = [ghost, ...refs].map((rect) => centerOf(rect, cross));
+    const min = Math.min(...centres);
+    const max = Math.max(...centres);
     const id = `align-${axis}-${candidate.value}`;
     return [
       axis === "x"
@@ -98,11 +99,8 @@ const toGuideLines = (
   const draggedAfter = startOf(ghost, axis) >= endOf(second, axis);
   const draggedBefore = endOf(ghost, axis) <= startOf(first, axis);
 
-  // draw both gap markers on a shared line through the middle of the run
-  const centerCross =
-    (Math.min(...[ghost, ...refs].map((r) => startOf(r, cross))) +
-      Math.max(...[ghost, ...refs].map((r) => endOf(r, cross)))) /
-    2;
+  // both gap markers go on the centre line of the shapes being compared with
+  const centerCross = (centerOf(first, cross) + centerOf(second, cross)) / 2;
 
   const seg = (from: number, to: number, suffix: string): GuideLine => {
     const label = `${Math.round(candidate.gap ?? 0)}`;
@@ -315,9 +313,13 @@ export const useAlignmentGuide = () => {
         );
       }
 
+      // drawn from where the shape actually is -- after the snap and the
+      // collision -- rather than from where the pointer would have put it:
+      // snapped on one axis, a guide on the other must not end at the pointer
+      const placed: Rect = { ...draggedRect, x: corrected.x, y: corrected.y };
       const byId = new Map(others.map((r) => [r.id, r]));
       const lines = active.flatMap((candidate) =>
-        toGuideLines(candidate, draggedRect, byId),
+        toGuideLines(candidate, placed, byId),
       );
 
       setGuides((prev) => {

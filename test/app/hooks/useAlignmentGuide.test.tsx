@@ -159,4 +159,57 @@ describe("useAlignmentGuide", () => {
 
     expect(guide.guides).toEqual([]);
   });
+
+  it("draws the alignment guide from centre to centre", () => {
+    const a = entity("a", 0, 0, { selected: true });
+    // its centre line is x = 350, its centre y = 425
+    const other = entity("other", 300, 400);
+    mount([a, other]);
+
+    // a's centre is 5px off the line, with its own centre at y = 25
+    dragFrame({ ...a, position: { x: 305, y: 0 } });
+
+    expect(guide.guides).toEqual([
+      expect.objectContaining({
+        kind: "align",
+        x1: 350,
+        y1: 25,
+        x2: 350,
+        y2: 425,
+      }),
+    ]);
+  });
+
+  it("draws the spacing guides on the centre line of the shapes compared with", () => {
+    const [a, b] = [entity("a", 0, 0), entity("b", 140, 0)];
+    // taller than the pair, so its own middle is not theirs
+    const c = entity("c", 280, 0, { height: 90 });
+    mount([a, b, c]);
+
+    dragFrame(c);
+
+    const spacing = guide.guides.filter((line) => line.kind === "spacing");
+    expect(spacing).toHaveLength(2);
+    for (const line of spacing) expect([line.y1, line.y2]).toEqual([25, 25]);
+  });
+
+  it("draws the guides from where the shape snapped to, not from the pointer", () => {
+    const a = entity("a", 0, 0, { selected: true });
+    // a column at x = 350 and a row at y = 225
+    const column = entity("column", 300, 400);
+    const row = entity("row", 600, 200);
+    mount([a, column, row]);
+    act(() => setSetting("snapEnabled", true));
+
+    // the pointer puts a 5px right of the column and 3px below the row
+    dragFrame({ ...a, position: { x: 305, y: 203 } });
+
+    expect(positionOf("a")).toEqual({ x: 300, y: 200 });
+    expect(guide.guides).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "align", x1: 350, y1: 225, y2: 425 }),
+        expect.objectContaining({ kind: "align", y1: 225, x1: 350, x2: 650 }),
+      ]),
+    );
+  });
 });
