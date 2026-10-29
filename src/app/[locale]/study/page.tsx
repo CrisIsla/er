@@ -15,7 +15,6 @@ import {
   STUDY_PHASES,
   STUDY_TESTS,
   StudySession,
-  clearSession,
   loadSession,
   newSession,
   saveSession,
@@ -63,12 +62,6 @@ const StudyPage = () => {
     saveSession(next);
     setSavedOnServer(null);
     void uploadSession(next).then(setSavedOnServer);
-  };
-
-  const restart = () => {
-    clearSession();
-    setSavedOnServer(null);
-    setSession(newSession(locale));
   };
 
   if (!inStudyLocale || session === null) return null;
@@ -176,11 +169,7 @@ const StudyPage = () => {
     case "end":
       return (
         <StudyFrame step={step} total={total}>
-          <StudyEnd
-            session={session}
-            savedOnServer={savedOnServer}
-            onNewSession={restart}
-          />
+          <StudyEnd session={session} savedOnServer={savedOnServer} />
         </StudyFrame>
       );
   }

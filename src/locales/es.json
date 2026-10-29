@@ -339,11 +339,9 @@
     "end": {
       "title": "¡Gracias!",
       "body": "Terminaste el estudio.",
-      "savedServer": "Tus resultados quedaron guardados.",
+      "savedServer": "Tus resultados quedaron guardados. Ya puedes cerrar esta pestaña.",
       "savedLocal": "No se pudo guardar en el servidor. Los resultados quedaron en este navegador: descárgalos con el botón.",
       "download": "Descargar resultados (JSON)",
-      "newSession": "Nueva sesión",
-      "newSessionHint": "Borra esta sesión de este navegador para la siguiente persona.",
       "backToApp": "Volver a ERdoc Playground"
     }
   }
