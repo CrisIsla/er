@@ -2,7 +2,7 @@ import { Button } from "@chakra-ui/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { MdDownload } from "react-icons/md";
-import { StudySession, downloadSession } from "../../util/study";
+import { STUDY_ONLY, StudySession, downloadSession } from "../../util/study";
 
 /**
  * The last page: thanks, whether the results reached the server, the
@@ -49,9 +49,11 @@ export const StudyEnd = ({
         >
           {t("end.download")}
         </Button>
-        <Button variant="ghost" onClick={() => router.push(`/${locale}`)}>
-          {t("end.backToApp")}
-        </Button>
+        {!STUDY_ONLY && (
+          <Button variant="ghost" onClick={() => router.push(`/${locale}`)}>
+            {t("end.backToApp")}
+          </Button>
+        )}
       </div>
 
       <div className="mt-16 border-t border-slate-200 pt-6 text-sm text-slate-500">

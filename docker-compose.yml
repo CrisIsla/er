@@ -8,9 +8,16 @@
 # sessions, and STUDY_KEY is the secret that reads the study's sessions back
 # from http://<host>:3000/api/study?key=<STUDY_KEY>: put both in a .env file
 # next to this file.
+#
+# To deploy the study on its own -- nothing else reachable, every other page
+# sent to it -- add STUDY_ONLY=1 to that .env. It is baked in at build time,
+# so changing it means `docker compose up -d --build`.
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_STUDY_ONLY: ${STUDY_ONLY:-}
     ports:
       - "3000:3000"
     environment:

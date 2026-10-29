@@ -13,6 +13,14 @@ import {
 } from "../hooks/useDiagramSettings";
 import { ErJSON } from "../hooks/useJSON";
 
+/**
+ * Whether this build serves the user study alone: every other page and API
+ * route is switched off by the middleware (which reads the same variable --
+ * it cannot import this module), and the closing page stops offering the
+ * playground. Set at build time, as NEXT_PUBLIC_STUDY_ONLY.
+ */
+export const STUDY_ONLY = process.env.NEXT_PUBLIC_STUDY_ONLY === "1";
+
 export type StudyTest = {
   /** key under `study.tests` in the locale files */
   id: string;

@@ -6,6 +6,32 @@ import { cookies } from "next/headers";
 const LOCALES = ["en", "es"];
 const DEFAULT_LOCALE = "en";
 
+/**
+ * A build that serves the user study alone (NEXT_PUBLIC_STUDY_ONLY=1): the
+ * study's page and what it fetches stay reachable, every other page goes to
+ * the study, and every other API route answers 404. The playground, the
+ * accounts and the docs are not there to be found. Read here as well as in
+ * util/study.ts: the middleware cannot import that module.
+ */
+const STUDY_ONLY = process.env.NEXT_PUBLIC_STUDY_ONLY === "1";
+const STUDY_PATH = "/es/study";
+const STUDY_PAGES = /^\/(?:(?:en|es)\/)?study\/?$/;
+const STUDY_API = /^\/api\/(?:study|examples\/problem-\d+)$/;
+
+const studyOnly = (req: NextRequest) => {
+  const { pathname } = req.nextUrl;
+  if (pathname.startsWith("/api/")) {
+    return STUDY_API.test(pathname)
+      ? null
+      : NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (STUDY_PAGES.test(pathname)) return null;
+  const url = req.nextUrl.clone();
+  url.pathname = STUDY_PATH;
+  url.search = "";
+  return NextResponse.redirect(url);
+};
+
 /** next-intl's cookie that remembers the locale, with the attributes it gives it. */
 const LOCALE_COOKIE = "NEXT_LOCALE";
 const LOCALE_COOKIE_OPTIONS = {
@@ -69,6 +95,16 @@ async function verificarToken(token: string) {
 }
 
 export async function middleware(req: NextRequest) {
+  if (STUDY_ONLY) {
+    const locked = studyOnly(req);
+    if (locked) return locked;
+  }
+  // the API and the docs are not internationalized, and were never matched
+  // before the study-only build needed to see them
+  const { pathname } = req.nextUrl;
+  if (pathname.startsWith("/api/") || pathname.startsWith("/docs"))
+    return NextResponse.next();
+
   const withoutDefaultLocale = redirectAwayFromDefaultLocale(req);
   if (withoutDefaultLocale) return withoutDefaultLocale;
 
@@ -98,7 +134,8 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Skip all paths that should not be internationalized. This example skips the
-  // folders "api", "_next", "docs" and all files with an extension (e.g. favicon.ico)
-  matcher: ["/((?!api|docs|_next|.*\\..*).*)"],
+  // Everything but Next's own files and files with an extension (favicon.ico,
+  // the study's screenshots). The API and the docs pass straight through
+  // above, unless the build is study-only.
+  matcher: ["/((?!_next|.*\\..*).*)"],
 };
