@@ -45,8 +45,13 @@ const YEARS = ["1", "2", "3", "4", "5", "6", "7+"];
 /** The options of the single-choice question, as keys under `background` in the locale. */
 const DB_COURSE = ["yes", "inProgress", "no"];
 
-/** The tools one may tick; "other" opens a box to name them. */
-const TOOLS = ["paper", "drawio", "erdoc", OTHER];
+/**
+ * The tools one may tick; "other" opens a box to name them, and "none" is
+ * for whoever has never drawn one -- it stands alone, so ticking it clears
+ * the rest and ticking anything else clears it.
+ */
+const NONE = "none";
+const TOOLS = ["paper", "drawio", "erdoc", OTHER, NONE];
 
 const ER_SCALE = [1, 2, 3, 4, 5, 6, 7];
 const FAMILIARITY_SCALE = [1, 2, 3, 4, 5];
@@ -189,7 +194,11 @@ export const BackgroundForm = ({
           <CheckboxGroup
             value={tools}
             onChange={(values) => {
-              const chosen = values.map(String);
+              const ticked = values.map(String);
+              const chosen =
+                ticked.includes(NONE) && !tools.includes(NONE)
+                  ? [NONE]
+                  : ticked.filter((tool) => tool !== NONE);
               // the box for other tools goes with its tick
               setAnswers((current) => ({
                 ...current,

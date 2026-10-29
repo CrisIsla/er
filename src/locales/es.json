@@ -204,13 +204,12 @@
     "loadFailed": "No se pudo cargar el diagrama. Avisa a la persona que dirige la sesión.",
     "intro": {
       "title": "Antes de empezar",
-      "p1": "Estamos evaluando herramientas para ordenar y revisar diagramas entidad-relación en ERdoc Playground.",
-      "p2": "Primero te haremos unas preguntas breves sobre ti. Después elegirás, entre dos versiones de un mismo diagrama, la que más te gusta, y luego harás tres tareas sobre diagramas ya hechos, usando solo el mouse o el trackpad; tras cada tarea responderás un cuestionario corto sobre lo que usaste.",
-      "p3": "Dura unos 25 minutos. No se registra tu nombre: se guardan tus elecciones, tus respuestas, los diagramas tal como los dejes y el tiempo que tardes.",
-      "p4": "Puedes preguntar o detenerte en cualquier momento."
+      "p1": "El siguiente estudio evalúa herramientas para ordenar y revisar diagramas entidad-relación en ERdoc Playground.",
+      "p2": "El estudio consta de dos fases. Para la primera fase elegirás, entre dos versiones de un mismo diagrama, la que más te gusta. En la segunda fase harás tres tareas sobre diagramas ya hechos. Tras cada tarea responderás un cuestionario corto sobre la herramienta que usaste.",
+      "p3": "El estudio dura unos 25 minutos. No se registra tu nombre y se guardan tus elecciones, tus respuestas, los diagramas tal como los dejes y el tiempo que tardes."
     },
     "pairs": {
-      "title": "¿Cuál te gusta más?",
+      "title": "1. ¿Cuál te gusta más?",
       "intro1": "Verás dos versiones de un mismo diagrama entidad-relación, una al lado de la otra. Las dos muestran el mismo modelo; solo cambia cómo está dibujado.",
       "intro2": "Haz clic en la que más te guste y presiona «Continuar». Aquí no hay respuestas correctas: nos interesa tu opinión.",
       "counter": "Par {n} de {total}",
@@ -254,19 +253,21 @@
       "tools_drawio": "draw.io",
       "tools_erdoc": "ERDoc Playground",
       "tools_other": "Otros",
+      "tools_none": "Ninguna",
       "tools_otherPlaceholder": "¿Cuáles?",
       "erdocFamiliarity": "¿Qué tan familiarizadx estás con ERDoc Playground?",
       "erdocFamiliarity_low": "No sé lo que es",
       "erdocFamiliarity_high": "Sé utilizarlo muy bien"
     },
     "tasksIntro": {
-      "title": "Ahora, las tareas",
-      "p1": "A continuación resolverás tres tareas sobre diagramas ya hechos, usando solo el mouse o el trackpad. En cada una, la instrucción está arriba del diagrama.",
+      "title": "2. Evaluación de herramientas",
+      "p1": "A continuación resolverás tres tareas sobre diagramas ya hechos. Para cada una encontrarás las instrucciones arriba del diagrama.",
       "p2": "Cuando termines una tarea, presiona «Listo»: el diagrama se guardará tal como esté y pasarás a un cuestionario corto sobre lo que usaste.",
-      "p3": "No hay tiempo límite ni respuestas correctas. Si algo no queda claro, pregunta."
+      "p3": "No hay tiempo límite ni respuestas correctas."
     },
     "help": {
       "title": "Atajos",
+      "p1": "Para la siguiente tarea los siguientes atajos serán útiles.",
       "again": "Durante la tarea puedes volver a ver esta lista con el botón ⌨ de arriba a la derecha."
     },
     "task": {

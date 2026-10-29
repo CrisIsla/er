@@ -10,7 +10,6 @@ export const StudyIntro = ({ onStart }: { onStart: () => void }) => {
         <p>{t("intro.p1")}</p>
         <p>{t("intro.p2")}</p>
         <p>{t("intro.p3")}</p>
-        <p>{t("intro.p4")}</p>
       </div>
       <Button
         colorScheme="blue"

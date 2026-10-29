@@ -8,6 +8,7 @@ export const StudyHelp = ({ onDone }: { onDone: () => void }) => {
   return (
     <>
       <h1 className="mb-6 text-3xl font-bold">{t("help.title")}</h1>
+      <p className="mb-4 text-lg leading-relaxed">{t("help.p1")}</p>
       <div className="rounded-md border border-slate-200 bg-white px-5 py-2">
         <ShortcutTable />
       </div>
