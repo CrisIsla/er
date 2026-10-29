@@ -6,6 +6,7 @@ import { toSvg } from "html-to-image";
 import ChenNotation from "../components/ErDiagram/notations/ChenNotation/ChenNotation";
 import { ER } from "../../ERDoc/types/parser/ER";
 import { ErJSON } from "../hooks/useJSON";
+import { withBasePath } from "./basePath";
 
 export const createRelationshipId = (relationship: Relationship): string => {
   // relationships are identified by their name and attributes, so we need all this info to generate a unique ID.
@@ -207,7 +208,7 @@ export const erDocWithoutLocation = (erDoc: ER) => {
 };
 
 export const fetchExample = async (exampleName: string) => {
-  const res = await fetch(`/api/examples/${exampleName}`);
+  const res = await fetch(withBasePath(`/api/examples/${exampleName}`));
   // if res is 404, then the example doesn't exist
   if (res.status === 404) {
     return null;

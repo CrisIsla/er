@@ -10,14 +10,21 @@
 # next to this file.
 #
 # To deploy the study on its own -- nothing else reachable, every other page
-# sent to it -- add STUDY_ONLY=1 to that .env. It is baked in at build time,
-# so changing it means `docker compose up -d --build`.
+# sent to it -- under a path a reverse proxy hands to it, add to that .env:
+#
+#   STUDY_ONLY=1
+#   BASE_PATH=/evaluacion-er
+#
+# and the study is at http://<host>:3000/evaluacion-er/es/study, the sessions
+# at http://<host>:3000/evaluacion-er/api/study?key=<STUDY_KEY>. Both are baked
+# in at build time, so changing them means `docker compose up -d --build`.
 services:
   web:
     build:
       context: .
       args:
         NEXT_PUBLIC_STUDY_ONLY: ${STUDY_ONLY:-}
+        NEXT_PUBLIC_BASE_PATH: ${BASE_PATH:-}
     ports:
       - "3000:3000"
     environment:

@@ -136,6 +136,8 @@ export async function middleware(req: NextRequest) {
 export const config = {
   // Everything but Next's own files and files with an extension (favicon.ico,
   // the study's screenshots). The API and the docs pass straight through
-  // above, unless the build is study-only.
-  matcher: ["/((?!_next|.*\\..*).*)"],
+  // above, unless the build is study-only. "/" is listed on its own because
+  // Next prefixes these with the base path, and the pattern then needs a
+  // slash after it -- which the bare base path, /evaluacion-er, has not.
+  matcher: ["/", "/((?!_next|.*\\..*).*)"],
 };

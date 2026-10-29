@@ -12,6 +12,7 @@ import {
   DiagramSettings,
 } from "../hooks/useDiagramSettings";
 import { ErJSON } from "../hooks/useJSON";
+import { withBasePath } from "./basePath";
 
 /**
  * Whether this build serves the user study alone: every other page and API
@@ -275,7 +276,7 @@ export const usesPngImages = (): boolean => {
 };
 
 export const pairImageUrl = (version: string, png: boolean): string =>
-  `/study/pairs/${PAIR_IMAGES[version]}.${png ? "png" : "svg"}`;
+  withBasePath(`/study/pairs/${PAIR_IMAGES[version]}.${png ? "png" : "svg"}`);
 
 export const SUS_ITEMS = 10;
 
@@ -344,7 +345,7 @@ export const uploadSession = async (
   session: StudySession,
 ): Promise<boolean> => {
   try {
-    const res = await fetch("/api/study", {
+    const res = await fetch(withBasePath("/api/study"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(session),

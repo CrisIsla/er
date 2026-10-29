@@ -24,6 +24,9 @@ const withNextra = require("nextra")({
 });
 
 module.exports = withNextra({
+  // Where the app is served, when not at the site's root -- the study under
+  // /evaluacion-er. The code's own URLs go through util/basePath.ts.
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
   // The Docker image runs the self-contained build (.next/standalone); a
   // plain `next start`, as pm2 runs it, does not want that output, so it is
   // only produced when the Dockerfile asks for it.

@@ -22,10 +22,13 @@ COPY . .
 
 # the self-contained build the runner stage copies (see next.config.js)
 ENV DOCKER_BUILD=1
-# a build that serves the user study alone; baked into the build, see
-# util/study.ts and middleware.ts
+# a build that serves the user study alone (util/study.ts, middleware.ts),
+# and the path it is served under, empty for the root (util/basePath.ts);
+# both are baked into the build
 ARG NEXT_PUBLIC_STUDY_ONLY=
+ARG NEXT_PUBLIC_BASE_PATH=
 ENV NEXT_PUBLIC_STUDY_ONLY=$NEXT_PUBLIC_STUDY_ONLY
+ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
 RUN npm run build:next
 
 # Production image, copy all the files and run next
